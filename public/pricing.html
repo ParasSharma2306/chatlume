@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00a884">
-    <title>Pricing – ChatLume</title>
+    <title>Pricing | ChatLume</title>
     <meta name="description" content="ChatLume is free to use. Upgrade to Pro for advanced analytics and premium features.">
     <meta name="author" content="Paras Sharma">
     <meta name="robots" content="index, follow">
@@ -172,6 +172,7 @@
         <div class="nav-links">
             <a href="/viewer">WhatsApp</a>
             <a href="/instagram-viewer">Instagram</a>
+            <a href="/instagram-analyzer">IG Analyzer</a>
             <a href="/analyzer">Analyzer</a>
             <a href="/pricing">Pricing</a>
             <div class="auth-nav-slot"></div>
@@ -225,7 +226,7 @@
                     <li><i class="ph-fill ph-check-circle check"></i> Early access to new features</li>
                     <li><i class="ph-fill ph-check-circle check"></i> Chat never leaves your device</li>
                 </ul>
-                <a class="plan-cta cta-pro" href="/account">
+                <a class="plan-cta cta-pro" id="pro-cta" href="/account">
                     <i class="ph ph-lightning"></i> Get Pro
                 </a>
             </div>
@@ -240,11 +241,33 @@
     <footer class="landing-footer">
         <div class="footer-grid">
             <div><h4>ChatLume</h4><p>Private. Local. Beautiful.</p></div>
-            <div><h4>Product</h4><a href="/viewer">WhatsApp Viewer</a><a href="/instagram-viewer">Instagram Viewer</a><a href="/analyzer">Analyzer</a><a href="/wrapped">Wrapped</a><a href="/pricing">Pricing</a></div>
+            <div><h4>Product</h4><a href="/viewer">WhatsApp Viewer</a><a href="/instagram-viewer">Instagram Viewer</a><a href="/instagram-analyzer">Instagram Analyzer</a><a href="/analyzer">Analyzer</a><a href="/wrapped">Wrapped</a><a href="/pricing">Pricing</a></div>
             <div><h4>Resources</h4><a href="/how-to-export">How to Export WhatsApp</a><a href="/how-to-export-instagram">How to Export Instagram</a><a href="/how-to-use">How to Use</a><a href="/how-it-works">How it Works</a><a href="/privacy">Privacy</a></div>
             <div><h4>Account</h4><a href="/login">Sign in</a><a href="/signup">Sign up</a><a href="/account">Dashboard</a></div>
         </div>
         <div class="footer-bottom"><p>&copy; 2025 ChatLume. Your chats never leave your device.</p></div>
     </footer>
+    <script>
+        // After auth.js resolves, update Pro CTA based on subscription status
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (!res.ok) return;
+                const user = await res.json();
+                const cta = document.getElementById('pro-cta');
+                if (!cta) return;
+                if (user?.subscription?.status === 'pro') {
+                    cta.innerHTML = '<i class="ph ph-star"></i> You\'re on Pro ✨';
+                    cta.href = '/account';
+                    cta.style.background = 'rgba(0,168,132,0.15)';
+                    cta.style.color = 'var(--primary)';
+                    cta.style.border = '1px solid rgba(0,168,132,0.3)';
+                    cta.style.boxShadow = 'none';
+                } else if (user) {
+                    cta.innerHTML = '<i class="ph ph-lightning"></i> Upgrade to Pro';
+                }
+            } catch {}
+        });
+    </script>
 </body>
 </html>

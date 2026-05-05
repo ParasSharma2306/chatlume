@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#111b21">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>ChatLume – Private Instagram DM Viewer</title>
+    <title>Instagram Viewer | ChatLume</title>
     <meta name="description" content="View Instagram DM exports privately in your browser. No uploads, no server. Open Instagram JSON zip files locally with ChatLume.">
     <meta name="author" content="Paras Sharma">
     <meta name="application-name" content="ChatLume">
@@ -108,6 +108,7 @@
         <a href="/" class="back-home"><i class="ph ph-house"></i> Home</a>
         <div class="nav-links">
             <a href="/viewer">WhatsApp</a>
+            <a href="/instagram-analyzer">Analytics</a>
             <a href="/how-to-export-instagram">How to Export</a>
         </div>
     </nav>
@@ -203,7 +204,10 @@
                     <div class="emoji-grid" id="ig-emoji-grid"></div>
                     <div class="section-label">ACTIVITY BREAKDOWN</div>
                     <div class="stats-list" id="ig-stats-list"></div>
-                    <div style="margin-top:20px;text-align:center">
+                    <div style="margin-top:20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center">
+                        <button type="button" id="ig-open-analyzer-drawer" onclick="igOpenAnalyzer()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(131,58,180,0.15);border:1px solid rgba(193,53,132,0.3);color:var(--text-primary);padding:10px 20px;border-radius:20px;font-weight:600;font-size:14px;cursor:pointer">
+                            <i class="ph ph-chart-bar"></i> Open Full Analytics
+                        </button>
                         <a href="/pricing" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#833AB4,#C13584);color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:600;font-size:14px;box-shadow:0 4px 10px rgba(193,53,132,0.3)">
                             <i class="ph ph-lightning"></i> Upgrade to Pro
                         </a>
@@ -233,6 +237,7 @@
                         <button id="ig-menu-toggle" type="button" aria-label="Open menu"><i class="ph ph-dots-three-vertical"></i></button>
                         <div class="dropdown-menu" id="ig-header-menu">
                             <button type="button" class="menu-item" id="ig-jump-bottom"><i class="ph ph-arrow-down"></i> Jump to Bottom</button>
+                            <button type="button" class="menu-item" id="ig-open-analyzer"><i class="ph ph-chart-bar"></i> Open Full Analytics</button>
                         </div>
                     </div>
                 </div>

@@ -171,6 +171,7 @@ function bindIgUI() {
 
   $ig("ig-open-stats")?.addEventListener("click", () => openIgDrawer("ig-stats"));
   $ig("ig-close-stats")?.addEventListener("click", () => closeIgDrawer("ig-stats"));
+  $ig("ig-open-analyzer")?.addEventListener("click", () => { $ig("ig-header-menu")?.classList.remove("show"); igOpenAnalyzer(); });
 
   $ig("ig-viewport")?.addEventListener("scroll", handleIgViewportScroll);
   $ig("ig-message-list")?.addEventListener("click", handleIgMessageListClick);
@@ -237,7 +238,19 @@ async function initIgViewer() {
     }
   } catch (err) {
     console.error(err);
-    showIgToast(err.message || "Error loading ZIP");
+    const emptyEl = $ig("ig-empty-state");
+    if (emptyEl) {
+      emptyEl.innerHTML = `
+        <div class="illustration"><i class="ph-duotone ph-warning-circle" style="color:#f5a623"></i></div>
+        <h2 style="color:var(--text-primary)">Couldn't load this file</h2>
+        <p style="max-width:300px">${escIg(err.message || "Make sure it's a valid Instagram JSON export ZIP.")}</p>
+        <a href="/how-to-export-instagram" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#C13584;text-decoration:none">
+          <i class="ph ph-question"></i> How to export Instagram DMs
+        </a>`;
+      emptyEl.classList.remove("hidden");
+    } else {
+      showIgToast(err.message || "Error loading ZIP");
+    }
     setIgLoading(false);
   }
 }
@@ -371,7 +384,19 @@ async function loadIgThread(thread) {
 
   } catch (err) {
     console.error(err);
-    showIgToast(err.message || "Error parsing thread");
+    const emptyEl = $ig("ig-empty-state");
+    if (emptyEl) {
+      emptyEl.innerHTML = `
+        <div class="illustration"><i class="ph-duotone ph-warning-circle" style="color:#f5a623"></i></div>
+        <h2 style="color:var(--text-primary)">Couldn't parse this file</h2>
+        <p style="max-width:300px">${escIg(err.message || "Make sure it's a valid Instagram JSON export ZIP.")}</p>
+        <a href="/how-to-export-instagram" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#C13584;text-decoration:none">
+          <i class="ph ph-question"></i> How to export Instagram DMs
+        </a>`;
+      emptyEl.classList.remove("hidden");
+    } else {
+      showIgToast(err.message || "Error parsing thread");
+    }
   } finally {
     setIgLoading(false);
   }
@@ -869,6 +894,39 @@ function generateIgStats() {
     grid.innerHTML = top.length
       ? top.map(([e, c]) => `<div class="emoji-item"><span class="emoji-char">${e}</span><span class="emoji-count">${c.toLocaleString()}</span></div>`).join("")
       : `<p style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--text-secondary)">No emojis found.</p>`;
+  }
+}
+
+// ── Analytics export ─────────────────────────────────────────────────────────
+function igOpenAnalyzer() {
+  const msgs = igState.messages.filter(m => m.type === "msg");
+  if (!msgs.length) { showIgToast("Load a conversation first."); return; }
+
+  const slim = msgs.map(m => ({
+    sender:     m.sender,
+    ts:         m.ts,
+    content:    m.text || "",
+    hasPhoto:   m.mediaItems.some(i => i.kind === "image"),
+    hasVideo:   m.mediaItems.some(i => i.kind === "video"),
+    hasAudio:   m.mediaItems.some(i => i.kind === "audio"),
+    hasSticker: m.mediaItems.some(i => i.kind === "sticker"),
+    reactions:  m.reactions || []
+  }));
+
+  const participants = [...new Set(slim.map(m => m.sender))];
+  const firstTs = slim[0]?.ts || Date.now();
+  const lastTs  = slim[slim.length - 1]?.ts || Date.now();
+
+  try {
+    sessionStorage.setItem("instagramAnalyzerData", JSON.stringify({
+      chatName: igState.chatTitle,
+      participants,
+      messages: slim,
+      dateRange: { first: firstTs, last: lastTs }
+    }));
+    window.open("/instagram-analyzer", "_blank");
+  } catch {
+    showIgToast("Unable to open analytics (data may be too large).");
   }
 }
 

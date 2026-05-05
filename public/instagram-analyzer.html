@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00a884">
+    <title>Instagram Wrapped | ChatLume</title>
+    <meta name="description" content="View Instagram DM analytics and download a shareable Wrapped card. Private, local, no uploads.">
+    <meta name="author" content="Paras Sharma">
+    <meta name="application-name" content="ChatLume">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://chatlume.parassharma.in/instagram-analyzer">
+    <meta property="og:site_name" content="ChatLume">
+    <meta property="og:title" content="Instagram Analytics – ChatLume">
+    <meta property="og:description" content="View Instagram DM stats and download a shareable Wrapped card.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chatlume.parassharma.in/instagram-analyzer">
+    <meta property="og:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <meta name="twitter:card" content="summary">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../assets/icon-192.png">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="../js/auth.js" defer></script>
+    <script defer src="https://umami-production-6ac3.up.railway.app/script.js" data-website-id="1d5bfab3-abe3-4c0b-a912-9f2c50d022ad"></script>
+    <style>
+        .ia-page { max-width: 900px; margin: 56px auto; padding: 0 20px 80px; }
+
+        /* ── header ── */
+        .ia-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+        }
+        .ia-eyebrow {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            background: linear-gradient(135deg,#833AB4,#C13584,#E1306C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .ia-title { font-size: 34px; font-weight: 800; margin-bottom: 4px; }
+        .ia-subtitle { font-size: 14px; color: var(--text-secondary); }
+        .ia-header-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; margin-top: 4px; }
+
+        /* ── summary bar ── */
+        .ia-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        .ia-sum-stat {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 16px;
+            text-align: center;
+        }
+        .ia-sum-val {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg,#833AB4,#E1306C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ia-sum-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+
+        /* ── stat cards ── */
+        .ia-card {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .ia-card-head { margin-bottom: 18px; }
+        .ia-card-title { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+        .ia-card-sub { font-size: 13px; color: var(--text-secondary); }
+
+        /* ── charts ── */
+        .ia-chart-wrap { width: 100%; overflow: hidden; }
+        .ia-chart-wrap canvas { display: block; width: 100%; }
+
+        /* ── senders ── */
+        .ia-sender-row { margin-bottom: 14px; }
+        .ia-sender-row:last-child { margin-bottom: 0; }
+        .ia-sender-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .ia-sender-name { font-size: 14px; font-weight: 600; }
+        .ia-sender-count { font-size: 13px; color: var(--text-secondary); }
+        .ia-sender-track {
+            height: 8px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .ia-sender-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #833AB4, #E1306C);
+            border-radius: 4px;
+            transition: width .6s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── pro sections ── */
+        .ia-pro-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .ia-pro-section { position: relative; overflow: hidden; }
+        .ia-pro-content { pointer-events: none; user-select: none; }
+        .ia-pro-section.unlocked .ia-pro-content { pointer-events: auto; user-select: auto; filter: none !important; }
+        .ia-pro-section.unlocked .ia-pro-overlay { display: none; }
+
+        .ia-pro-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(11,20,26,0.72);
+            backdrop-filter: blur(3px);
+            border-radius: 18px;
+            z-index: 2;
+        }
+        .ia-pro-overlay i { font-size: 28px; background: linear-gradient(135deg,#833AB4,#E1306C); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .ia-pro-overlay-title { font-size: 16px; font-weight: 700; }
+        .ia-pro-overlay-sub { font-size: 12px; color: var(--text-secondary); text-align: center; max-width: 160px; line-height: 1.4; }
+        .ia-pro-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 4px;
+            background: linear-gradient(135deg,#833AB4,#C13584);
+            color: #fff;
+            padding: 9px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(193,53,132,0.3);
+        }
+
+        /* ── words ── */
+        .ia-words-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+        .ia-word-chip {
+            background: rgba(131,58,180,0.12);
+            border: 1px solid rgba(193,53,132,0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ia-word-chip span { font-size: 11px; color: var(--text-secondary); }
+
+        /* ── emojis ── */
+        .ia-emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        .ia-emoji-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-input);
+            border-radius: 12px;
+            padding: 10px 4px;
+        }
+        .ia-emoji-char { font-size: 26px; line-height: 1; }
+        .ia-emoji-count { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+
+        /* ── reactions ── */
+        .ia-reaction-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .ia-reaction-table th {
+            text-align: left;
+            padding: 0 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text-muted);
+        }
+        .ia-reaction-table td { padding: 7px 0; border-top: 1px solid var(--border); color: var(--text-secondary); }
+        .ia-reaction-table td:first-child { color: var(--text-primary); font-weight: 600; }
+        .ia-react-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+        .ia-react-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-input);
+            border-radius: 10px;
+            padding: 2px 7px;
+            font-size: 13px;
+        }
+        .ia-react-pill small { font-size: 10px; color: var(--text-secondary); }
+
+        /* ── media breakdown ── */
+        .ia-media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .ia-media-tile {
+            background: var(--bg-input);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ia-media-icon { font-size: 24px; color: #C13584; flex-shrink: 0; }
+        .ia-media-val { font-size: 22px; font-weight: 800; background: linear-gradient(135deg,#833AB4,#E1306C); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .ia-media-lbl { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* ── error state ── */
+        .ia-error {
+            max-width: 480px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .ia-error i { font-size: 56px; background: linear-gradient(135deg,#833AB4,#E1306C); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .ia-error h2 { font-size: 22px; font-weight: 700; margin: 16px 0 8px; }
+        .ia-error p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+
+        /* ── download section ── */
+        .ia-download-section {
+            text-align: center;
+            padding: 40px 0 0;
+            border-top: 1px solid var(--border);
+            margin-top: 12px;
+        }
+        .ia-download-hint { font-size: 13px; color: var(--text-secondary); margin-top: 8px; }
+
+        /* ── light theme sender track ── */
+        body.light-theme .ia-sender-track { background: rgba(0,0,0,0.06); }
+
+        /* ── responsive ── */
+        @media (max-width: 680px) {
+            .ia-summary { grid-template-columns: repeat(2, 1fr); }
+            .ia-pro-grid { grid-template-columns: 1fr; }
+            .ia-header { flex-direction: column; }
+            .ia-title { font-size: 26px; }
+            .ia-emoji-grid { grid-template-columns: repeat(4, 1fr); }
+            .ia-page { margin-top: 20px; }
+        }
+        @media (max-width: 480px) {
+            .ia-summary { grid-template-columns: 1fr 1fr; }
+            #ia-dl-top { display: none; }
+            #ia-dl-bottom { width: 100%; justify-content: center; }
+            .ia-download-section { padding: 32px 0 0; }
+            .ia-header-actions { width: 100%; }
+            .ia-header-actions a { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body class="page-layout">
+    <nav class="landing-nav">
+        <a class="logo" href="/" style="text-decoration:none"><i class="ph-fill ph-chat-teardrop-text"></i> ChatLume</a>
+        <div class="nav-links">
+            <a href="/viewer">WhatsApp</a>
+            <a href="/instagram-viewer">Instagram</a>
+            <a href="/instagram-analyzer">IG Analyzer</a>
+            <a href="/pricing">Pricing</a>
+            <div class="auth-nav-slot"></div>
+        </div>
+    </nav>
+
+    <!-- Loading state -->
+    <div id="ia-loading" class="page-spinner">
+        <div class="spin-ring" style="border-top-color:#C13584"></div>
+        <span>Crunching your stats…</span>
+    </div>
+
+    <!-- Error state -->
+    <div id="ia-err" class="ia-error" hidden>
+        <i class="ph-duotone ph-instagram-logo"></i>
+        <h2>No analytics data found</h2>
+        <p>Open this page from the Instagram viewer — load your DMs, then click <strong>Open Full Analytics</strong> in the header menu.</p>
+        <a href="/instagram-viewer" class="btn-primary" style="display:inline-flex;align-items:center;gap:7px">
+            <i class="ph ph-instagram-logo"></i> Open Instagram Viewer
+        </a>
+    </div>
+
+    <!-- Main analytics -->
+    <div id="ia-main" class="ia-page" hidden>
+        <!-- Header -->
+        <div class="ia-header">
+            <div>
+                <p class="ia-eyebrow"><i class="ph ph-instagram-logo"></i> Instagram Analytics</p>
+                <h1 class="ia-title" id="ia-chat-name">Loading…</h1>
+                <p class="ia-subtitle" id="ia-date-range"></p>
+            </div>
+            <div class="ia-header-actions">
+                <a href="/instagram-viewer" class="btn-secondary" style="display:inline-flex;align-items:center;gap:6px;font-size:13px">
+                    <i class="ph ph-arrow-left"></i> Back
+                </a>
+                <button id="ia-dl-top" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;font-size:13px">
+                    <i class="ph ph-download-simple"></i> Download Card
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary row -->
+        <div class="ia-summary">
+            <div class="ia-sum-stat">
+                <div class="ia-sum-val" id="ia-sum-total">–</div>
+                <div class="ia-sum-label">Messages</div>
+            </div>
+            <div class="ia-sum-stat">
+                <div class="ia-sum-val" id="ia-sum-days">–</div>
+                <div class="ia-sum-label">Active Days</div>
+            </div>
+            <div class="ia-sum-stat">
+                <div class="ia-sum-val" id="ia-sum-media">–</div>
+                <div class="ia-sum-label">Media Sent</div>
+            </div>
+            <div class="ia-sum-stat">
+                <div class="ia-sum-val" id="ia-sum-top" style="font-size:18px">–</div>
+                <div class="ia-sum-label">Top Sender</div>
+            </div>
+        </div>
+
+        <!-- Hourly Activity (free) -->
+        <div class="ia-card" id="sec-hourly">
+            <div class="ia-card-head">
+                <h2 class="ia-card-title">Hourly Activity</h2>
+                <p class="ia-card-sub" id="ia-hourly-sub">Messages by hour of day</p>
+            </div>
+            <div class="ia-chart-wrap">
+                <canvas id="chart-hourly"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly Activity (free) -->
+        <div class="ia-card" id="sec-monthly">
+            <div class="ia-card-head">
+                <h2 class="ia-card-title">Monthly Activity</h2>
+                <p class="ia-card-sub" id="ia-monthly-sub">Messages per month</p>
+            </div>
+            <div class="ia-chart-wrap">
+                <canvas id="chart-monthly"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Senders (free) -->
+        <div class="ia-card" id="sec-senders">
+            <div class="ia-card-head">
+                <h2 class="ia-card-title">Top Senders</h2>
+                <p class="ia-card-sub">Who messages the most</p>
+            </div>
+            <div id="ia-senders-list"></div>
+        </div>
+
+        <!-- Pro sections grid -->
+        <div class="ia-pro-grid">
+            <!-- Top Words -->
+            <div class="ia-card ia-pro-section" id="sec-words">
+                <div class="ia-pro-content" style="filter:blur(5px)">
+                    <div class="ia-card-head">
+                        <h2 class="ia-card-title">Top Words</h2>
+                        <p class="ia-card-sub">Most used words</p>
+                    </div>
+                    <div id="ia-words-list" class="ia-words-grid"></div>
+                </div>
+                <div class="ia-pro-overlay">
+                    <i class="ph-fill ph-lock-simple"></i>
+                    <div class="ia-pro-overlay-title">Pro Feature</div>
+                    <div class="ia-pro-overlay-sub">Word frequency analysis</div>
+                    <a href="/pricing" class="ia-pro-btn"><i class="ph ph-lightning"></i> Upgrade to Pro</a>
+                </div>
+            </div>
+
+            <!-- Top Emojis -->
+            <div class="ia-card ia-pro-section" id="sec-emojis">
+                <div class="ia-pro-content" style="filter:blur(5px)">
+                    <div class="ia-card-head">
+                        <h2 class="ia-card-title">Top Emojis</h2>
+                        <p class="ia-card-sub">Favourite emojis used</p>
+                    </div>
+                    <div id="ia-emojis-grid" class="ia-emoji-grid"></div>
+                </div>
+                <div class="ia-pro-overlay">
+                    <i class="ph-fill ph-lock-simple"></i>
+                    <div class="ia-pro-overlay-title">Pro Feature</div>
+                    <div class="ia-pro-overlay-sub">Emoji frequency analysis</div>
+                    <a href="/pricing" class="ia-pro-btn"><i class="ph ph-lightning"></i> Upgrade to Pro</a>
+                </div>
+            </div>
+
+            <!-- Reactions -->
+            <div class="ia-card ia-pro-section" id="sec-reactions">
+                <div class="ia-pro-content" style="filter:blur(5px)">
+                    <div class="ia-card-head">
+                        <h2 class="ia-card-title">Reactions</h2>
+                        <p class="ia-card-sub">Who reacted with what</p>
+                    </div>
+                    <div id="ia-reactions-content"></div>
+                </div>
+                <div class="ia-pro-overlay">
+                    <i class="ph-fill ph-lock-simple"></i>
+                    <div class="ia-pro-overlay-title">Pro Feature</div>
+                    <div class="ia-pro-overlay-sub">Reaction breakdown</div>
+                    <a href="/pricing" class="ia-pro-btn"><i class="ph ph-lightning"></i> Upgrade to Pro</a>
+                </div>
+            </div>
+
+            <!-- Media Breakdown -->
+            <div class="ia-card ia-pro-section" id="sec-media">
+                <div class="ia-pro-content" style="filter:blur(5px)">
+                    <div class="ia-card-head">
+                        <h2 class="ia-card-title">Media Breakdown</h2>
+                        <p class="ia-card-sub">Photos, videos, audio, stickers</p>
+                    </div>
+                    <div id="ia-media-content" class="ia-media-grid"></div>
+                </div>
+                <div class="ia-pro-overlay">
+                    <i class="ph-fill ph-lock-simple"></i>
+                    <div class="ia-pro-overlay-title">Pro Feature</div>
+                    <div class="ia-pro-overlay-sub">Media type analysis</div>
+                    <a href="/pricing" class="ia-pro-btn"><i class="ph ph-lightning"></i> Upgrade to Pro</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download section -->
+        <div class="ia-download-section">
+            <button id="ia-dl-bottom" class="btn-primary" style="font-size:15px;padding:13px 30px;display:inline-flex;align-items:center;gap:8px">
+                <i class="ph ph-download-simple"></i> Download Wrapped Card
+            </button>
+            <p class="ia-download-hint">1080 × 1920 PNG · Perfect for Instagram Stories</p>
+        </div>
+    </div>
+
+    <!-- Off-screen canvas for wrapped card generation -->
+    <canvas id="ia-canvas" width="1080" height="1920" style="display:none;position:absolute;top:-9999px"></canvas>
+
+    <footer class="landing-footer">
+        <div class="footer-grid">
+            <div><h4>ChatLume</h4><p>Private. Local. Beautiful.</p></div>
+            <div><h4>Product</h4><a href="/viewer">WhatsApp Viewer</a><a href="/instagram-viewer">Instagram Viewer</a><a href="/instagram-analyzer">Instagram Analyzer</a><a href="/analyzer">Analyzer</a><a href="/wrapped">Wrapped</a><a href="/pricing">Pricing</a></div>
+            <div><h4>Resources</h4><a href="/how-to-export">How to Export WhatsApp</a><a href="/how-to-export-instagram">How to Export Instagram</a><a href="/how-to-use">How to Use</a><a href="/how-it-works">How it Works</a><a href="/privacy">Privacy</a></div>
+            <div><h4>Account</h4><a href="/login">Sign in</a><a href="/signup">Sign up</a><a href="/account">Dashboard</a></div>
+        </div>
+        <div class="footer-bottom"><p>&copy; 2025 ChatLume. Your chats never leave your device.</p></div>
+    </footer>
+
+    <script>
+    (function () {
+        "use strict";
+
+        // ── Helpers ──────────────────────────────────────────────────────────────
+        const $id = (id) => document.getElementById(id);
+        const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const fmt = (n) => Number(n).toLocaleString();
+
+        // ── Boot ─────────────────────────────────────────────────────────────────
+        let _cachedStats = null;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const spinner = $id("ia-loading");
+
+            // Check Pro status
+            let isPro = false;
+            try {
+                const res = await fetch("/api/auth/me");
+                if (res.ok) {
+                    const user = await res.json();
+                    isPro = user?.subscription?.status === "pro";
+                }
+            } catch {}
+
+            // Load data
+            let iaData;
+            try {
+                const raw = sessionStorage.getItem("instagramAnalyzerData");
+                if (!raw) throw new Error("no data");
+                iaData = JSON.parse(raw);
+                if (!iaData?.messages?.length) throw new Error("empty");
+            } catch {
+                spinner.hidden = true;
+                $id("ia-err").hidden = false;
+                return;
+            }
+
+            const msgs = iaData.messages;
+
+            // Compute all stats
+            const stats = {
+                chatName:    iaData.chatName || "Instagram DMs",
+                total:       msgs.length,
+                activeDays:  computeActiveDays(msgs),
+                totalMedia:  msgs.filter(m => m.hasPhoto || m.hasVideo || m.hasAudio || m.hasSticker).length,
+                dateLabel:   getDateLabel(msgs),
+                senders:     computeSenders(msgs),
+                hourly:      computeHourly(msgs),
+                monthly:     computeMonthly(msgs),
+                words:       computeWords(msgs),
+                emojis:      computeEmojis(msgs),
+                reactions:   computeReactions(msgs),
+                media:       computeMedia(msgs),
+            };
+            _cachedStats = stats;
+
+            // Fill header
+            $id("ia-chat-name").textContent = stats.chatName;
+            $id("ia-date-range").textContent = `${stats.dateLabel} · ${fmt(stats.total)} messages`;
+
+            // Fill summary
+            $id("ia-sum-total").textContent = fmt(stats.total);
+            $id("ia-sum-days").textContent  = fmt(stats.activeDays);
+            $id("ia-sum-media").textContent = fmt(stats.totalMedia);
+            const topSender = stats.senders[0];
+            if (topSender) {
+                const name = topSender[0];
+                $id("ia-sum-top").textContent = name.length > 14 ? name.slice(0, 13) + "…" : name;
+            }
+
+            // Render free sections
+            renderHourly(stats.hourly);
+            renderMonthly(stats.monthly);
+            renderSenders(stats.senders, stats.total);
+
+            // Render Pro sections (always render content; overlay hides it for free users)
+            renderWords(stats.words);
+            renderEmojis(stats.emojis);
+            renderReactions(stats.reactions);
+            renderMedia(stats.media);
+
+            // Unlock Pro sections if user is Pro
+            if (isPro) {
+                document.querySelectorAll(".ia-pro-section").forEach(el => el.classList.add("unlocked"));
+                document.querySelectorAll(".ia-pro-content").forEach(el => { el.style.filter = ""; });
+            }
+
+            // Download button handlers
+            const doDownload = () => downloadCard(stats, isPro);
+            $id("ia-dl-top").addEventListener("click", doDownload);
+            $id("ia-dl-bottom").addEventListener("click", doDownload);
+
+            spinner.hidden = true;
+            $id("ia-main").hidden = false;
+        });
+
+        // Redraw charts on resize
+        let _resizeTimer;
+        window.addEventListener("resize", () => {
+            clearTimeout(_resizeTimer);
+            _resizeTimer = setTimeout(() => {
+                if (!_cachedStats) return;
+                renderHourly(_cachedStats.hourly);
+                renderMonthly(_cachedStats.monthly);
+            }, 200);
+        });
+
+        // ── Computation ──────────────────────────────────────────────────────────
+        function computeActiveDays(msgs) {
+            const s = new Set();
+            msgs.forEach(m => s.add(new Date(m.ts).toISOString().slice(0, 10)));
+            return s.size;
+        }
+
+        function getDateLabel(msgs) {
+            if (!msgs.length) return "";
+            const first = new Date(msgs[0].ts);
+            const last  = new Date(msgs[msgs.length - 1].ts);
+            const o = { month: "short", year: "numeric" };
+            const fs = first.toLocaleDateString(undefined, o);
+            const ls = last.toLocaleDateString(undefined, o);
+            return fs === ls ? fs : `${fs} – ${ls}`;
+        }
+
+        function computeHourly(msgs) {
+            const h = new Array(24).fill(0);
+            msgs.forEach(m => h[new Date(m.ts).getHours()]++);
+            return h;
+        }
+
+        function computeMonthly(msgs) {
+            const c = {};
+            msgs.forEach(m => {
+                const d = new Date(m.ts);
+                const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                c[k] = (c[k] || 0) + 1;
+            });
+            return Object.entries(c).sort();
+        }
+
+        function computeSenders(msgs) {
+            const c = {};
+            msgs.forEach(m => { c[m.sender] = (c[m.sender] || 0) + 1; });
+            return Object.entries(c).sort((a, b) => b[1] - a[1]);
+        }
+
+        function computeWords(msgs) {
+            const STOP = new Set(["the","a","an","and","or","but","in","on","at","to","for","of","with","is","it","i","you","me","my","your","this","that","was","are","be","been","have","has","do","did","not","no","so","if","as","by","from","up","out","we","he","she","they","him","her","its","our","their","what","which","who","when","where","how","all","will","would","could","should","just","like","can","get","got","go","know","think","want","see","said","say","come","came","take","now","then","than","here","there","more","some","also","about","after","before","over","under","much","many","most","first","last","new","good","great","old","own","same","such","too","very","well","back","still","way","never","always","maybe","yeah","yes","okay","ok","lol","lmao","haha","omg"]);
+            const c = {};
+            msgs.forEach(m => {
+                if (!m.content) return;
+                const words = m.content.toLowerCase().match(/\b[a-z']{3,}\b/g) || [];
+                words.forEach(w => { if (!STOP.has(w)) c[w] = (c[w] || 0) + 1; });
+            });
+            return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 40);
+        }
+
+        function computeEmojis(msgs) {
+            const c = {};
+            const re = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu;
+            msgs.forEach(m => {
+                if (!m.content) return;
+                (m.content.match(re) || []).forEach(e => { c[e] = (c[e] || 0) + 1; });
+            });
+            return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 24);
+        }
+
+        function computeReactions(msgs) {
+            const given = {}, received = {}, byEmoji = {};
+            msgs.forEach(m => {
+                (m.reactions || []).forEach(r => {
+                    if (!given[r.actor]) given[r.actor] = {};
+                    given[r.actor][r.reaction] = (given[r.actor][r.reaction] || 0) + 1;
+                    received[m.sender] = (received[m.sender] || 0) + 1;
+                    byEmoji[r.reaction] = (byEmoji[r.reaction] || 0) + 1;
+                });
+            });
+            return { given, received, byEmoji };
+        }
+
+        function computeMedia(msgs) {
+            let photos = 0, videos = 0, audio = 0, stickers = 0;
+            msgs.forEach(m => {
+                if (m.hasPhoto)   photos++;
+                if (m.hasVideo)   videos++;
+                if (m.hasAudio)   audio++;
+                if (m.hasSticker) stickers++;
+            });
+            return { photos, videos, audio, stickers };
+        }
+
+        // ── Chart drawing ────────────────────────────────────────────────────────
+        function setupCanvas(canvas, logicalW, logicalH) {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width  = logicalW * dpr;
+            canvas.height = logicalH * dpr;
+            canvas.style.width  = logicalW + "px";
+            canvas.style.height = logicalH + "px";
+            const ctx = canvas.getContext("2d");
+            ctx.scale(dpr, dpr);
+            return ctx;
+        }
+
+        function drawBarChart(canvas, values, xLabels) {
+            const W = canvas.offsetWidth || 600;
+            const H = 110;
+            const ctx = setupCanvas(canvas, W, H);
+
+            const padL = 4, padR = 4, padT = 8, padB = 20;
+            const cW = W - padL - padR;
+            const cH = H - padT - padB;
+            const max = Math.max(...values, 1);
+            const n = values.length;
+            const slot = cW / n;
+            const gap = Math.max(1, slot * 0.18);
+            const bw = Math.max(1, slot - gap);
+
+            for (let i = 0; i < n; i++) {
+                const bh = (values[i] / max) * cH;
+                const x = padL + i * slot + gap / 2;
+                const y = padT + cH - bh;
+
+                if (bh < 1) {
+                    ctx.fillStyle = "rgba(255,255,255,0.06)";
+                    ctx.fillRect(x, padT + cH - 3, bw, 3);
+                    continue;
+                }
+
+                const gr = ctx.createLinearGradient(x, y, x, y + bh);
+                gr.addColorStop(0, "#C13584");
+                gr.addColorStop(1, "#833AB4");
+                ctx.fillStyle = gr;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(x, y, bw, bh, [3, 3, 0, 0]);
+                else ctx.rect(x, y, bw, bh);
+                ctx.fill();
+            }
+
+            // x-axis labels
+            if (xLabels) {
+                const isDark = !document.body.classList.contains("light-theme");
+                ctx.fillStyle = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)";
+                ctx.font = "10px system-ui, -apple-system, sans-serif";
+                ctx.textAlign = "center";
+                const step = Math.max(1, Math.ceil(n / 8));
+                for (let i = 0; i < n; i += step) {
+                    ctx.fillText(String(xLabels[i]), padL + i * slot + slot / 2, H - 4);
+                }
+            }
+        }
+
+        // ── Free renderers ───────────────────────────────────────────────────────
+        function renderHourly(hourly) {
+            const peak = hourly.indexOf(Math.max(...hourly));
+            $id("ia-hourly-sub").textContent = `Peak activity at ${peak}:00`;
+            const canvas = $id("chart-hourly");
+            setTimeout(() => drawBarChart(canvas, hourly, Array.from({length: 24}, (_, i) => i)), 50);
+        }
+
+        function renderMonthly(monthly) {
+            const peak = monthly.reduce((best, cur) => cur[1] > best[1] ? cur : best, monthly[0] || ["–", 0]);
+            const peakLabel = peak ? peak[0].replace("-", "/") : "–";
+            $id("ia-monthly-sub").textContent = `Most active month: ${peakLabel} (${fmt(peak?.[1] || 0)} messages)`;
+            const canvas = $id("chart-monthly");
+            const values = monthly.map(e => e[1]);
+            const labels = monthly.map(e => {
+                const [y, mo] = e[0].split("-");
+                return `${mo}/${y.slice(2)}`;
+            });
+            setTimeout(() => drawBarChart(canvas, values, labels), 50);
+        }
+
+        function renderSenders(senders, total) {
+            const el = $id("ia-senders-list");
+            if (!senders.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary)">No sender data.</p>'; return; }
+            const max = senders[0][1];
+            el.innerHTML = senders.map(([name, count]) => {
+                const pct = total ? ((count / total) * 100).toFixed(1) : "0";
+                const barPct = max ? ((count / max) * 100).toFixed(1) : "0";
+                return `
+                <div class="ia-sender-row">
+                    <div class="ia-sender-meta">
+                        <span class="ia-sender-name">${esc(name)}</span>
+                        <span class="ia-sender-count">${pct}% &middot; ${fmt(count)}</span>
+                    </div>
+                    <div class="ia-sender-track">
+                        <div class="ia-sender-fill" style="width:${barPct}%"></div>
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        // ── Pro renderers ────────────────────────────────────────────────────────
+        function renderWords(words) {
+            const el = $id("ia-words-list");
+            if (!words.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary)">No words to analyse.</p>'; return; }
+            el.innerHTML = words.slice(0, 30).map(([w, c]) =>
+                `<div class="ia-word-chip">${esc(w)}<span>${fmt(c)}</span></div>`
+            ).join("");
+        }
+
+        function renderEmojis(emojis) {
+            const el = $id("ia-emojis-grid");
+            if (!emojis.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);grid-column:1/-1">No emojis found.</p>'; return; }
+            el.innerHTML = emojis.map(([e, c]) =>
+                `<div class="ia-emoji-item"><span class="ia-emoji-char">${e}</span><span class="ia-emoji-count">${c.toLocaleString()}</span></div>`
+            ).join("");
+        }
+
+        function renderReactions(reactions) {
+            const el = $id("ia-reactions-content");
+            const givenEntries = Object.entries(reactions.given);
+            const receivedEntries = Object.entries(reactions.received).sort((a, b) => b[1] - a[1]);
+
+            if (!givenEntries.length) {
+                el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary)">No reactions found.</p>';
+                return;
+            }
+
+            const topEmojis = Object.entries(reactions.byEmoji).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+            let html = `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">TOP REACTIONS</div>`;
+            html += `<div style="display:flex;flex-wrap:wrap;gap:7px">`;
+            html += topEmojis.map(([e, c]) => `<div class="ia-word-chip" style="font-size:18px">${e}<span>${fmt(c)}</span></div>`).join("");
+            html += `</div></div>`;
+
+            if (receivedEntries.length) {
+                html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:10px">MOST REACTED TO</div>`;
+                html += `<table class="ia-reaction-table">`;
+                html += receivedEntries.map(([name, c]) =>
+                    `<tr><td>${esc(name)}</td><td style="text-align:right">${fmt(c)} reactions</td></tr>`
+                ).join("");
+                html += `</table>`;
+            }
+
+            el.innerHTML = html;
+        }
+
+        function renderMedia(media) {
+            const el = $id("ia-media-content");
+            const items = [
+                { icon: "ph-image",       label: "Photos",   val: media.photos },
+                { icon: "ph-video",       label: "Videos",   val: media.videos },
+                { icon: "ph-waveform",    label: "Audio",    val: media.audio },
+                { icon: "ph-sticker",     label: "Stickers", val: media.stickers }
+            ];
+            el.innerHTML = items.map(item => `
+                <div class="ia-media-tile">
+                    <i class="ph-fill ${item.icon} ia-media-icon"></i>
+                    <div>
+                        <div class="ia-media-val">${fmt(item.val)}</div>
+                        <div class="ia-media-lbl">${item.label}</div>
+                    </div>
+                </div>`
+            ).join("");
+        }
+
+        // ── Wrapped Card ─────────────────────────────────────────────────────────
+        function downloadCard(stats, isPro) {
+            const btn = $id("ia-dl-bottom");
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph ph-circle-notch" style="animation:spin .8s linear infinite"></i> Generating…';
+            btn.disabled = true;
+
+            // Give the browser a frame to update the button state before blocking canvas work
+            requestAnimationFrame(() => {
+                try {
+                    const canvas = $id("ia-canvas");
+                    drawCard(canvas, stats, isPro);
+                    canvas.toBlob(blob => {
+                        if (!blob) { alert("Failed to generate image."); return; }
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `chatlume-${(stats.chatName || "instagram").replace(/[^a-z0-9]/gi, "_").toLowerCase()}-wrapped.png`;
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 5000);
+                    }, "image/png");
+                } finally {
+                    btn.innerHTML = origText;
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        function drawCard(canvas, stats, isPro) {
+            const W = 1080, H = 1920;
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext("2d");
+
+            // Background
+            ctx.fillStyle = "#0B141A";
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle dot grid
+            ctx.fillStyle = "rgba(255,255,255,0.025)";
+            for (let x = 40; x < W; x += 60) {
+                for (let y = 40; y < H; y += 60) {
+                    ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            // Top gradient header
+            const topGr = ctx.createLinearGradient(0, 0, W, 0);
+            topGr.addColorStop(0, "#833AB4");
+            topGr.addColorStop(0.5, "#C13584");
+            topGr.addColorStop(1, "#E1306C");
+            ctx.fillStyle = topGr;
+            ctx.fillRect(0, 0, W, 220);
+
+            const fadeTop = ctx.createLinearGradient(0, 170, 0, 220);
+            fadeTop.addColorStop(0, "rgba(11,20,26,0)");
+            fadeTop.addColorStop(1, "rgba(11,20,26,1)");
+            ctx.fillStyle = fadeTop;
+            ctx.fillRect(0, 170, W, 50);
+
+            // ChatLume logo
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 54px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.fillText("ChatLume", W / 2, 106);
+            ctx.font = "30px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
+            ctx.fillText("Instagram Wrapped", W / 2, 160);
+
+            // Chat name
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 70px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            const displayName = stats.chatName.length > 18 ? stats.chatName.slice(0, 17) + "…" : stats.chatName;
+            ctx.fillText(displayName, W / 2, 340);
+
+            // Date range
+            ctx.font = "30px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.fillStyle = "rgba(255,255,255,0.45)";
+            ctx.fillText(stats.dateLabel, W / 2, 400);
+
+            // ── 4 stat boxes ──
+            const boxW = 460, boxH = 160, boxGap = 40;
+            const boxStartX = (W - boxW * 2 - boxGap) / 2;
+            const boxStartY = 460;
+
+            const statItems = [
+                { val: fmt(stats.total),      label: "Messages" },
+                { val: fmt(stats.activeDays), label: "Active Days" },
+                { val: fmt(stats.totalMedia), label: "Media Sent" },
+                { val: (stats.senders[0]?.[0] || "–").slice(0, 14), label: "Top Sender" }
+            ];
+
+            statItems.forEach((item, i) => {
+                const col = i % 2, row = Math.floor(i / 2);
+                const bx = boxStartX + col * (boxW + boxGap);
+                const by = boxStartY + row * (boxH + 24);
+
+                ctx.fillStyle = "rgba(255,255,255,0.055)";
+                cardRect(ctx, bx, by, boxW, boxH, 20); ctx.fill();
+                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.lineWidth = 1;
+                cardRect(ctx, bx, by, boxW, boxH, 20); ctx.stroke();
+
+                const vGr = ctx.createLinearGradient(bx, by, bx + boxW, by);
+                vGr.addColorStop(0, "#C13584"); vGr.addColorStop(1, "#833AB4");
+                ctx.fillStyle = vGr;
+                ctx.font = "bold 52px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(item.val, bx + boxW / 2, by + 80);
+
+                ctx.fillStyle = "rgba(255,255,255,0.4)";
+                ctx.font = "26px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+                ctx.fillText(item.label, bx + boxW / 2, by + boxH - 22);
+            });
+
+            // ── Hourly Activity ──
+            const hourY = boxStartY + 2 * (boxH + 24) + 70;
+
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            ctx.font = "700 24px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("HOURLY ACTIVITY", 80, hourY);
+
+            const peak = stats.hourly.indexOf(Math.max(...stats.hourly));
+            ctx.fillStyle = "rgba(255,255,255,0.5)";
+            ctx.font = "24px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.textAlign = "right";
+            ctx.fillText(`Peak: ${peak}:00`, W - 80, hourY);
+
+            const bAreaX = 80, bAreaY = hourY + 24, bAreaW = W - 160, bAreaH = 130;
+            const maxH = Math.max(...stats.hourly, 1);
+            const bSlot = bAreaW / 24;
+            const bGap = Math.max(2, bSlot * 0.2);
+            const bw = bSlot - bGap;
+
+            for (let h = 0; h < 24; h++) {
+                const bh = (stats.hourly[h] / maxH) * (bAreaH - 10);
+                const bx = bAreaX + h * bSlot + bGap / 2;
+                const by = bAreaY + bAreaH - bh;
+
+                if (bh < 1) {
+                    ctx.fillStyle = "rgba(255,255,255,0.07)";
+                    ctx.fillRect(bx, bAreaY + bAreaH - 4, bw, 4);
+                    continue;
+                }
+
+                const barGr = ctx.createLinearGradient(bx, by, bx, by + bh);
+                barGr.addColorStop(0, h === peak ? "#ff5fa0" : "#C13584");
+                barGr.addColorStop(1, "#833AB4");
+                ctx.fillStyle = barGr;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, [3, 3, 0, 0]);
+                else ctx.rect(bx, by, bw, bh);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            ctx.font = "20px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.textAlign = "center";
+            [0, 6, 12, 18].forEach(h => {
+                ctx.fillText(h, bAreaX + h * bSlot + bSlot / 2, bAreaY + bAreaH + 26);
+            });
+
+            // ── Top Senders ──
+            const sendY = bAreaY + bAreaH + 80;
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            ctx.font = "700 24px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("TOP SENDERS", 80, sendY);
+
+            const senders = stats.senders.slice(0, 5);
+            const maxCnt = senders[0]?.[1] || 1;
+            const sbW = W - 160;
+
+            senders.forEach(([name, count], i) => {
+                const sy = sendY + 28 + i * 86;
+
+                ctx.fillStyle = "rgba(255,255,255,0.8)";
+                ctx.font = "28px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+                ctx.textAlign = "left";
+                ctx.fillText(name.length > 22 ? name.slice(0, 21) + "…" : name, 80, sy);
+
+                ctx.fillStyle = "rgba(255,255,255,0.4)";
+                ctx.font = "24px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+                ctx.textAlign = "right";
+                ctx.fillText(fmt(count), W - 80, sy);
+
+                ctx.fillStyle = "rgba(255,255,255,0.08)";
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(80, sy + 10, sbW, 14, 7);
+                else ctx.rect(80, sy + 10, sbW, 14);
+                ctx.fill();
+
+                const fillW = Math.max((count / maxCnt) * sbW, 14);
+                const fGr = ctx.createLinearGradient(80, sy, 80 + fillW, sy);
+                fGr.addColorStop(0, "#833AB4"); fGr.addColorStop(1, "#E1306C");
+                ctx.fillStyle = fGr;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(80, sy + 10, fillW, 14, 7);
+                else ctx.rect(80, sy + 10, fillW, 14);
+                ctx.fill();
+            });
+
+            // ── Bottom branding ──
+            const brandY = H - 200;
+
+            const btmGr = ctx.createLinearGradient(0, brandY - 80, 0, H);
+            btmGr.addColorStop(0, "rgba(131,58,180,0)");
+            btmGr.addColorStop(1, "rgba(131,58,180,0.25)");
+            ctx.fillStyle = btmGr;
+            ctx.fillRect(0, brandY - 80, W, 280);
+
+            const stripeGr = ctx.createLinearGradient(0, 0, W, 0);
+            stripeGr.addColorStop(0, "#833AB4");
+            stripeGr.addColorStop(0.5, "#C13584");
+            stripeGr.addColorStop(1, "#E1306C");
+            ctx.fillStyle = stripeGr;
+            ctx.fillRect(0, H - 10, W, 10);
+
+            ctx.fillStyle = "rgba(255,255,255,0.4)";
+            ctx.font = "28px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("Made with ChatLume", W / 2, H - 96);
+            ctx.fillStyle = "rgba(255,255,255,0.22)";
+            ctx.font = "22px -apple-system, system-ui, BlinkMacSystemFont, sans-serif";
+            ctx.fillText("chatlume.parassharma.in", W / 2, H - 56);
+        }
+
+        function cardRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); }
+            else { ctx.rect(x, y, w, h); }
+        }
+
+        // Add CSS keyframe for spinner via JS
+        if (!document.getElementById("ia-spin-kf")) {
+            const s = document.createElement("style");
+            s.id = "ia-spin-kf";
+            s.textContent = "@keyframes spin{to{transform:rotate(360deg)}}";
+            document.head.appendChild(s);
+        }
+    }());
+    </script>
+</body>
+</html>

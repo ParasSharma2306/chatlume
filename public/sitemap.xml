@@ -16,6 +16,11 @@
         <changefreq>weekly</changefreq>
     </url>
     <url>
+        <loc>https://chatlume.parassharma.in/instagram-analyzer</loc>
+        <priority>0.8</priority>
+        <changefreq>monthly</changefreq>
+    </url>
+    <url>
         <loc>https://chatlume.parassharma.in/analyzer</loc>
         <priority>0.8</priority>
         <changefreq>monthly</changefreq>

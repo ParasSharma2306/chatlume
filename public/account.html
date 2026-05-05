@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00a884">
-    <title>Account – ChatLume</title>
+    <title>My Account | ChatLume</title>
     <meta name="description" content="Manage your ChatLume account and subscription.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="../css/style.css">
@@ -205,6 +205,7 @@
         <div class="nav-links">
             <a href="/viewer">WhatsApp</a>
             <a href="/instagram-viewer">Instagram</a>
+            <a href="/instagram-analyzer">IG Analyzer</a>
             <a href="/analyzer">Analyzer</a>
             <a href="/pricing">Pricing</a>
             <div class="auth-nav-slot"></div>
@@ -213,6 +214,26 @@
 
     <div class="account-page">
         <h1 class="page-title">My Account</h1>
+
+        <!-- Loading skeleton -->
+        <div id="acct-skeleton">
+            <div class="account-card" style="margin-bottom:16px">
+                <div class="skel-block" style="width:30%;height:12px;margin-bottom:18px"></div>
+                <div style="display:flex;align-items:center;gap:16px">
+                    <div class="skel-block" style="width:48px;height:48px;border-radius:50%;flex-shrink:0"></div>
+                    <div style="flex:1">
+                        <div class="skel-block" style="width:65%;height:14px;margin-bottom:10px"></div>
+                        <div class="skel-block" style="width:40%;height:12px"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="account-card">
+                <div class="skel-block" style="width:40%;height:12px;margin-bottom:18px"></div>
+                <div class="skel-block" style="width:75%;height:12px;margin-bottom:10px"></div>
+                <div class="skel-block" style="width:55%;height:12px;margin-bottom:20px"></div>
+                <div class="skel-block" style="width:100%;height:48px;border-radius:24px"></div>
+            </div>
+        </div>
 
         <div id="error" class="error-banner">
             <i class="ph ph-warning-circle"></i>
@@ -275,7 +296,7 @@
     <footer class="landing-footer">
         <div class="footer-grid">
             <div><h4>ChatLume</h4><p>Private. Local. Beautiful.</p></div>
-            <div><h4>Product</h4><a href="/viewer">WhatsApp Viewer</a><a href="/instagram-viewer">Instagram Viewer</a><a href="/analyzer">Analyzer</a><a href="/wrapped">Wrapped</a><a href="/pricing">Pricing</a></div>
+            <div><h4>Product</h4><a href="/viewer">WhatsApp Viewer</a><a href="/instagram-viewer">Instagram Viewer</a><a href="/instagram-analyzer">Instagram Analyzer</a><a href="/analyzer">Analyzer</a><a href="/wrapped">Wrapped</a><a href="/pricing">Pricing</a></div>
             <div><h4>Resources</h4><a href="/how-to-export">How to Export WhatsApp</a><a href="/how-to-export-instagram">How to Export Instagram</a><a href="/how-to-use">How to Use</a><a href="/how-it-works">How it Works</a><a href="/privacy">Privacy</a></div>
             <div><h4>Account</h4><a href="/login">Sign in</a><a href="/signup">Sign up</a><a href="/account">Dashboard</a></div>
         </div>
@@ -300,8 +321,10 @@
                 }
                 if (!res.ok) throw new Error('Failed to load account');
                 const user = await res.json();
+                document.getElementById('acct-skeleton').style.display = 'none';
                 renderAccount(user);
             } catch (err) {
+                document.getElementById('acct-skeleton').style.display = 'none';
                 showPageError(err.message || 'Failed to load account data.');
             }
         }

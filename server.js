@@ -45,6 +45,7 @@ app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'public/pric
 // Clean URLs for public pages
 app.get('/viewer',                  (req, res) => res.sendFile(path.join(__dirname, 'public/viewer.html')));
 app.get('/instagram-viewer',        (req, res) => res.sendFile(path.join(__dirname, 'public/instagram-viewer.html')));
+app.get('/instagram-analyzer',     (req, res) => res.sendFile(path.join(__dirname, 'public/instagram-analyzer.html')));
 app.get('/analyzer',                (req, res) => res.sendFile(path.join(__dirname, 'public/analyzer.html')));
 app.get('/wrapped',                 (req, res) => res.sendFile(path.join(__dirname, 'public/wrapped.html')));
 app.get('/how-to-export',           (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-export.html')));

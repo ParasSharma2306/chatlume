@@ -520,7 +520,19 @@ async function initViewer() {
         showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
     } catch (error) {
         console.error(error);
-        showToast(`Error: ${error.message}`);
+        const emptyEl = document.getElementById("empty-state");
+        if (emptyEl) {
+            emptyEl.innerHTML = `
+                <div class="illustration"><i class="ph-duotone ph-warning-circle" style="color:#f5a623"></i></div>
+                <h2>Couldn't parse this file</h2>
+                <p style="max-width:300px">${String(error.message || "Make sure it's a valid WhatsApp .txt or .zip export.").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>
+                <a href="/how-to-export" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--primary);text-decoration:none">
+                    <i class="ph ph-question"></i> How to export WhatsApp chats
+                </a>`;
+            emptyEl.classList.remove("hidden");
+        } else {
+            showToast(`Error: ${error.message}`);
+        }
     } finally {
         setLoadingState(false);
     }
