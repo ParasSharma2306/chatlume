@@ -43,13 +43,15 @@ app.get('/account', (req, res) => res.sendFile(path.join(__dirname, 'public/acco
 app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, 'public/pricing.html')));
 
 // Clean URLs for public pages
-app.get('/viewer',        (req, res) => res.sendFile(path.join(__dirname, 'public/viewer.html')));
-app.get('/analyzer',      (req, res) => res.sendFile(path.join(__dirname, 'public/analyzer.html')));
-app.get('/wrapped',       (req, res) => res.sendFile(path.join(__dirname, 'public/wrapped.html')));
-app.get('/how-to-export', (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-export.html')));
-app.get('/how-to-use',    (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-use.html')));
-app.get('/how-it-works',  (req, res) => res.sendFile(path.join(__dirname, 'public/how-it-works.html')));
-app.get('/privacy',       (req, res) => res.sendFile(path.join(__dirname, 'public/privacy.html')));
+app.get('/viewer',                  (req, res) => res.sendFile(path.join(__dirname, 'public/viewer.html')));
+app.get('/instagram-viewer',        (req, res) => res.sendFile(path.join(__dirname, 'public/instagram-viewer.html')));
+app.get('/analyzer',                (req, res) => res.sendFile(path.join(__dirname, 'public/analyzer.html')));
+app.get('/wrapped',                 (req, res) => res.sendFile(path.join(__dirname, 'public/wrapped.html')));
+app.get('/how-to-export',           (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-export.html')));
+app.get('/how-to-export-instagram', (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-export-instagram.html')));
+app.get('/how-to-use',              (req, res) => res.sendFile(path.join(__dirname, 'public/how-to-use.html')));
+app.get('/how-it-works',            (req, res) => res.sendFile(path.join(__dirname, 'public/how-it-works.html')));
+app.get('/privacy',                 (req, res) => res.sendFile(path.join(__dirname, 'public/privacy.html')));
 
 // Fallback: serve index.html for any unmatched route (Express 5 named wildcard)
 app.get('/{*splat}', (req, res) => {

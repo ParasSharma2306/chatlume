@@ -70,7 +70,8 @@
             <i class="ph-fill ph-chat-teardrop-text"></i> ChatLume
         </a>
         <div class="nav-links">
-            <a href="/viewer">Viewer</a>
+            <a href="/viewer">WhatsApp</a>
+            <a href="/instagram-viewer">Instagram</a>
             <a href="/analyzer">Analyzer</a>
             <a href="/pricing">Pricing</a>
             <div class="auth-nav-slot"></div>
@@ -79,12 +80,30 @@
 
     <header class="hero">
         <h1>ChatLume</h1>
-        <p>A private WhatsApp chat viewer, analyzer, and Wrapped generator that runs fully in your browser. Your export stays on your device.</p>
+        <p>A private chat viewer and analyzer for WhatsApp and Instagram DMs. Runs fully in your browser — your exports never leave your device.</p>
         <div class="hero-actions">
             <a href="/viewer" class="btn-primary btn-large"><i class="ph ph-folder-open"></i> Open Viewer</a>
             <a href="/wrapped" class="btn-secondary btn-large"><i class="ph ph-sparkle"></i> Generate Wrapped</a>
         </div>
     </header>
+
+    <!-- Platform picker -->
+    <section style="max-width:680px;margin:0 auto 16px;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <a href="/viewer" style="display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--bg-sidebar);border:1px solid var(--border);border-radius:18px;padding:28px 20px;text-decoration:none;color:var(--text-primary);transition:border-color 0.2s,box-shadow 0.2s" onmouseover="this.style.borderColor='#00a884';this.style.boxShadow='0 4px 16px rgba(0,168,132,0.12)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''">
+            <i class="ph-fill ph-whatsapp-logo" style="font-size:40px;color:#25D366"></i>
+            <div style="text-align:center">
+                <div style="font-weight:700;font-size:16px;margin-bottom:4px">WhatsApp Chats</div>
+                <div style="font-size:13px;color:var(--text-secondary)">Open .txt or .zip exports</div>
+            </div>
+        </a>
+        <a href="/instagram-viewer" style="display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--bg-sidebar);border:1px solid var(--border);border-radius:18px;padding:28px 20px;text-decoration:none;color:var(--text-primary);transition:border-color 0.2s,box-shadow 0.2s" onmouseover="this.style.borderColor='#C13584';this.style.boxShadow='0 4px 16px rgba(193,53,132,0.12)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''">
+            <i class="ph-fill ph-instagram-logo" style="font-size:40px;background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
+            <div style="text-align:center">
+                <div style="font-weight:700;font-size:16px;margin-bottom:4px">Instagram DMs</div>
+                <div style="font-size:13px;color:var(--text-secondary)">Open JSON export .zip files</div>
+            </div>
+        </a>
+    </section>
 
     <section class="features">
         <div class="feature-card">
@@ -112,14 +131,16 @@
             </div>
             <div>
                 <h4>Product</h4>
-                <a href="/viewer">Viewer</a>
+                <a href="/viewer">WhatsApp Viewer</a>
+                <a href="/instagram-viewer">Instagram Viewer</a>
                 <a href="/analyzer">Analyzer</a>
                 <a href="/wrapped">Wrapped</a>
                 <a href="/pricing">Pricing</a>
             </div>
             <div>
                 <h4>Resources</h4>
-                <a href="/how-to-export">How to Export</a>
+                <a href="/how-to-export">How to Export WhatsApp</a>
+                <a href="/how-to-export-instagram">How to Export Instagram</a>
                 <a href="/how-to-use">How to Use</a>
                 <a href="/how-it-works">How it Works</a>
                 <a href="/privacy">Privacy</a>

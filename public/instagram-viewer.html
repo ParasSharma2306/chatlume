@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#111b21">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ChatLume – Private Instagram DM Viewer</title>
+    <meta name="description" content="View Instagram DM exports privately in your browser. No uploads, no server. Open Instagram JSON zip files locally with ChatLume.">
+    <meta name="author" content="Paras Sharma">
+    <meta name="application-name" content="ChatLume">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://chatlume.parassharma.in/instagram-viewer">
+    <meta property="og:site_name" content="ChatLume">
+    <meta property="og:title" content="ChatLume – Private Instagram DM Viewer">
+    <meta property="og:description" content="View Instagram DM exports locally in your browser. 100% private, no uploads.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chatlume.parassharma.in/instagram-viewer">
+    <meta property="og:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ChatLume – Private Instagram DM Viewer">
+    <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../assets/icon-192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="../js/instagram.js" defer></script>
+    <script src="../js/auth.js" defer></script>
+    <script defer src="https://umami-production-6ac3.up.railway.app/script.js" data-website-id="1d5bfab3-abe3-4c0b-a912-9f2c50d022ad"></script>
+    <style>
+        /* ── Instagram accent overrides ── */
+        .ig-brand { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .ig-brand-solid { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); }
+        #ig-drop-target:hover, #ig-drop-target.dragover { border-color: #C13584; }
+        #ig-drop-target.ready { border-color: #C13584; }
+        .ig-avatar-gradient { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); }
+
+        /* ── Reaction pills ── */
+        .ig-reactions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+            margin-bottom: 2px;
+        }
+        .ig-reaction {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2px 7px;
+            font-size: 14px;
+            cursor: default;
+        }
+        .ig-reaction small { font-size: 11px; color: var(--text-secondary); }
+
+        /* ── Shared link ── */
+        .ig-share-link {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(131,58,180,0.08);
+            border: 1px solid rgba(193,53,132,0.2);
+            border-radius: 10px;
+            padding: 8px 11px;
+            margin-top: 4px;
+            font-size: 13px;
+        }
+        .ig-share-link i { color: #C13584; flex-shrink: 0; }
+        .ig-share-link a { color: #C13584; text-decoration: none; word-break: break-all; }
+        .ig-share-link a:hover { text-decoration: underline; }
+
+        /* ── Freemium banner ── */
+        .ig-limit-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(131,58,180,0.08);
+            border: 1px solid rgba(193,53,132,0.25);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin: 8px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .ig-limit-banner i { color: #C13584; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .ig-limit-banner strong { color: var(--text-primary); }
+        .ig-limit-banner a { color: #C13584; font-weight: 600; text-decoration: none; }
+        .ig-limit-banner a:hover { text-decoration: underline; }
+
+        /* ── Thread selector panel ── */
+        #ig-thread-panel .section-label { padding: 12px 16px 6px; }
+        #ig-thread-panel .panel-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 0 16px 12px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <nav class="app-nav">
+        <a href="/" class="back-home"><i class="ph ph-house"></i> Home</a>
+        <div class="nav-links">
+            <a href="/viewer">WhatsApp</a>
+            <a href="/how-to-export-instagram">How to Export</a>
+        </div>
+    </nav>
+
+    <div id="loader" aria-hidden="true">
+        <div class="loader-content">
+            <i class="ph-fill ph-chat-teardrop-text loader-logo"></i>
+            <div class="progress-bar" aria-hidden="true"><div class="fill"></div></div>
+            <p><i class="ph-fill ph-shield-check"></i> 100% Local Processing</p>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <aside class="sidebar" id="ig-sidebar" aria-label="Sidebar">
+            <header class="sidebar-header">
+                <button class="profile-thumb profile-button" type="button" title="App Info" aria-label="App info" style="cursor:default">
+                    <i class="ph-fill ph-instagram-logo" style="font-size:22px;background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
+                </button>
+                <div class="sidebar-nav">
+                    <button id="ig-open-stats" type="button" title="Analytics" aria-label="Open analytics"><i class="ph ph-chart-pie-slice"></i></button>
+                    <button id="ig-theme-toggle" type="button" title="Toggle Theme" aria-label="Toggle theme"><i class="ph ph-moon-stars"></i></button>
+                </div>
+            </header>
+
+            <div class="sidebar-content">
+                <!-- Upload panel -->
+                <section class="upload-state" id="ig-upload-panel">
+                    <div class="brand-hero">
+                        <h1 class="ig-brand">Instagram</h1>
+                        <span>DM Viewer</span>
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="ig-my-name">Your Instagram Name</label>
+                        <input type="text" id="ig-my-name" placeholder="Your name as it appears in DMs" autocomplete="name">
+                    </div>
+                    <button class="drop-target" id="ig-drop-target" type="button">
+                        <i class="ph ph-file-zip" aria-hidden="true"></i>
+                        <p>Drop <strong>.zip</strong> export</p>
+                        <input type="file" id="ig-file-input" accept=".zip" hidden>
+                        <span class="btn-secondary">Browse</span>
+                    </button>
+                    <button class="btn-primary" id="ig-load-btn" type="button">Load DMs</button>
+                    <div class="load-hint">Your data never leaves your device.</div>
+                    <div class="privacy-pill"><i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.</div>
+                    <div style="text-align:center;margin-top:12px">
+                        <a href="/how-to-export-instagram" style="font-size:13px;color:var(--text-secondary);text-decoration:none">
+                            <i class="ph ph-question"></i> How to export Instagram DMs
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Thread selector -->
+                <section class="chat-list hidden" id="ig-thread-panel" aria-label="Thread list">
+                    <div class="section-label">SELECT A CONVERSATION</div>
+                    <p class="panel-hint">Multiple conversations found. Pick one to view.</p>
+                    <div id="ig-thread-list"></div>
+                </section>
+
+                <!-- Chat loaded -->
+                <section class="chat-list hidden" id="ig-chat-list-panel" aria-label="Loaded conversation">
+                    <div class="search-bar-sidebar">
+                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                        <input type="text" placeholder="Search chats" disabled aria-label="Search chats">
+                    </div>
+                    <button class="chat-item active" type="button" id="ig-chat-list-item">
+                        <div class="chat-item-avatar ig-avatar-gradient" aria-hidden="true"></div>
+                        <div class="chat-item-info">
+                            <h4 id="ig-sidebar-title">Chat History</h4>
+                            <span id="ig-sidebar-sub">Loaded</span>
+                        </div>
+                    </button>
+                </section>
+            </div>
+
+            <!-- Stats drawer -->
+            <section class="drawer" id="ig-stats-drawer" aria-label="Analytics drawer">
+                <div class="drawer-header">
+                    <button class="drawer-close" id="ig-close-stats" type="button" aria-label="Close analytics"><i class="ph ph-arrow-left"></i></button>
+                    <h2>Analytics</h2>
+                </div>
+                <div class="drawer-scroll">
+                    <div class="stats-overview">
+                        <div class="stat-box">
+                            <span class="val" id="ig-stat-total">0</span>
+                            <span class="label">Messages</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="val" id="ig-stat-media">0</span>
+                            <span class="label">Media</span>
+                        </div>
+                    </div>
+                    <div class="section-label">EMOJI INSIGHTS</div>
+                    <div class="emoji-grid" id="ig-emoji-grid"></div>
+                    <div class="section-label">ACTIVITY BREAKDOWN</div>
+                    <div class="stats-list" id="ig-stats-list"></div>
+                    <div style="margin-top:20px;text-align:center">
+                        <a href="/pricing" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#833AB4,#C13584);color:#fff;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:600;font-size:14px;box-shadow:0 4px 10px rgba(193,53,132,0.3)">
+                            <i class="ph ph-lightning"></i> Upgrade to Pro
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <button class="sidebar-backdrop" id="ig-sidebar-backdrop" type="button" aria-label="Close sidebar"></button>
+
+        <main class="chat-interface">
+            <div class="chat-bg" aria-hidden="true"></div>
+            <header class="chat-header">
+                <button class="mobile-menu" id="ig-mobile-menu" type="button" aria-label="Open sidebar"><i class="ph ph-list"></i></button>
+                <div class="header-profile">
+                    <div class="header-pfp ig-avatar-gradient" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">
+                        <i class="ph-fill ph-instagram-logo" style="color:#fff;font-size:18px"></i>
+                    </div>
+                    <div class="header-info">
+                        <h2 id="ig-header-name">Instagram Viewer</h2>
+                        <p id="ig-header-meta">ChatLume</p>
+                    </div>
+                </div>
+                <div class="header-tools">
+                    <button id="ig-search-toggle" type="button" aria-label="Search messages"><i class="ph ph-magnifying-glass"></i></button>
+                    <div class="menu-container">
+                        <button id="ig-menu-toggle" type="button" aria-label="Open menu"><i class="ph ph-dots-three-vertical"></i></button>
+                        <div class="dropdown-menu" id="ig-header-menu">
+                            <button type="button" class="menu-item" id="ig-jump-bottom"><i class="ph ph-arrow-down"></i> Jump to Bottom</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="search-toolbar" id="ig-search-toolbar">
+                <div class="search-input-group">
+                    <button id="ig-search-close" type="button" aria-label="Close search"><i class="ph ph-arrow-left"></i></button>
+                    <input type="text" id="ig-live-search" placeholder="Search messages..." autocomplete="off">
+                </div>
+                <div class="search-nav">
+                    <span id="ig-search-counter" aria-live="polite"></span>
+                    <button id="ig-search-up" type="button"><i class="ph ph-caret-up"></i></button>
+                    <button id="ig-search-down" type="button"><i class="ph ph-caret-down"></i></button>
+                </div>
+            </section>
+
+            <section class="messages-viewport" id="ig-viewport" aria-label="Messages">
+                <div class="empty-placeholder" id="ig-empty-state">
+                    <div class="illustration">
+                        <i class="ph-duotone ph-instagram-logo" style="background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
+                    </div>
+                    <h2 class="ig-brand">Instagram DMs</h2>
+                    <p>Load your Instagram export ZIP to view DMs privately.<br>Secure. Fast. 100% local.</p>
+                    <a href="/how-to-export-instagram" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#C13584;text-decoration:none">
+                        <i class="ph ph-question"></i> How to export your Instagram DMs
+                    </a>
+                </div>
+                <div class="message-list" id="ig-message-list"></div>
+            </section>
+
+            <footer class="chat-footer">
+                <button type="button" aria-label="Emoji picker"><i class="ph ph-smiley"></i></button>
+                <button type="button" aria-label="Add attachment"><i class="ph ph-plus"></i></button>
+                <div class="fake-input">Type a message</div>
+                <button type="button" aria-label="Record voice note"><i class="ph ph-microphone"></i></button>
+            </footer>
+        </main>
+
+        <!-- Media modal -->
+        <div class="media-modal" id="ig-media-modal" hidden>
+            <button class="media-modal-backdrop" id="ig-media-modal-backdrop" type="button"></button>
+            <div class="media-modal-dialog" role="dialog" aria-modal="true">
+                <div class="media-modal-header">
+                    <div>
+                        <h2>Media</h2>
+                        <p id="ig-media-modal-subtitle"></p>
+                    </div>
+                    <div class="media-modal-actions">
+                        <a id="ig-media-download-link" download style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);color:var(--text-primary);text-decoration:none" title="Download">
+                            <i class="ph ph-download-simple"></i>
+                        </a>
+                        <button id="ig-media-modal-close" type="button"><i class="ph ph-x"></i></button>
+                    </div>
+                </div>
+                <div class="media-modal-body" id="ig-media-modal-body"></div>
+            </div>
+        </div>
+
+        <!-- Processing overlay -->
+        <div class="processing-overlay" id="ig-processing-overlay" hidden>
+            <div class="processing-card" role="status">
+                <i class="ph-fill ph-spinner-gap processing-spinner"></i>
+                <h2 id="ig-processing-title">Loading</h2>
+                <p id="ig-processing-copy">Please wait...</p>
+            </div>
+        </div>
+
+        <div id="ig-toast" aria-live="polite" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-sidebar);color:var(--text-primary);padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
+    </div>
+
+    <script>
+        // Toast show class wiring (mirrors style.css .toast.show behaviour)
+        (function () {
+            const style = document.createElement("style");
+            style.textContent = "#ig-toast.show { opacity: 1 !important; transform: translateX(-50%) translateY(0) !important; }";
+            document.head.appendChild(style);
+        })();
+    </script>
+</body>
+</html>

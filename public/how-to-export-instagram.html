@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00a884">
+    <title>How to Export Instagram DMs – ChatLume</title>
+    <meta name="description" content="Step-by-step guide to export your Instagram DMs as a JSON ZIP for private local viewing in ChatLume.">
+    <meta name="author" content="Paras Sharma">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://chatlume.parassharma.in/how-to-export-instagram">
+    <meta property="og:site_name" content="ChatLume">
+    <meta property="og:title" content="How to Export Instagram DMs – ChatLume">
+    <meta property="og:description" content="Request and download your Instagram message data as JSON to view privately in ChatLume.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chatlume.parassharma.in/how-to-export-instagram">
+    <meta property="og:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <meta name="twitter:card" content="summary">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="apple-touch-icon" href="../assets/icon-192.png">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="../js/auth.js" defer></script>
+    <script defer src="https://umami-production-6ac3.up.railway.app/script.js" data-website-id="1d5bfab3-abe3-4c0b-a912-9f2c50d022ad"></script>
+    <style>
+        .export-page { max-width: 760px; margin: 60px auto; padding: 0 20px 80px; }
+        .page-eyebrow { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--primary); margin-bottom: 12px; }
+        .page-title { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+        .page-sub { font-size: 16px; color: var(--text-secondary); margin-bottom: 48px; line-height: 1.6; }
+
+        .ig-accent { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        .steps { list-style: none; margin: 0 0 20px; padding: 0; }
+        .steps li { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 15px; color: var(--text-secondary); line-height: 1.55; }
+        .steps li:last-child { border-bottom: none; }
+        .step-num { width: 28px; height: 28px; border-radius: 50%; background: rgba(193,53,132,0.1); color: #C13584; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .steps strong { color: var(--text-primary); }
+
+        .tip-box { display: flex; gap: 12px; background: rgba(0,168,132,0.07); border: 1px solid rgba(0,168,132,0.2); border-radius: 14px; padding: 16px 18px; margin-bottom: 24px; font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+        .tip-box i { font-size: 20px; color: var(--primary); flex-shrink: 0; margin-top: 1px; }
+
+        .warn-box { display: flex; gap: 12px; background: rgba(255,193,7,0.07); border: 1px solid rgba(255,193,7,0.25); border-radius: 14px; padding: 16px 18px; margin-bottom: 24px; font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+        .warn-box i { font-size: 20px; color: #f5a623; flex-shrink: 0; margin-top: 1px; }
+        .warn-box strong, .tip-box strong { color: var(--text-primary); }
+
+        .ig-box { display: flex; gap: 12px; background: rgba(193,53,132,0.06); border: 1px solid rgba(193,53,132,0.2); border-radius: 14px; padding: 16px 18px; margin-bottom: 24px; font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+        .ig-box i { font-size: 20px; color: #C13584; flex-shrink: 0; margin-top: 1px; }
+        .ig-box strong { color: var(--text-primary); }
+
+        .faq-section { margin-top: 48px; }
+        .faq-section h2 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+        .faq-item { margin-bottom: 20px; }
+        .faq-q { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+        .faq-a { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+        code { background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 13px; font-family: monospace; }
+
+        @media (max-width: 540px) { .page-title { font-size: 28px; } }
+    </style>
+</head>
+<body class="page-layout">
+    <nav class="landing-nav">
+        <a class="logo" href="/" style="text-decoration:none"><i class="ph-fill ph-chat-teardrop-text"></i> ChatLume</a>
+        <div class="nav-links">
+            <a href="/viewer">WhatsApp</a>
+            <a href="/instagram-viewer">Instagram</a>
+            <a href="/pricing">Pricing</a>
+            <div class="auth-nav-slot"></div>
+        </div>
+    </nav>
+
+    <div class="export-page">
+        <p class="page-eyebrow"><i class="ph-fill ph-instagram-logo"></i> Export Guide</p>
+        <h1 class="page-title">How to export your <span class="ig-accent">Instagram DMs</span></h1>
+        <p class="page-sub">Instagram lets you download your message history as a JSON ZIP. Follow these steps — the download can take a few minutes to a few hours depending on your account size.</p>
+
+        <div class="ig-box">
+            <i class="ph-fill ph-clock"></i>
+            <span><strong>Allow extra time.</strong> After requesting the download, Instagram sends an email with a link. This typically takes a few minutes but can be up to a few hours for large accounts. You don't need to keep the app open.</span>
+        </div>
+
+        <ol class="steps">
+            <li>
+                <span class="step-num">1</span>
+                <span>Open Instagram and go to your <strong>Profile</strong> by tapping your avatar at the bottom right.</span>
+            </li>
+            <li>
+                <span class="step-num">2</span>
+                <span>Tap the <strong>hamburger menu ☰</strong> in the top-right corner, then tap <strong>Settings and privacy</strong>.</span>
+            </li>
+            <li>
+                <span class="step-num">3</span>
+                <span>Scroll down to <strong>Your activity</strong> and tap <strong>Download your information</strong>.</span>
+            </li>
+            <li>
+                <span class="step-num">4</span>
+                <span>Tap <strong>Download or transfer information</strong>. Select <strong>Some of your information</strong> on the next screen.</span>
+            </li>
+            <li>
+                <span class="step-num">5</span>
+                <span>Scroll to the <strong>Messages</strong> section and check <strong>Messages</strong>. Uncheck everything else to keep the export small and fast.</span>
+            </li>
+            <li>
+                <span class="step-num">6</span>
+                <span>Tap <strong>Next</strong>. Choose <strong>Download to device</strong>.</span>
+            </li>
+            <li>
+                <span class="step-num">7</span>
+                <span>Set the format to <strong>JSON</strong> (not HTML). Select a date range — or leave it as all time for the full history.</span>
+            </li>
+            <li>
+                <span class="step-num">8</span>
+                <span>Tap <strong>Create files</strong>. Instagram will send an email to your registered address when the download is ready.</span>
+            </li>
+            <li>
+                <span class="step-num">9</span>
+                <span>Click the link in the email, log in if prompted, and <strong>download the ZIP</strong> to your device.</span>
+            </li>
+            <li>
+                <span class="step-num">10</span>
+                <span>Open <a href="/instagram-viewer" style="color:#C13584;font-weight:600;text-decoration:none">ChatLume Instagram Viewer</a>, drop the ZIP file in, and your DMs will load instantly — no upload, no server, fully private.</span>
+            </li>
+        </ol>
+
+        <div class="tip-box">
+            <i class="ph-fill ph-info"></i>
+            <span><strong>Use JSON format, not HTML.</strong> ChatLume reads the <code>messages/inbox/</code> folder inside the ZIP. HTML exports use a completely different structure that ChatLume cannot parse. If you see "no messages found", check that you selected JSON.</span>
+        </div>
+
+        <div class="warn-box">
+            <i class="ph-fill ph-warning"></i>
+            <span><strong>Media files may not be included</strong> depending on the date range and export settings. If photos and videos don't appear, the ZIP may not contain them — the text conversation will still load fine.</span>
+        </div>
+
+        <div style="text-align:center;margin:32px 0">
+            <a href="/instagram-viewer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#833AB4,#C13584);color:#fff;font-weight:600;font-size:15px;padding:13px 28px;border-radius:24px;text-decoration:none;box-shadow:0 4px 10px rgba(193,53,132,0.35)">
+                <i class="ph-fill ph-instagram-logo"></i> Open Instagram Viewer
+            </a>
+        </div>
+
+        <!-- FAQ -->
+        <section class="faq-section">
+            <h2>Common questions</h2>
+
+            <div class="faq-item">
+                <p class="faq-q">Why does the export show characters like "Ã©" instead of "é"?</p>
+                <p class="faq-a">This is a known Instagram encoding bug — they save UTF-8 text using latin1 byte values. ChatLume automatically fixes this (called mojibake correction) so names and messages display correctly.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-q">Why do I only see the last 500 messages?</p>
+                <p class="faq-a">Free users see the last 500 messages per conversation. <a href="/pricing" style="color:#C13584;font-weight:600;text-decoration:none">Pro users</a> get access to the full conversation history.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-q">The ZIP has many conversation folders. Can I view specific ones?</p>
+                <p class="faq-a">Yes — ChatLume detects all threads in the ZIP and shows a conversation selector. You can pick any thread to view.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-q">Can I view group chats?</p>
+                <p class="faq-a">Yes. Instagram exports group DMs (RegularGroup threads) in the same format. ChatLume displays sender names in different colours for group conversations.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-q">Is my data uploaded to any server?</p>
+                <p class="faq-a">Never. ChatLume processes the ZIP entirely in your browser using the Web File API. Nothing is sent to a server.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-q">I requested the export but never got an email.</p>
+                <p class="faq-a">Check your spam folder. If it's not there after a few hours, go back to <strong>Download your information</strong> in Instagram settings — sometimes the request needs to be submitted again. Also make sure you're checking the email address linked to your Instagram account.</p>
+            </div>
+        </section>
+    </div>
+
+    <footer class="landing-footer">
+        <div class="footer-grid">
+            <div><h4>ChatLume</h4><p>Private. Local. Beautiful.</p></div>
+            <div>
+                <h4>Product</h4>
+                <a href="/viewer">WhatsApp Viewer</a>
+                <a href="/instagram-viewer">Instagram Viewer</a>
+                <a href="/analyzer">Analyzer</a>
+                <a href="/pricing">Pricing</a>
+            </div>
+            <div>
+                <h4>Resources</h4>
+                <a href="/how-to-export">How to Export WhatsApp</a>
+                <a href="/how-to-export-instagram">How to Export Instagram</a>
+                <a href="/how-it-works">How it Works</a>
+                <a href="/privacy">Privacy</a>
+            </div>
+            <div>
+                <h4>Account</h4>
+                <a href="/login">Sign in</a>
+                <a href="/signup">Sign up</a>
+                <a href="/account">Dashboard</a>
+            </div>
+        </div>
+        <div class="footer-bottom"><p>&copy; 2025 ChatLume. Your chats never leave your device.</p></div>
+    </footer>
+</body>
+</html>

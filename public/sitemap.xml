@@ -11,6 +11,11 @@
         <changefreq>weekly</changefreq>
     </url>
     <url>
+        <loc>https://chatlume.parassharma.in/instagram-viewer</loc>
+        <priority>0.9</priority>
+        <changefreq>weekly</changefreq>
+    </url>
+    <url>
         <loc>https://chatlume.parassharma.in/analyzer</loc>
         <priority>0.8</priority>
         <changefreq>monthly</changefreq>
@@ -27,6 +32,11 @@
     </url>
     <url>
         <loc>https://chatlume.parassharma.in/how-to-export</loc>
+        <priority>0.7</priority>
+        <changefreq>monthly</changefreq>
+    </url>
+    <url>
+        <loc>https://chatlume.parassharma.in/how-to-export-instagram</loc>
         <priority>0.7</priority>
         <changefreq>monthly</changefreq>
     </url>
