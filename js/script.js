@@ -2169,8 +2169,17 @@ function baseName(filePath) {
     return String(filePath || "").split("/").pop() || "";
 }
 
+const AUDIO_EXTENSIONS = new Set(["opus", "ogg", "oga", "mp3", "m4a", "aac", "wav", "flac", "wma", "amr"]);
+
 function detectMediaType(fileName, mimeType = "") {
     const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+    // Explicit audio guard: known voice-note extensions are always audio,
+    // regardless of MIME (e.g. m4a → audio/mp4 must never be treated as video).
+    if (AUDIO_EXTENSIONS.has(ext)) {
+        return { kind: "audio", mime: inferMimeType(ext) || `audio/${ext}`, ext };
+    }
+
     const mime = mimeType || inferMimeType(ext);
 
     if (mime.startsWith("image/")) {

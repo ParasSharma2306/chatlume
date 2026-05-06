@@ -1014,8 +1014,18 @@ function igBaseName(p) { return String(p || "").split("/").pop() || ""; }
 
 function igNormKey(p) { return String(p || "").trim().toLowerCase().replace(/\\/g, "/"); }
 
+const IG_AUDIO_EXTENSIONS = new Set(["opus", "ogg", "oga", "mp3", "m4a", "aac", "wav", "flac", "wma", "amr"]);
+
 function detectIgMediaType(fileName) {
   const ext = (fileName.split(".").pop() || "").toLowerCase();
+
+  // Explicit audio guard: known voice-note extensions are always audio,
+  // regardless of MIME (e.g. m4a → audio/mp4 must never be treated as video).
+  if (IG_AUDIO_EXTENSIONS.has(ext)) {
+    const mimeMap = { mp3:"audio/mpeg", m4a:"audio/mp4", opus:"audio/ogg", ogg:"audio/ogg", oga:"audio/ogg", aac:"audio/aac", wav:"audio/wav" };
+    return { kind: "audio", mime: mimeMap[ext] || `audio/${ext}`, ext };
+  }
+
   const mimeMap = { jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",gif:"image/gif",webp:"image/webp",heic:"image/heic",heif:"image/heif",mp4:"video/mp4",mov:"video/quicktime",avi:"video/x-msvideo",webm:"video/webm",mp3:"audio/mpeg",m4a:"audio/mp4",opus:"audio/ogg",ogg:"audio/ogg",aac:"audio/aac",wav:"audio/wav" };
   const mime = mimeMap[ext] || "application/octet-stream";
   const kind = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
