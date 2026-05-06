@@ -1,462 +1,199 @@
-# ChatLume - Private WhatsApp Chat Viewer
+# ChatLume
 
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+> View your WhatsApp and Instagram chats privately — your files never leave your device.
 
-## What's Changing
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-ChatLume is transitioning from a fully static site to a full-stack Express + MongoDB application.
-
-**The static version at [chatlume.parassharma.in](https://chatlume.parassharma.in) is live and will always remain available.** Nothing about that experience is going away.
-
-The new version adds:
-
-- User accounts with secure authentication
-- Premium features for power users
-- Deeper analytics and history across sessions
-
-**The core philosophy does not change.** All chat processing happens locally in your browser. Your exported chat files, messages, media, and generated Wrapped images never leave your device and never touch the server. The backend exists only to support accounts and preferences — not to process chat data.
+Live at **[chatlume.parassharma.in](https://chatlume.parassharma.in)**
 
 ---
 
-ChatLume is a fully static, privacy-first WhatsApp export viewer, analyzer, and Wrapped generator. It runs entirely in the browser, reads exported `.txt` files or `.zip` exports locally, and renders them as a polished WhatsApp-style chat interface with search, analytics, media preview, and shareable chat summaries.
-
-Live demo: https://chatlume.parassharma.in
-
-ChatLume is not affiliated with or endorsed by WhatsApp Inc.
-
-## What ChatLume Does
-
-- Opens WhatsApp `.txt` exports directly in the browser.
-- Opens WhatsApp `.zip` exports that contain a chat `.txt` file and attachments.
-- Renders messages in a familiar chat interface with grouped bubbles, timestamps, sender colors, read ticks, and date separators.
-- Supports multiline messages and several WhatsApp export date styles, including `/`, `-`, and `.` separators.
-- Shows images, stickers, videos, audio files, documents, contacts, and archives from ZIP exports.
-- Shows clear missing-attachment cards when the text export references media that is not present in the ZIP.
-- Provides message search with highlights and previous/next navigation.
-- Adds a jump-to-date action for long histories.
-- Generates an analytics drawer with total messages, media count, emoji usage, sender split, and activity breakdowns.
-- Generates a downloadable ChatLume Wrapped image for a loaded chat.
-- Supports dark and light themes.
-- Includes a settings drawer for timestamp format, seconds, date format, brackets, sender names, read ticks, and rich text rendering.
-- Works as a Progressive Web App after installation and core asset caching.
-- Stays fully static: no backend, no database, no server upload, no account system.
-
-## Privacy Model
-
-ChatLume is designed around one rule: your chat export should stay on your device.
-
-- Files are selected through the browser File API.
-- `.txt` chat contents are read in local browser memory.
-- `.zip` files are unpacked locally with JSZip.
-- Attachments are decoded locally only when needed.
-- No chat file, message, name, attachment, statistic, or generated Wrapped image is uploaded by ChatLume.
-- There is no app backend, API endpoint, database, analytics pipeline, or authentication service.
-- External libraries are loaded from CDNs in the current static build, but the user-selected chat file is not sent to those CDNs. For a stricter offline/self-hosted build, vendor those scripts locally and update the HTML references.
-
-## How It Works
-
-### 1. Page Load
-
-The app is a static site made of HTML, CSS, JavaScript, icons, a manifest, and a service worker.
-
-- `index.html` is the landing page.
-- `public/viewer.html` is the main app experience.
-- `js/script.js` contains parsing, rendering, search, analytics, media loading, theme handling, modal handling, and PWA behavior.
-- `css/style.css` contains the landing page, documentation pages, app shell, drawers, chat UI, media UI, Wrapped UI, and responsive layout.
-- `manifest.json` defines the PWA name, icons, start URL, theme colors, and shortcut.
-- `sw.js` caches core static files for offline use.
-- `robots.txt` and `sitemap.xml` point crawlers to the canonical static pages.
-
-### 2. File Selection
-
-The user selects or drops a WhatsApp export:
-
-- `.txt` files are read with `FileReader.readAsText`.
-- `.zip` files are parsed with JSZip.
-- For ZIP exports, ChatLume finds the first `.txt` entry as the chat transcript.
-- Other ZIP entries are indexed as possible attachments.
-- Attachment entries are not immediately converted to Blob URLs. They remain in the local ZIP index until a visible media element, preview, or download needs them.
-
-This keeps initial load much lighter for media-heavy exports.
-
-### 3. Chat Parsing
-
-ChatLume parses the export line by line in the browser.
-
-The parser recognizes message lines like:
-
-```text
-01/02/2026, 10:15 AM - Paras: Hello
-[01.02.26, 22:15:30] Friend: Hallo
-```
-
-It separates:
-
-- Date and time
-- Sender name
-- Message content
-- System messages
-- Multiline continuations
-- Date separators
-- Attachment references
-
-The parser also strips invisible Unicode direction/control characters that WhatsApp exports sometimes include.
-
-Supported behaviors include:
-
-- Date separators such as `/`, `-`, and `.`
-- 12-hour and 24-hour time formats
-- Optional square brackets
-- Optional seconds
-- Multiline message continuation
-- System messages without a sender
-- German-style attachment labels such as `Datei angehängt`
-- Omitted media markers such as `<Media omitted>`
-
-Date order is inferred from parsed date labels, with a locale-aware fallback. This helps date jump work across common DMY, MDY, and YMD exports.
-
-### 4. Message State
-
-Parsed entries are stored in memory as lightweight JavaScript objects.
-
-Common entry types:
-
-- `date`: a date separator shown between message groups.
-- `msg`: a normal message with sender, time, text, ownership, and media items.
-- `system`: WhatsApp system text such as encryption notices or group updates.
-
-The app keeps a full parsed index in memory because search, date jump, analytics, and Wrapped need fast local access without a backend. The rendered DOM, however, is kept bounded.
-
-### 5. Rendering and Scrolling
-
-ChatLume does not render the entire chat into the DOM.
-
-Instead, it uses a sliding message window:
-
-- It starts near the bottom of the chat.
-- As you scroll upward, older nearby messages are added.
-- As you scroll downward, newer nearby messages are added.
-- Content from the opposite side is dropped once the render window exceeds the configured limit.
-- Scroll anchoring keeps the visible position stable while the window changes.
-
-This lets very long chats remain usable because the browser is not asked to keep every bubble, image, video, and date marker mounted at once.
-
-### 6. Media Loading
-
-ZIP media is memory-aware.
-
-The app first builds a lookup table of attachment names and ZIP paths. When a message references an attachment, ChatLume links that message to the indexed ZIP entry.
-
-Media lifecycle:
-
-1. Attachment is indexed from the ZIP.
-2. Message renders a placeholder or lazy media element.
-3. When the element enters the viewport, the ZIP entry is decoded into a Blob.
-4. A temporary object URL is created for browser display.
-5. The media is shown inline or in the preview modal.
-6. When the media leaves the render window and is not open in the modal, its object URL is revoked.
-
-This add-and-drop behavior keeps memory usage lower during long sessions. Large files can still take time to decode because all work happens locally, but ChatLume avoids loading all attachments into Blob URLs up front.
-
-### 7. Search
-
-Search runs locally over the parsed message index.
-
-- The search box is debounced so huge chats are not rescanned on every keystroke.
-- Matches include sender names, message text, and media names.
-- Results are stored as message IDs.
-- Previous and next buttons jump through results.
-- Matching text is highlighted in the rendered window.
-
-Search does not contact any server.
-
-### 8. Date Jump
-
-The header menu includes a date picker.
-
-When a date is selected:
-
-- ChatLume parses date markers from the loaded export.
-- It tries to find an exact date marker.
-- If no exact marker exists, it jumps to the closest previous valid date.
-- The render window is repositioned around that date.
-
-Accuracy depends on the date labels present in the WhatsApp export and how clearly the export format maps to DMY, MDY, or YMD.
-
-### 9. Analytics
-
-Analytics are computed during parsing and from the parsed local state.
-
-ChatLume tracks:
-
-- Total parsed messages
-- Total referenced media items
-- Missing attachment count
-- Sender message counts
-- Sender percentage split
-- Emoji usage
-- Hourly activity distribution
-
-The Analytics drawer shows a compact breakdown with counts, top emojis, and per-sender contribution bars.
-
-### 10. ChatLume Wrapped
-
-Wrapped turns a loaded chat into a downloadable visual summary.
-
-It uses local chat statistics to show:
-
-- Chat title
-- Date range
-- Total messages
-- Total words
-- Shared media count
-- Peak activity hour
-- Most-used emojis
-- Top contributors
-
-The image is generated in the browser using `html2canvas`. The generated image is downloaded locally; it is not uploaded by ChatLume.
-
-### 11. Theme and PWA
-
-The app supports dark and light themes.
-
-- Theme choice is stored in `localStorage`.
-- The PWA install button appears when the browser fires `beforeinstallprompt`.
-- The service worker caches core files for offline use.
-- HTML pages use a network-first strategy so updates can propagate.
-- CSS, JS, icons, manifest, sitemap, and other static assets use a stale-while-revalidate style cache.
-
 ## Features
 
-### Import and Parsing
+- **WhatsApp chat viewer** — upload `.txt` or `.zip` exports and browse them in a familiar bubble UI with search, date jump, and inline media
+- **Instagram DM viewer** — upload Instagram's JSON export and view your DMs the same way
+- **WhatsApp Wrapped** — full analytics dashboard: message counts, sender splits, top emojis, hourly activity, and a downloadable summary card
+- **Instagram Wrapped** — same analytics suite for your Instagram DM exports
+- **Shareable stats card** — generate and download a visual summary of any chat (Pro)
+- **Freemium model** — the last 500 messages are free for everyone; Pro unlocks the full unlimited history
+- **JWT authentication** — secure httpOnly cookie sessions, 7-day expiry
+- **Pro subscription** — ₹149/month (~$1.80 USD) via Dodo Payments; cancel anytime
+- **100% private** — all chat parsing happens in the browser; no file content ever reaches the server
 
-- `.txt` import
-- `.zip` import with media
-- Local JSZip extraction
-- Multiline message support
-- Date separator support
-- System message support
-- Common localized attachment label support
-- Missing media detection
+---
 
-### Viewer
+## Privacy
 
-- WhatsApp-style bubbles
-- Grouped messages
-- Date separators
-- Sender colors
-- Own-message detection using the entered display name
-- URL linkification
-- Basic WhatsApp-style formatting for `*bold*`, `_italic_`, and `~strikethrough~`
-- Inline image, sticker, video, and audio display
-- Document preview/download actions
-- Media modal with download support
-- Responsive desktop and mobile layout
+This is the most important section.
 
-### Customization
+**Your chat files are never uploaded.** Parsing happens entirely in the browser using the File API and JavaScript. When you load a `.txt` or `.zip` export, it stays on your device — the server receives nothing from it.
 
-- Original, 12-hour, or 24-hour message timestamps
-- Optional seconds in timestamps
-- Optional square or round timestamp brackets
-- Original, DMY, MDY, YMD, or long date labels
-- Configurable numeric date separator
-- Optional square or round date brackets
-- Sender name visibility toggle
-- Decorative read tick visibility toggle
-- Rich text/link rendering toggle
-- Settings saved locally in `localStorage`
+What we store on our servers:
 
-### Performance
+| Data | Stored |
+|------|--------|
+| Your chat messages | ❌ Never |
+| Media / attachments | ❌ Never |
+| Analytics / stats | ❌ Never |
+| Your email address | ✅ Required for accounts |
+| Your password | ✅ bcrypt hash only (never plaintext) |
+| Subscription status | ✅ `free` or `pro` |
 
-- Streaming-style line parsing that avoids splitting the whole export into a second giant line array
-- Bounded sliding render window
-- Lazy media decoding from ZIP entries
-- Object URL cleanup for off-screen media
-- Debounced search scans
-- Lazy image/video/audio hydration through `IntersectionObserver`
-- Loading overlay that prevents accidental double-loads
+Even on the Pro plan, nothing changes about where your chat data lives. Payments are handled entirely by Dodo Payments — we never see your card or UPI details.
 
-### Analytics and Wrapped
-
-- Message totals
-- Media totals
-- Sender split
-- Emoji ranking
-- Hourly activity tracking
-- Wrapped image generation
-- Local download of Wrapped image
-
-### Privacy and Safety
-
-- No backend
-- No uploads
-- No database
-- No accounts
-- HTML escaping for user-generated message content
-- Escaped search regex input
-- External links use `rel="noopener noreferrer"`
-- Local-only file handling through browser APIs
-
-### SEO and Branding
-
-- Canonical domain: `https://chatlume.parassharma.in`
-- Page-specific titles and descriptions
-- Open Graph metadata
-- Twitter card metadata
-- JSON-LD `WebApplication` structured data
-- `robots.txt`
-- `sitemap.xml`
-- PWA manifest and icons
-
-## Limitations
-
-- Browser memory and CPU limits still apply, especially with huge media files.
-- The parsed message index stays in memory so search, date jump, analytics, and Wrapped can remain local and fast.
-- Very large ZIP files can take time to parse and decode because there is intentionally no server doing work.
-- Date-jump accuracy depends on the export date format and available date markers.
-- Very uncommon localized WhatsApp export phrases may need additional parser rules.
-- CDN-loaded libraries require internet unless you vendor them locally.
-
-## Quick Start
-
-1. Export a chat from WhatsApp.
-2. Choose `Without Media` for fastest parsing, or include media for inline previews.
-3. Open `index.html` or visit the live demo.
-4. Go to the Viewer.
-5. Enter your display name exactly as it appears in the export.
-6. Upload the `.txt` or `.zip` file.
-7. Click `Load Chat`.
-
-## Exporting WhatsApp Chats
-
-### iPhone
-
-1. Open the chat in WhatsApp.
-2. Tap the contact or group name.
-3. Scroll down and tap `Export Chat`.
-4. Choose `Without Media` or `Attach Media`.
-5. Save/share the exported file.
-
-### Android
-
-1. Open the chat in WhatsApp.
-2. Tap the three-dot menu.
-3. Choose `More`.
-4. Tap `Export chat`.
-5. Choose `Without media` or `Include media`.
-6. Save/share the exported file.
-
-## Local Development
-
-This project has no build step.
-
-Open directly:
-
-```bash
-open index.html
-```
-
-Or serve statically:
-
-```bash
-python3 -m http.server 8080
-```
-
-Then open:
-
-```text
-http://localhost:8080
-```
-
-Serving over HTTP is recommended for consistent service worker, manifest, and asset behavior.
-
-## Deployment
-
-Deploy the repository as a static site. The canonical deployment is:
-
-```text
-https://chatlume.parassharma.in
-```
-
-Make sure these files are served from the site root:
-
-- `index.html`
-- `manifest.json`
-- `sw.js`
-- `robots.txt`
-- `sitemap.xml`
-- `assets/`
-- `css/`
-- `js/`
-- `public/`
-
-After changing cached assets, update `CACHE_NAME` in `sw.js` when you want existing PWA users to receive a fresh cache.
-
-## Project Structure
-
-```text
-.
-├── assets/
-│   ├── favicon.ico
-│   ├── icon-192.png
-│   └── icon-512.png
-├── css/
-│   └── style.css
-├── js/
-│   └── script.js
-├── public/
-│   ├── analyzer.html
-│   ├── how-it-works.html
-│   ├── how-to-export.html
-│   ├── how-to-use.html
-│   ├── privacy.html
-│   ├── viewer.html
-│   └── wrapped.html
-├── index.html
-├── manifest.json
-├── robots.txt
-├── sitemap.xml
-└── sw.js
-```
+---
 
 ## Tech Stack
 
-- Vanilla JavaScript
-- CSS3
-- HTML5 File API
-- [JSZip](https://stuk.github.io/jszip/) for ZIP parsing
-- [html2canvas](https://html2canvas.hertzen.com/) for Wrapped image export
-- [Phosphor Icons](https://phosphoricons.com/)
-- Progressive Web App manifest and service worker
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js 18+ |
+| Server | Express 5 |
+| Database | MongoDB (via Mongoose) |
+| Auth | JWT in httpOnly cookies |
+| Payments | Dodo Payments (webhooks + checkout sessions) |
+| Frontend | Vanilla JS — no framework, no build step |
+| PWA | Service worker + Web App Manifest |
 
-## Notes for Contributors
+---
 
-- Keep the app static and local-first.
-- Do not add a backend, telemetry, tracking, or upload flow for chat contents.
-- Escape user-generated content before rendering.
-- Be careful with object URLs. Revoke them when media leaves use.
-- Preserve large-chat behavior by keeping the DOM window bounded.
-- Prefer small, focused parser additions for new WhatsApp export formats.
-- Test both `.txt` and `.zip` exports when changing parsing or media behavior.
+## Self-Hosting
 
-## Community Credit
+### Prerequisites
 
-- German export parsing and attachment-label feedback came from Reddit user `u/jacckyryan`.
+- Node.js 18+
+- MongoDB (local instance or [MongoDB Atlas](https://www.mongodb.com/atlas) free tier)
+- A [Dodo Payments](https://dodopayments.com) account if you want the payments feature
 
-## Contributing
+### 1. Clone the repo
 
-1. Fork the repository.
-2. Create a branch: `git checkout -b feature/your-feature`.
-3. Commit changes: `git commit -m "feat: add your feature"`.
-4. Push branch and open a Pull Request.
+```bash
+git clone https://github.com/ParasSharma2306/chatlume
+cd chatlume
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in all values (see the reference table below).
+
+### 4. Run locally
+
+```bash
+npm start
+```
+
+Visit [http://localhost:3000](http://localhost:3000).
+
+For development with auto-restart:
+
+```bash
+npm run dev   # requires nodemon: npm i -g nodemon
+```
+
+### 5. Environment variables reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | No | Port to listen on. Defaults to `3000`. |
+| `MONGODB_URI` | Yes | MongoDB connection string. Use `mongodb://127.0.0.1:27017/chatlume` for a local instance or your Atlas URI. |
+| `JWT_SECRET` | Yes | Long random string used to sign JWT tokens. Generate one with `openssl rand -hex 64`. |
+| `JWT_EXPIRES_IN` | No | JWT lifetime. Defaults to `7d`. |
+| `APP_URL` | Yes | Full public URL of your deployment, e.g. `https://chatlume.parassharma.in`. Used to build the Dodo checkout return URL. |
+| `DODO_API_KEY` | Payments only | API key from the Dodo Payments dashboard. |
+| `DODO_WEBHOOK_SECRET` | Payments only | Webhook signing secret from the Dodo dashboard. Used to verify that incoming webhook calls are genuine. |
+| `DODO_PRODUCT_ID` | Payments only | The product/plan ID for your Pro subscription in Dodo. |
+
+### 6. Setting up Dodo Payments (optional)
+
+If you want the Pro subscription flow:
+
+1. Create an account at [dodopayments.com](https://dodopayments.com).
+2. Create a product with a monthly recurring price of your choosing.
+3. Copy the product ID into `DODO_PRODUCT_ID`.
+4. Generate an API key and copy it into `DODO_API_KEY`.
+5. In the Dodo dashboard, register a webhook pointing to `https://your-domain.com/api/payments/webhook`.
+6. Copy the generated webhook secret into `DODO_WEBHOOK_SECRET`.
+
+Without these values the app runs fine — the upgrade button will error, but all free features work normally.
+
+### 7. Deploying to Railway (recommended)
+
+[Railway](https://railway.app) offers a generous free tier and zero-config Node.js deploys.
+
+1. Push your repo to GitHub.
+2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**.
+3. Select your forked repository. Railway auto-detects `npm start`.
+4. Add all environment variables in the **Variables** tab.
+5. Add a custom domain in **Settings → Domains**.
+6. Railway auto-deploys on every push to your default branch.
+
+For MongoDB, add a **MongoDB** plugin inside Railway or use a free [Atlas](https://www.mongodb.com/atlas) cluster and paste the connection string into `MONGODB_URI`.
+
+---
+
+## Project Structure
+
+```
+chatlume/
+├── routes/
+│   ├── auth.js          # signup, login, logout, /api/auth/me
+│   └── payments.js      # checkout session, webhook handler, subscription status
+├── middleware/
+│   └── auth.js          # verifyToken middleware (JWT from cookie)
+├── models/
+│   └── User.js          # Mongoose schema: email, passwordHash, subscription
+├── public/
+│   ├── viewer.html      # WhatsApp chat viewer
+│   ├── instagram-viewer.html
+│   ├── analyzer.html    # WhatsApp Wrapped
+│   ├── instagram-analyzer.html
+│   ├── wrapped.html
+│   ├── account.html     # Account & subscription management
+│   ├── pricing.html
+│   ├── login.html
+│   ├── signup.html
+│   └── ...              # How-to guides, privacy policy
+├── js/
+│   ├── script.js        # WhatsApp parser + viewer logic
+│   ├── instagram.js     # Instagram DM parser + viewer logic
+│   └── auth.js          # Shared auth state + nav injection
+├── css/
+│   └── style.css
+├── assets/              # Icons and favicon
+├── server.js            # Express app entry point
+├── sw.js                # Service worker (PWA)
+├── manifest.json
+└── .env.example
+```
+
+---
+
+## Migration Note
+
+> ⚠️ ChatLume migrated from a fully static site to a dynamic Express + MongoDB backend. The static version has been sunset. All features now require the Node.js server — you can no longer just open `index.html` directly in a browser.
+
+The privacy model has **not** changed. Chat data still never leaves the browser. The backend exists solely for user accounts and subscriptions.
+
+---
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+MIT — see [LICENSE](LICENSE) for details.
+
+---
 
 ## Author
 
-Paras Sharma
-
+**Paras Sharma**
 - Website: [parassharma.in](https://parassharma.in)
-- GitHub: [@parassharma2306](https://github.com/ParasSharma2306)
+- GitHub: [@ParasSharma2306](https://github.com/ParasSharma2306)
