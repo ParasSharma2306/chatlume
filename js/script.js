@@ -1205,14 +1205,14 @@ function renderMediaItem(item) {
     }
 
     if (item.kind === "audio") {
+        const bars = [30,50,70,45,80,60,35,90,55,75,40,85,65,50,70,45,80,35,65,90,50,40,75,60,85,45,70,55,80,40];
+        const waveHtml = bars.map(h => `<span style="height:${h}%"></span>`).join("");
         return `
             <div class="media-audio">
-                <div class="media-audio-head">
-                    <i class="ph-fill ph-waveform"></i>
-                    <div>
-                        <strong>${escapeHtml(item.name)}</strong>
-                        <span>${formatBytes(item.size)}</span>
-                    </div>
+                <div class="voice-note-row">
+                    <i class="ph-fill ph-microphone voice-mic-icon"></i>
+                    <div class="voice-waveform">${waveHtml}</div>
+                    <span class="voice-duration" data-media-id="${item.id}">–:––</span>
                 </div>
                 <audio controls preload="metadata" data-lazy-media="${item.id}" data-media-id="${item.id}"></audio>
             </div>
@@ -1931,7 +1931,19 @@ async function loadLazyMediaElement(element) {
     } else if (element.tagName === "AUDIO") {
         element.src = source;
         element.load();
-        element.addEventListener("loadedmetadata", markLoaded, { once: true });
+        element.addEventListener("loadedmetadata", () => {
+            markLoaded();
+            const dur = element.duration;
+            if (dur && isFinite(dur)) {
+                const mediaId = element.dataset.mediaId;
+                const durationEl = document.querySelector(`.voice-duration[data-media-id="${mediaId}"]`);
+                if (durationEl) {
+                    const m = Math.floor(dur / 60);
+                    const s = String(Math.floor(dur % 60)).padStart(2, "0");
+                    durationEl.textContent = `${m}:${s}`;
+                }
+            }
+        }, { once: true });
     } else {
         element.onload = markLoaded;
         element.src = source;
@@ -2067,6 +2079,21 @@ async function parseChatData(text) {
         state.messages.unshift({ type: "system", id: "wa-limit-banner", content: `__WA_LIMIT__:${totalCount}` });
         state.filteredMessages = state.messages;
         state.messageOnlyCount = WA_FREE_LIMIT;
+
+        // Recalculate all stats using only the truncated message set
+        state.senderStats = {};
+        state.emojiStats = {};
+        state.hourlyStats = Array(24).fill(0);
+        state.mediaCount = 0;
+        state.mediaMissingCount = 0;
+        state.messages.forEach(item => {
+            if (item.type !== "msg") return;
+            state.senderStats[item.sender] = (state.senderStats[item.sender] || 0) + 1;
+            state.hourlyStats[extractHour(item.rawTime || "")] += 1;
+            if (item.text) trackEmojis(item.text);
+            state.mediaCount += item.mediaItems.length;
+            state.mediaMissingCount += item.mediaItems.filter(m => m.status === "missing").length;
+        });
     }
 
     state.renderRange = { start: Math.max(0, state.filteredMessages.length - MAX_RENDERED_ITEMS), end: state.filteredMessages.length };

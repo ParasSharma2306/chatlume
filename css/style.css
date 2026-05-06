@@ -1483,11 +1483,59 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
 .media-audio {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
+    gap: 8px;
+    padding: 10px 12px;
     background: rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    min-width: 200px;
+}
+
+/* Voice note waveform row */
+.voice-note-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-mic-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    color: var(--primary);
+}
+
+.voice-waveform {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 28px;
+    overflow: hidden;
+}
+
+.voice-waveform span {
+    display: inline-block;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    opacity: 0.65;
+    flex-shrink: 0;
+}
+
+.voice-duration {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Instagram voice note accent */
+.ig-voice-note .voice-mic-icon { color: #C13584; }
+.ig-voice-note .voice-waveform span {
+    background: linear-gradient(to top, #833AB4, #C13584);
 }
 
 .media-audio-head,

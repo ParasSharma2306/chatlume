@@ -37,6 +37,74 @@
         #ig-drop-target.ready { border-color: #C13584; }
         .ig-avatar-gradient { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); }
 
+        /* ── Instagram DM visual redesign ── */
+
+        /* Dark black background like real Instagram */
+        .chat-interface { background: #000 !important; }
+        .messages-viewport { background: #000 !important; }
+        .chat-bg { display: none !important; }
+
+        /* Sent bubbles: Instagram blue/purple gradient */
+        #ig-message-list .msg-row.sent .bubble {
+            background: linear-gradient(135deg, #405DE6 0%, #833AB4 50%, #C13584 100%);
+            border: none;
+            color: #fff;
+        }
+        #ig-message-list .msg-row.sent .meta { color: rgba(255,255,255,0.65); }
+        #ig-message-list .tail-out .bubble::after { background: #C13584; }
+
+        /* Received bubbles: dark gray */
+        #ig-message-list .msg-row.received .bubble {
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        #ig-message-list .tail-in .bubble::before { background: #1e1e1e; }
+
+        /* Wider max-width for IG style */
+        #ig-message-list .msg-row { max-width: min(70%, 560px); }
+
+        /* Date separator on dark bg */
+        #ig-viewport .system-msg {
+            background: rgba(30,30,30,0.85);
+            border-color: rgba(255,255,255,0.06);
+        }
+
+        /* ── Story-style header avatar ── */
+        .ig-story-ring {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            padding: 2px;
+            background: linear-gradient(135deg, #833AB4, #C13584, #E1306C, #FD1D1D, #FCAF45);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ig-story-ring-inner {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid #000;
+            background: #262626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Instagram wordmark ── */
+        .ig-wordmark {
+            font-size: 18px;
+            font-style: italic;
+            font-weight: 800;
+            background: linear-gradient(135deg, #833AB4, #C13584, #E1306C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
         /* ── Reaction pills ── */
         .ig-reactions {
             display: flex;
@@ -49,8 +117,8 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            background: var(--bg-sidebar);
-            border: 1px solid var(--border);
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px;
             padding: 2px 7px;
             font-size: 14px;
@@ -124,8 +192,8 @@
     <div class="app-layout">
         <aside class="sidebar" id="ig-sidebar" aria-label="Sidebar">
             <header class="sidebar-header">
-                <button class="profile-thumb profile-button" type="button" title="App Info" aria-label="App info" style="cursor:default">
-                    <i class="ph-fill ph-instagram-logo" style="font-size:22px;background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
+                <button class="profile-thumb profile-button" type="button" title="App Info" aria-label="App info" style="cursor:default;background:none;border:0;padding:4px 6px">
+                    <span class="ig-wordmark">Instagram</span>
                 </button>
                 <div class="sidebar-nav">
                     <button id="ig-open-stats" type="button" title="Analytics" aria-label="Open analytics"><i class="ph ph-chart-pie-slice"></i></button>
@@ -223,11 +291,13 @@
             <header class="chat-header">
                 <button class="mobile-menu" id="ig-mobile-menu" type="button" aria-label="Open sidebar"><i class="ph ph-list"></i></button>
                 <div class="header-profile">
-                    <div class="header-pfp ig-avatar-gradient" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">
-                        <i class="ph-fill ph-instagram-logo" style="color:#fff;font-size:18px"></i>
+                    <div class="ig-story-ring">
+                        <div class="ig-story-ring-inner">
+                            <i class="ph-fill ph-instagram-logo" style="color:#fff;font-size:16px"></i>
+                        </div>
                     </div>
                     <div class="header-info">
-                        <h2 id="ig-header-name">Instagram Viewer</h2>
+                        <h2 id="ig-header-name">Instagram DMs</h2>
                         <p id="ig-header-meta">ChatLume</p>
                     </div>
                 </div>

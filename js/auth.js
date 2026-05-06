@@ -139,7 +139,13 @@
     }
   }
 
+  function _setFooterYear() {
+    const yr = new Date().getFullYear();
+    document.querySelectorAll('.footer-year').forEach(el => { el.textContent = yr; });
+  }
+
   async function _init() {
+    _setFooterYear();
     const user = await getUser();
 
     // Redirect away from auth pages if already logged in

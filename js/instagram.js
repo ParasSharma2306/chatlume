@@ -639,7 +639,9 @@ function renderIgMediaItem(item) {
   }
 
   if (item.kind === "audio") {
-    return `<div class="media-audio"><div class="media-audio-head"><i class="ph-fill ph-waveform"></i><div><strong>${escIg(item.name)}</strong></div></div><audio controls preload="metadata" data-lazy-media="${item.id}" data-media-id="${item.id}"></audio></div>`;
+    const bars = [30,50,70,45,80,60,35,90,55,75,40,85,65,50,70,45,80,35,65,90,50,40,75,60,85,45,70,55,80,40];
+    const waveHtml = bars.map(h => `<span style="height:${h}%"></span>`).join("");
+    return `<div class="media-audio ig-voice-note"><div class="voice-note-row"><i class="ph-fill ph-microphone voice-mic-icon"></i><div class="voice-waveform">${waveHtml}</div><span class="voice-duration" data-media-id="${item.id}">–:––</span></div><audio controls preload="metadata" data-lazy-media="${item.id}" data-media-id="${item.id}"></audio></div>`;
   }
 
   return `<div class="media-doc"><div class="media-doc-head"><i class="ph-fill ph-file"></i><div><strong>${escIg(item.name)}</strong></div></div><div class="media-doc-actions"><button type="button" class="media-doc-link" data-open-media="${item.id}">Preview</button></div></div>`;
@@ -699,7 +701,20 @@ async function loadIgLazyEl(el) {
     el.src = src; el.load();
     el.addEventListener("loadeddata", () => { el.previousElementSibling?.remove(); mark(); }, { once: true });
   } else if (el.tagName === "AUDIO") {
-    el.src = src; el.load(); el.addEventListener("loadedmetadata", mark, { once: true });
+    el.src = src; el.load();
+    el.addEventListener("loadedmetadata", () => {
+      mark();
+      const dur = el.duration;
+      if (dur && isFinite(dur)) {
+        const mediaId = el.dataset.mediaId;
+        const dEl = document.querySelector(`.voice-duration[data-media-id="${mediaId}"]`);
+        if (dEl) {
+          const m = Math.floor(dur / 60);
+          const s = String(Math.floor(dur % 60)).padStart(2, "0");
+          dEl.textContent = `${m}:${s}`;
+        }
+      }
+    }, { once: true });
   } else {
     el.onload = mark; el.src = src; if (el.complete) mark();
   }

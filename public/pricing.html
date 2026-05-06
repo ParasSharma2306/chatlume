@@ -137,7 +137,7 @@
             display: flex;
             align-items: baseline;
             gap: 4px;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .plan-price-amount {
             font-size: 48px;
@@ -150,6 +150,29 @@
             font-weight: 500;
             color: var(--text-secondary);
             letter-spacing: 0;
+        }
+        .plan-price-was {
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: line-through;
+            text-decoration-color: rgba(255,107,107,0.7);
+            margin-right: 2px;
+        }
+        .discount-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255, 107, 107, 0.12);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: #ff8080;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 10px;
         }
 
         /* Tagline */
@@ -419,9 +442,11 @@
                 <div class="badge-popular">Most Popular</div>
                 <p class="plan-name">Pro</p>
                 <div class="plan-price-row">
+                    <span class="plan-price-was">₹199</span>
                     <span class="plan-price-amount">₹149</span>
                     <span class="plan-price-period">/ month</span>
                 </div>
+                <div class="discount-badge">⚡ 25% off · Limited time</div>
                 <p class="plan-tagline">Full history, rich analytics, and shareable cards. Everything, no limits.</p>
                 <div class="plan-divider"></div>
                 <ul class="plan-features">
@@ -483,7 +508,7 @@
             <div><h4>Resources</h4><a href="/how-to-export">How to Export WhatsApp</a><a href="/how-to-export-instagram">How to Export Instagram</a><a href="/how-to-use">How to Use</a><a href="/how-it-works">How it Works</a><a href="/privacy">Privacy</a></div>
             <div><h4>Account</h4><a href="/login">Sign in</a><a href="/signup">Sign up</a><a href="/account">Dashboard</a></div>
         </div>
-        <div class="footer-bottom"><p>&copy; 2025 ChatLume. Your chats never leave your device.</p></div>
+        <div class="footer-bottom"><p>&copy; <span class="footer-year">2025</span> ChatLume. Your chats never leave your device.</p></div>
     </footer>
 
     <script>
