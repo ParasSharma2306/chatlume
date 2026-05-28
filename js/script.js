@@ -1930,10 +1930,19 @@ function updateUIState(filename) {
         btn.addEventListener("click", async () => {
             closeMenu();
             btn.disabled = true;
-            btn.innerHTML = '<i class="ph-fill ph-spinner-gap processing-spinner"></i> Exporting...';
-            await exportChatAsHTML("message-list", "whatsapp-chat-export.html");
-            btn.disabled = false;
-            btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+            btn.textContent = 'Exporting...';
+            try {
+                await exportChatAsHTML("message-list", "whatsapp-chat-export.html", (cur, tot) => {
+                    if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
+                });
+                btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+            } catch (err) {
+                console.error('[ChatLume] Export failed:', err);
+                btn.textContent = 'Export failed';
+                setTimeout(() => { btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML'; }, 2000);
+            } finally {
+                btn.disabled = false;
+            }
         });
         menu.appendChild(btn);
     }
