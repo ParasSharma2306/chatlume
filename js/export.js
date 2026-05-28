@@ -1,36 +1,38 @@
 /**
  * ChatLume HTML Export
- * Produces a fully self-contained .html file from the rendered message list.
- * Blob: URLs (loaded images, video, audio) are serialised to base64 before
- * the file is generated so the export works offline with no dependencies.
  *
- * @param {string}   containerId  ID of the message-list element to export
- * @param {string}   filename     Download filename
- * @param {Function} [onProgress] Called as (completedCount, totalCount) for each converted blob
+ * @param {Object}   opts
+ * @param {string}   opts.filename      Download filename
+ * @param {Function} opts.renderAllFn   Returns an HTML string of the complete
+ *                                      message list element (all messages, not
+ *                                      just the current DOM window).
+ * @param {Function} [opts.onProgress]  Called as (completedCount, totalCount)
+ *                                      after each blob→base64 conversion.
  */
-export async function exportChatAsHTML(containerId, filename = 'chat-export.html', onProgress) {
-  const container = document.getElementById(containerId);
-  if (!container) {
-    console.error('[ChatLume Export] Container not found:', containerId);
+export async function exportChatAsHTML({ filename = 'chat-export.html', renderAllFn, onProgress } = {}) {
+  if (!renderAllFn) {
+    console.error('[ChatLume Export] renderAllFn is required');
     return;
   }
 
-  // Clone — never mutate the live DOM
-  const clone = container.cloneNode(true);
+  // Render ALL messages (bypasses the 180-item virtual-scroll window)
+  const messagesHtml = renderAllFn();
 
-  // Strip the export button itself from the clone
-  clone.querySelectorAll('[data-export-btn]').forEach(el => el.remove());
+  // Wrap in a temporary container so we can manipulate elements in-memory
+  const temp = document.createElement('div');
+  temp.innerHTML = messagesHtml;
 
-  // Collect every media element whose src is a live blob: URL
+  // Collect every media element whose src is a live blob: URL.
+  // (Elements that were never scrolled into view have no src, so they're skipped.)
   const blobMedia = [
-    ...[...clone.querySelectorAll('img')].filter(el => el.src?.startsWith('blob:')),
-    ...[...clone.querySelectorAll('video')].filter(el => el.src?.startsWith('blob:')),
-    ...[...clone.querySelectorAll('audio')].filter(el => el.src?.startsWith('blob:')),
+    ...[...temp.querySelectorAll('img')].filter(el => el.src?.startsWith('blob:')),
+    ...[...temp.querySelectorAll('video')].filter(el => el.src?.startsWith('blob:')),
+    ...[...temp.querySelectorAll('audio')].filter(el => el.src?.startsWith('blob:')),
   ];
   const total = blobMedia.length;
   let completed = 0;
 
-  // Serialise blob URLs to base64 with a concurrency ceiling of 5
+  // Convert blob URLs to base64 with a concurrency ceiling of 5
   await runWithConcurrency(blobMedia, 5, async (el) => {
     try {
       el.src = await fetchBlobAsBase64(el.src);
@@ -40,15 +42,15 @@ export async function exportChatAsHTML(containerId, filename = 'chat-export.html
     onProgress?.(++completed, total);
   });
 
-  // Add lazy loading to every img after conversion so the browser renders on-demand
-  clone.querySelectorAll('img').forEach(img => img.setAttribute('loading', 'lazy'));
+  // Browser-native lazy rendering: images load as the user scrolls, not all at once
+  temp.querySelectorAll('img').forEach(img => img.setAttribute('loading', 'lazy'));
 
-  // Inline all same-origin stylesheets (cross-origin sheets throw and are silently skipped)
+  // Inline all same-origin stylesheets (cross-origin CDN sheets are silently skipped)
   let css = '';
   for (const sheet of [...document.styleSheets]) {
     try {
       css += [...sheet.cssRules].map(r => r.cssText).join('\n') + '\n';
-    } catch { /* cross-origin CDN sheets – skip */ }
+    } catch { /* cross-origin – skip */ }
   }
 
   const themeClass = document.body.classList.contains('light-theme') ? 'light-theme' : '';
@@ -57,15 +59,15 @@ export async function exportChatAsHTML(containerId, filename = 'chat-export.html
     hour: '2-digit', minute: '2-digit',
   });
 
-  // Build the exported document.
-  // The inlined CSS carries app rules like `body { overflow:hidden; height:100dvh }`
-  // that prevent scrolling in a standalone file. The override block below undoes them.
+  // The inlined CSS contains app-specific rules (body{overflow:hidden;height:100dvh})
+  // that break a static page. The override block appended below undoes them.
   const fullHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Export — ChatLume</title>
+  <script>window.onload = function() { window.scrollTo(0, 0); }<\/script>
   <style>
 ${css}
 
@@ -75,13 +77,12 @@ html, body {
   min-height: unset !important;
   overflow: visible !important;
   overflow-y: auto !important;
+  scroll-behavior: auto !important;
 }
 body {
-  /* Remove the app-level background gradient that assumes a full-screen layout */
   background-image: none !important;
 }
 [data-export-btn], .export-btn { display: none !important; }
-/* Export chrome */
 .chatlume-export-banner {
   text-align: center;
   padding: 10px 16px;
@@ -92,13 +93,11 @@ body {
   margin-bottom: 8px;
 }
 .chatlume-export-banner a { color: inherit; text-decoration: underline; }
-/* Wrapper that centres and pads the message list */
 .chatlume-export-content {
   max-width: 900px;
   margin: 0 auto;
   padding: 8px 5% 32px;
 }
-/* The cloned message-list must not retain any flex-child or overflow constraints */
 #message-list,
 #ig-message-list {
   height: auto !important;
@@ -107,7 +106,6 @@ body {
   position: static !important;
   flex: none !important;
 }
-/* Sticky date labels don't work in a flat static document */
 .sticky-date {
   position: static !important;
   top: unset !important;
@@ -119,7 +117,7 @@ body {
     Exported with <a href="https://chatlume.parassharma.in" target="_blank">ChatLume</a> &middot; ${exportedAt}
   </div>
   <div class="chatlume-export-content">
-    ${clone.outerHTML}
+    ${temp.innerHTML}
   </div>
 </body>
 </html>`;
@@ -128,8 +126,7 @@ body {
 }
 
 /**
- * Runs `fn` over every item in `items` with at most `limit` concurrent executions.
- * Safe for any array size, including empty.
+ * Runs fn over every item with at most `limit` concurrent executions.
  */
 async function runWithConcurrency(items, limit, fn) {
   if (!items.length) return;

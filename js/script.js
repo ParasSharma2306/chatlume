@@ -1134,6 +1134,75 @@ function renderChatList() {
     hydrateLazyMedia();
 }
 
+// Renders ALL messages in state.filteredMessages (not just the virtual-scroll window)
+// and returns the complete message-list element as an HTML string for export.
+function renderAllMessagesForExport() {
+    let lastSender = null;
+    let html = "";
+
+    for (let index = 0; index < state.filteredMessages.length; index += 1) {
+        const item = state.filteredMessages[index];
+        if (!item) continue;
+
+        if (item.type === "date") {
+            html += `<div class="system-msg sticky-date" id="${item.id}">${escapeHtml(formatDateLabel(item.rawDate || item.content))}</div>`;
+            lastSender = null;
+            continue;
+        }
+
+        if (item.type === "system") {
+            html += `<div class="system-msg" id="${item.id}">${linkifyAndHighlight(item.content)}</div>`;
+            lastSender = null;
+            continue;
+        }
+
+        const isFirst = item.sender !== lastSender;
+        const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
+        const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
+        const senderHtml = state.settings.showSenderNames && !item.isMe && isFirst
+            ? `<div class="sender" style="color:${getColor(item.sender)}">${escapeHtml(item.sender)}</div>`
+            : "";
+
+        let textHtml = "";
+        if (item.text) {
+            const isCall = /^(Missed voice call|Missed video call|Voice call|Video call|null)$/i.test(item.text);
+            if (isCall) {
+                const isVideo = item.text.toLowerCase().includes("video");
+                const isMissed = item.text.toLowerCase().includes("missed") || item.text === "null";
+                const callIcon = isVideo ? "ph-video-camera" : "ph-phone";
+                const callColor = isMissed ? "var(--danger)" : "var(--primary)";
+                const callText = item.text === "null" ? "Missed call" : item.text;
+                textHtml = `
+                    <div class="msg-text has-meta" style="display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                        <i class="ph-fill ${callIcon}" style="font-size: 18px; color: ${callColor}"></i>
+                        ${escapeHtml(callText)}
+                    </div>`;
+            } else {
+                textHtml = `<div class="msg-text ${item.mediaItems.length ? "" : "has-meta"}">${renderMessageText(item.text)}</div>`;
+            }
+        }
+        const mediaHtml = item.mediaItems.length ? renderMediaStack(item.mediaItems) : "";
+        const readTick = item.isMe && state.settings.showReadTicks ? '<i class="ph-bold ph-checks" style="color:#53bdeb"></i>' : "";
+
+        html += `
+            <article class="${rowClass}" id="${item.id}">
+                <div class="bubble">
+                    ${senderHtml}
+                    ${textHtml}
+                    ${mediaHtml}
+                    <div class="meta">
+                        <span>${escapeHtml(formatMessageTime(item.rawTime || item.time))}</span>
+                        ${readTick}
+                    </div>
+                </div>
+            </article>`;
+
+        lastSender = item.sender;
+    }
+
+    return `<div class="message-list" id="message-list">${html}</div>`;
+}
+
 function clampRenderRange() {
     const total = state.filteredMessages.length;
     let start = Math.max(0, Math.min(state.renderRange.start, total));
@@ -1932,8 +2001,12 @@ function updateUIState(filename) {
             btn.disabled = true;
             btn.textContent = 'Exporting...';
             try {
-                await exportChatAsHTML("message-list", "whatsapp-chat-export.html", (cur, tot) => {
-                    if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
+                await exportChatAsHTML({
+                    filename: "whatsapp-chat-export.html",
+                    renderAllFn: renderAllMessagesForExport,
+                    onProgress: (cur, tot) => {
+                        if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
+                    }
                 });
                 btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
             } catch (err) {

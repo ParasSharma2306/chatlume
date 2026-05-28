@@ -632,6 +632,66 @@ function renderIgChatList() {
   hydrateIgLazyMedia();
 }
 
+// Renders ALL messages in igState.filteredMessages (not just the virtual-scroll window)
+// and returns the complete message-list element as an HTML string for export.
+function renderAllIgMessagesForExport() {
+  let lastSender = null;
+  let html = "";
+
+  for (let i = 0; i < igState.filteredMessages.length; i++) {
+    const item = igState.filteredMessages[i];
+    if (!item) continue;
+
+    if (item.type === "date") {
+      html += `<div class="system-msg sticky-date" id="${item.id}">${escIg(item.content)}</div>`;
+      lastSender = null;
+      continue;
+    }
+
+    if (item.type === "system") {
+      html += `<div class="system-msg" id="${item.id}">${escIg(item.content)}</div>`;
+      lastSender = null;
+      continue;
+    }
+
+    const isFirst = item.sender !== lastSender;
+    const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
+    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
+
+    const senderHtml = !item.isMe && isFirst
+      ? `<div class="sender" style="color:${getIgColor(item.sender)}">${escIg(item.sender)}</div>`
+      : "";
+
+    let textHtml = "";
+    if (item.text) {
+      textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink ? "has-meta" : ""}">${igLinkify(item.text)}</div>`;
+    }
+
+    const mediaHtml = item.mediaItems.length ? renderIgMediaStack(item.mediaItems) : "";
+
+    let shareHtml = "";
+    if (item.shareLink) {
+      const label = item.shareText ? escIg(item.shareText) : escIg(item.shareLink);
+      shareHtml = `<div class="ig-share-link has-meta"><i class="ph ph-link-simple"></i><a href="${escAttrIg(item.shareLink)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+    }
+
+    const reactionsHtml = item.reactions.length ? renderIgReactions(item.reactions) : "";
+
+    html += `
+      <article class="${rowClass}" id="${item.id}">
+        <div class="bubble">
+          ${senderHtml}${textHtml}${mediaHtml}${shareHtml}
+          <div class="meta"><span>${escIg(item.time)}</span></div>
+          ${reactionsHtml}
+        </div>
+      </article>`;
+
+    lastSender = item.sender;
+  }
+
+  return `<div class="message-list" id="ig-message-list">${html}</div>`;
+}
+
 function renderIgMediaStack(items) {
   return `<div class="msg-media-stack">${items.map(renderIgMediaItem).join("")}</div>`;
 }
@@ -965,8 +1025,12 @@ function updateIgUI(title, participants) {
       btn.disabled = true;
       btn.textContent = 'Exporting...';
       try {
-        await exportChatAsHTML("ig-message-list", "instagram-chat-export.html", (cur, tot) => {
-          if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
+        await exportChatAsHTML({
+          filename: "instagram-chat-export.html",
+          renderAllFn: renderAllIgMessagesForExport,
+          onProgress: (cur, tot) => {
+            if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
+          }
         });
         btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
       } catch (err) {
