@@ -1,4 +1,5 @@
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+import { exportChatAsHTML } from './export.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -1916,6 +1917,26 @@ function updateUIState(filename) {
         ? `${state.mediaMissingCount} missing attachment${state.mediaMissingCount === 1 ? "" : "s"}`
         : "Loaded successfully";
     if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
+
+    // Inject export button into header menu (once)
+    const menu = $("header-menu");
+    if (menu && !$("export-chat-btn")) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "menu-item";
+        btn.id = "export-chat-btn";
+        btn.setAttribute("data-export-btn", "");
+        btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+        btn.addEventListener("click", async () => {
+            closeMenu();
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-fill ph-spinner-gap processing-spinner"></i> Exporting...';
+            await exportChatAsHTML("message-list", "whatsapp-chat-export.html");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+        });
+        menu.appendChild(btn);
+    }
 }
 
 function getSearchableText(entry) {
@@ -2051,8 +2072,13 @@ function createWAChatLineProcessor() {
     function processLine(originalLine) {
         const line = originalLine.replace(/[\u200E\u200F\u202A-\u202E\u200B\r]/g, "");
 
-        const messageMatch = line.match(messageRegex);
-        if (messageMatch) {
+        // systemRegex checked first; messageRegex is preferred only when the captured
+        // sender is \u2264 4 words (contact name), preventing system events whose text
+        // contains a colon from being misparsed as messages.
+        const systemMatch = line.match(systemRegex);
+        const messageMatch = systemMatch ? line.match(messageRegex) : null;
+
+        if (messageMatch && messageMatch[2].trim().split(/\s+/).length <= 4) {
             const rawTime = messageMatch[1].trim();
             const sender = messageMatch[2].trim();
             const rawContent = messageMatch[3] || "";
@@ -2068,7 +2094,6 @@ function createWAChatLineProcessor() {
             return;
         }
 
-        const systemMatch = line.match(systemRegex);
         if (systemMatch) {
             const rawTime = systemMatch[1].trim();
             const content = (systemMatch[2] || "").trim();
@@ -2201,7 +2226,8 @@ function parseMessageContent(content, isContinuation = false) {
 
     const mediaItems = [];
 
-    if (/^<media omitted>$/i.test(text.trim()) || /^<medien ausgeschlossen>$/i.test(text.trim())) {
+    if (/^<media omitted>$/i.test(text.trim()) || /^<medien ausgeschlossen>$/i.test(text.trim()) ||
+        /^(image|video|audio|sticker|document|contact card|gif) omitted$/i.test(text.trim())) {
         mediaItems.push(createMissingMediaItem("Media omitted"));
         return { text: "", mediaItems };
     }

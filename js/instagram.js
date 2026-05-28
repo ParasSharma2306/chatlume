@@ -1,4 +1,5 @@
 import { configure, BlobReader, ZipReader, BlobWriter, TextWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+import { exportChatAsHTML } from './export.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const IG_SUPPORTS_STREAMING =
@@ -517,6 +518,12 @@ function parseIgMessages(rawMessages) {
     (raw.gifs || []).forEach(g => addMediaItem(g.uri, "image"));
     if (raw.sticker?.uri) addMediaItem(raw.sticker.uri, "sticker");
 
+    // Skip truly empty/unsupported messages (no text, media, share, or reactions)
+    if (!content && !mediaItems.length && !shareLink && !reactions.length) {
+      idx++;
+      return;
+    }
+
     // Analytics
     igState.senderStats[sender] = (igState.senderStats[sender] || 0) + 1;
     igState.hourlyStats[date.getHours()] += 1;
@@ -666,7 +673,7 @@ function renderIgReactions(reactions) {
     grouped[r.reaction].push(r.actor);
   });
   const pills = Object.entries(grouped).map(([emoji, actors]) =>
-    `<span class="ig-reaction" title="${escAttrIg(actors.join(", "))}">${emoji}${actors.length > 1 ? ` <small>${actors.length}</small>` : ""}</span>`
+    `<span class="ig-reaction" title="${escAttrIg(actors.join(", "))}">${escIg(emoji)}${actors.length > 1 ? ` <small>${actors.length}</small>` : ""}</span>`
   ).join("");
   return `<div class="ig-reactions">${pills}</div>`;
 }
@@ -941,6 +948,28 @@ function updateIgUI(title, participants) {
   if ($ig("ig-header-name")) $ig("ig-header-name").innerText = title;
   if ($ig("ig-header-meta")) $ig("ig-header-meta").innerText = `${igState.messageOnlyCount.toLocaleString()} messages${withMedia}`;
   if ($ig("ig-sidebar-sub")) $ig("ig-sidebar-sub").innerText = participants.join(", ") || "Direct Message";
+
+  // Inject export button into header menu (once per session; re-inject on new thread)
+  const menu = $ig("ig-header-menu");
+  if (menu) {
+    const existing = $ig("ig-export-chat-btn");
+    if (existing) existing.remove();
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "menu-item";
+    btn.id = "ig-export-chat-btn";
+    btn.setAttribute("data-export-btn", "");
+    btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+    btn.addEventListener("click", async () => {
+      $ig("ig-header-menu")?.classList.remove("show");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph-fill ph-spinner-gap processing-spinner"></i> Exporting...';
+      await exportChatAsHTML("ig-message-list", "instagram-chat-export.html");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+    });
+    menu.appendChild(btn);
+  }
 }
 
 function setIgLoading(on, title = "Loading", copy = "Please wait...") {

@@ -1,22 +1,26 @@
-const CACHE_NAME = 'chatlume-pwa-v7';
+const CACHE_NAME = 'chatlume-v1.2.0';
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
+    'donate.html',
+    'privacy.html',
     'public/viewer.html',
     'public/instagram-viewer.html',
     'public/how-it-works.html',
     'public/how-to-use.html',
     'public/how-to-export.html',
     'public/how-to-export-instagram.html',
-    'public/privacy.html',
     'css/style.css',
     'js/script.js',
+    'js/instagram.js',
+    'js/export.js',
     'manifest.json',
     'robots.txt',
     'sitemap.xml',
     'assets/favicon.ico',
     'assets/icon-192.png',
-    'assets/icon-512.png'
+    'assets/icon-512.png',
+    'assets/og-image.png'
 ];
 
 // Install: Cache core assets and immediately take control
