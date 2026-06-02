@@ -1446,8 +1446,7 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     gap: 4px;
     font-size: var(--wa-meta-fs);
     line-height: 1;
-    color: var(--text-muted);
-    opacity: 0.62;
+    color: rgba(180, 180, 180, 0.75);
 }
 
 .msg-text + .msg-media-stack {
@@ -2465,8 +2464,11 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
 /* ── Support discontinuation banner ── */
 .support-banner {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
     background: var(--bg-elevated);
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border);
@@ -2474,7 +2476,6 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     font-size: 12.5px;
     line-height: 1.5;
     flex-shrink: 0;
-    z-index: 1200;
 }
 
 .support-banner span {
