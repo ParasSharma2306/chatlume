@@ -2,9 +2,9 @@
 
 > A browser-based viewer for WhatsApp and Instagram chat exports.
 
-![Stars](https://img.shields.io/github/stars/parassharma2306/chatlume?style=flat-square)
-![Forks](https://img.shields.io/github/forks/parassharma2306/chatlume?style=flat-square)
-![License](https://img.shields.io/github/license/parassharma2306/chatlume?style=flat-square)
+![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
+![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
+![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
 ![Version](https://img.shields.io/badge/version-v1.2.2-blue?style=flat-square)
 
 ---
