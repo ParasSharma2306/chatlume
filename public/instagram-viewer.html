@@ -35,6 +35,10 @@
         #ig-drop-target.ready { border-color: #C13584; }
         .ig-avatar-gradient { background: linear-gradient(135deg,#833AB4,#C13584,#E1306C); }
 
+        /* Instagram-themed drag overlay accent */
+        #ig-drag-overlay .drag-overlay-inner { border-color: #C13584; background: rgba(193,53,132,0.08); }
+        #ig-drag-overlay .drag-overlay-inner i { color: #C13584; }
+
         /* ── Instagram DM visual redesign ── */
 
         /* Dark black background like real Instagram */
@@ -150,7 +154,28 @@
         }
     </style>
 </head>
-<body class="dark-theme">
+<body class="dark-theme has-support-banner">
+    <div class="support-banner" id="support-banner" role="note">
+        <span><i class="ph ph-info"></i> ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
+        <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
+    </div>
+    <script>
+        (function () {
+            var KEY = "chatlume-support-notice-dismissed";
+            var banner = document.getElementById("support-banner");
+            if (!banner) return;
+            if (localStorage.getItem(KEY)) {
+                banner.remove();
+                document.body.classList.remove("has-support-banner");
+                return;
+            }
+            document.getElementById("support-banner-close").addEventListener("click", function () {
+                banner.remove();
+                document.body.classList.remove("has-support-banner");
+                try { localStorage.setItem(KEY, "1"); } catch (e) {}
+            });
+        })();
+    </script>
     <nav class="app-nav">
         <a href="../index.html" class="back-home"><i class="ph ph-house"></i> Home</a>
         <div class="nav-links">
@@ -167,6 +192,13 @@
         </div>
     </div>
 
+    <div class="drag-overlay" id="ig-drag-overlay" aria-hidden="true">
+        <div class="drag-overlay-inner">
+            <i class="ph ph-file-arrow-up"></i>
+            <p>Drop your chat export here</p>
+            <span>Instagram <strong>.zip</strong> export</span>
+        </div>
+    </div>
     <div class="app-layout">
         <aside class="sidebar" id="ig-sidebar" aria-label="Sidebar">
             <header class="sidebar-header">
@@ -195,6 +227,7 @@
                         <p>Drop <strong>.zip</strong> export</p>
                         <input type="file" id="ig-file-input" accept=".zip" hidden>
                         <span class="btn-secondary">Browse</span>
+                        <span class="mobile-tap-hint">Tap to select a file</span>
                     </button>
                     <button class="btn-primary" id="ig-load-btn" type="button">Load DMs</button>
                     <div class="load-hint">Your data never leaves your device.</div>
@@ -204,6 +237,7 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
+                    <div class="app-version-label" data-app-version>v1.2.2</div>
                 </section>
 
                 <!-- Thread selector -->

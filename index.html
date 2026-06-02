@@ -55,6 +55,22 @@
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
 </head>
 <body class="landing-page">
+    <div class="support-banner" id="support-banner" role="note">
+        <span><i class="ph ph-info"></i> ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
+        <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
+    </div>
+    <script>
+        (function () {
+            var KEY = "chatlume-support-notice-dismissed";
+            var banner = document.getElementById("support-banner");
+            if (!banner) return;
+            if (localStorage.getItem(KEY)) { banner.remove(); return; }
+            document.getElementById("support-banner-close").addEventListener("click", function () {
+                banner.remove();
+                try { localStorage.setItem(KEY, "1"); } catch (e) {}
+            });
+        })();
+    </script>
     <nav class="landing-nav">
         <a class="logo" href="index.html" style="text-decoration:none">
             <i class="ph-fill ph-chat-teardrop-text"></i> ChatLume
@@ -134,7 +150,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>v1.2.1 &nbsp;&middot;&nbsp; &copy; <span class="footer-year">2025</span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer">Paras Sharma</a> &middot; <a href="https://github.com/parassharma2306/ChatLume" target="_blank" rel="noopener noreferrer">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="donate.html">Donate</a></p>
+            <p>v1.2.2 &nbsp;&middot;&nbsp; &copy; <span class="footer-year">2025</span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer">Paras Sharma</a> &middot; <a href="https://github.com/parassharma2306/ChatLume" target="_blank" rel="noopener noreferrer">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="donate.html">Donate</a></p>
             <script>document.querySelectorAll('.footer-year').forEach(el => el.textContent = new Date().getFullYear());</script>
         </div>
     </footer>

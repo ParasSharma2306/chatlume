@@ -12,6 +12,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
+const IG_APP_VERSION = "1.2.2";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -66,6 +67,7 @@ function fixMojibake(str) {
 document.addEventListener("DOMContentLoaded", () => {
   applyIgTheme();
   bindIgUI();
+  document.querySelectorAll("[data-app-version]").forEach((el) => { el.textContent = `v${IG_APP_VERSION}`; });
   runIgLoader();
   checkIgBrowserCompatibility();
   if (window.innerWidth <= 800) setIgSidebarState(true);
@@ -172,6 +174,8 @@ function bindIgUI() {
 
   $ig("ig-load-btn")?.addEventListener("click", initIgViewer);
 
+  setupIgGlobalDropZone();
+
   $ig("ig-search-toggle")?.addEventListener("click", toggleIgSearch);
   $ig("ig-search-close")?.addEventListener("click", toggleIgSearch);
   $ig("ig-live-search")?.addEventListener("input", e => {
@@ -235,6 +239,73 @@ function resetIgDropUI() {
   const label = qig("p", dt);
   if (icon) { icon.className = "ph ph-file-zip"; icon.style.color = ""; }
   if (label) label.innerHTML = "Drop <strong>.zip</strong> export";
+}
+
+// ── Full-window drag overlay ────────────────────────────────────────────────
+// dragenter/dragleave depth counter prevents flicker when the cursor crosses
+// child elements within the window.
+function setupIgGlobalDropZone() {
+  const overlay = $ig("ig-drag-overlay");
+  if (!overlay) return;
+
+  let depth = 0;
+  const dragHasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes("Files");
+  const show = () => overlay.classList.add("active");
+  const hide = () => { overlay.classList.remove("active"); overlay.classList.remove("error"); };
+
+  window.addEventListener("dragenter", (e) => {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    depth += 1;
+    show();
+  });
+  window.addEventListener("dragover", (e) => {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+  });
+  window.addEventListener("dragleave", (e) => {
+    if (!dragHasFiles(e)) return;
+    depth -= 1;
+    if (depth <= 0) { depth = 0; hide(); }
+  });
+  window.addEventListener("drop", (e) => {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    depth = 0;
+    hide();
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleIgDroppedFile(file);
+  });
+}
+
+function handleIgDroppedFile(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".txt")) {
+    showIgToast("Instagram exports are .zip (JSON format) — .txt is WhatsApp only");
+    return;
+  }
+  if (!name.endsWith(".zip")) {
+    showIgToast("Please drop a .zip Instagram export");
+    return;
+  }
+  if (!IG_SUPPORTS_STREAMING && file.size > IG_COMPAT_FILE_SIZE_LIMIT) {
+    showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+    return;
+  }
+  igState.selectedFile = file;
+  const fileInput = $ig("ig-file-input");
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    if (fileInput) fileInput.files = transfer.files;
+  } catch (err) {
+    console.warn("Unable to assign dropped file to input:", err);
+  }
+  reflectIgFile(file);
+  if ($ig("ig-upload-panel")?.classList.contains("hidden")) {
+    if (window.innerWidth <= 800) setIgSidebarState(true);
+    showIgToast("File ready — tap Load DMs to open it");
+  }
 }
 
 // ── Main load flow ────────────────────────────────────────────────────────────
@@ -632,64 +703,30 @@ function renderIgChatList() {
   hydrateIgLazyMedia();
 }
 
-// Renders ALL messages in igState.filteredMessages (not just the virtual-scroll window)
-// and returns the complete message-list element as an HTML string for export.
-function renderAllIgMessagesForExport() {
-  let lastSender = null;
-  let html = "";
-
-  for (let i = 0; i < igState.filteredMessages.length; i++) {
-    const item = igState.filteredMessages[i];
-    if (!item) continue;
-
+// Builds a normalised list of all parsed messages for the HTML export. Reads
+// from igState.filteredMessages so the export includes every message, not just
+// the virtual-scroll window — and never re-parses the raw file.
+function collectIgExportMessages() {
+  return igState.filteredMessages.map((item) => {
     if (item.type === "date") {
-      html += `<div class="system-msg sticky-date" id="${item.id}">${escIg(item.content)}</div>`;
-      lastSender = null;
-      continue;
+      return { type: "date", label: item.content };
     }
-
     if (item.type === "system") {
-      html += `<div class="system-msg" id="${item.id}">${escIg(item.content)}</div>`;
-      lastSender = null;
-      continue;
+      return { type: "system", text: item.content };
     }
-
-    const isFirst = item.sender !== lastSender;
-    const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
-    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
-
-    const senderHtml = !item.isMe && isFirst
-      ? `<div class="sender" style="color:${getIgColor(item.sender)}">${escIg(item.sender)}</div>`
-      : "";
-
-    let textHtml = "";
-    if (item.text) {
-      textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink ? "has-meta" : ""}">${igLinkify(item.text)}</div>`;
-    }
-
-    const mediaHtml = item.mediaItems.length ? renderIgMediaStack(item.mediaItems) : "";
-
-    let shareHtml = "";
-    if (item.shareLink) {
-      const label = item.shareText ? escIg(item.shareText) : escIg(item.shareLink);
-      shareHtml = `<div class="ig-share-link has-meta"><i class="ph ph-link-simple"></i><a href="${escAttrIg(item.shareLink)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
-    }
-
-    const reactionsHtml = item.reactions.length ? renderIgReactions(item.reactions) : "";
-
-    html += `
-      <article class="${rowClass}" id="${item.id}">
-        <div class="bubble">
-          ${senderHtml}${textHtml}${mediaHtml}${shareHtml}
-          <div class="meta"><span>${escIg(item.time)}</span></div>
-          ${reactionsHtml}
-        </div>
-      </article>`;
-
-    lastSender = item.sender;
-  }
-
-  return `<div class="message-list" id="ig-message-list">${html}</div>`;
+    return {
+      type: "msg",
+      sender: item.sender,
+      time: item.time,
+      isMe: item.isMe,
+      color: getIgColor(item.sender),
+      text: item.text,
+      media: (item.mediaItems || []).map((m) => ({ kind: m.kind, name: m.name })),
+      shareLink: item.shareLink,
+      shareText: item.shareText,
+      reactions: item.reactions || []
+    };
+  });
 }
 
 function renderIgMediaStack(items) {
@@ -1004,6 +1041,8 @@ function updateIgUI(title, participants) {
   $ig("ig-empty-state")?.classList.add("hidden");
 
   const withMedia = igState.mediaCount ? ` • ${igState.mediaCount.toLocaleString()} media` : "";
+  const avatar = qig(".chat-item-avatar", $ig("ig-chat-list-item"));
+  if (avatar) avatar.textContent = igInitials(title);
   if ($ig("ig-sidebar-title")) $ig("ig-sidebar-title").innerText = title;
   if ($ig("ig-header-name")) $ig("ig-header-name").innerText = title;
   if ($ig("ig-header-meta")) $ig("ig-header-meta").innerText = `${igState.messageOnlyCount.toLocaleString()} messages${withMedia}`;
@@ -1019,26 +1058,21 @@ function updateIgUI(title, participants) {
     btn.className = "menu-item";
     btn.id = "ig-export-chat-btn";
     btn.setAttribute("data-export-btn", "");
+    btn.title = "Exports text only — media referenced by filename for efficiency";
     btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       $ig("ig-header-menu")?.classList.remove("show");
-      btn.disabled = true;
-      btn.textContent = 'Exporting...';
       try {
-        await exportChatAsHTML({
-          filename: "instagram-chat-export.html",
-          renderAllFn: renderAllIgMessagesForExport,
-          onProgress: (cur, tot) => {
-            if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
-          }
+        exportChatAsHTML({
+          theme: "instagram",
+          title: igState.chatTitle || "Instagram DMs",
+          messageCount: igState.messageOnlyCount,
+          messages: collectIgExportMessages()
         });
-        btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+        showIgToast("Chat exported as HTML");
       } catch (err) {
         console.error('[ChatLume] Export failed:', err);
-        btn.textContent = 'Export failed';
-        setTimeout(() => { btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML'; }, 2000);
-      } finally {
-        btn.disabled = false;
+        showIgToast("Export failed");
       }
     });
     menu.appendChild(btn);
@@ -1108,6 +1142,13 @@ function getIgColor(name) {
     igState.colorMap[name] = IG_COLORS[Math.abs(h) % IG_COLORS.length];
   }
   return igState.colorMap[name];
+}
+
+function igInitials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function igBaseName(p) { return String(p || "").split("/").pop() || ""; }

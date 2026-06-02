@@ -1,119 +1,81 @@
 # ChatLume
 
-Free, private chat export viewer. Your chats stay on your device.
+A private chat viewer for your WhatsApp and Instagram exports. Everything runs in your browser — your chats never touch a server.
 
-## The Story
+**Live:** [chatlume.parassharma.in](https://chatlume.parassharma.in)
 
-I built ChatLume on February 10th, 2026 for my girlfriend. She wanted to view her WhatsApp chats in a cleaner way and see some stats — who texted the most, favorite emojis, that kind of thing. But she didn't want to upload anything to the cloud or sign up for accounts.
+---
 
-So I built something simple: a tool that runs entirely in the browser. No servers. No tracking. No bullshit.
+## Why this exists
 
-Then people started asking for it. So I released it.
+I built ChatLume for my girlfriend. She wanted to reread old WhatsApp chats in something nicer than a wall of `.txt`, and see little stats — who texted more, which emojis showed up most, what time of day we talked. But she didn't want to upload years of private messages to some random website.
 
-## Features
+So I made the simplest thing that could work: a tool that opens your export *locally*. No uploads. No accounts. No tracking pixels following you around. The file you pick is read by your own browser and nothing leaves the tab.
 
-- **View WhatsApp exports** — .txt and .zip files
-- **View Instagram DMs** — JSON export zips
-- **See your stats** — message counts, emoji usage, activity by hour
-- **Completely private** — everything runs in your browser, nothing uploaded
-- **Works offline** — once the page loads, you don't need internet
-- **Free forever** — no accounts, no premium, no paywalls
-- **Large file support** — ZIP exports up to 10 GB+ on modern browsers
+People kept asking for it, so here it is.
 
-## How to Use
+## What it does
 
-1. Export your chat from WhatsApp or Instagram
+- **Opens WhatsApp exports** — both the plain `.txt` and the full `.zip` (with media)
+- **Opens Instagram DMs** — the JSON-format export `.zip`
+- **Looks like the real thing** — bubbles, dates, media, voice notes, reactions
+- **Shows you stats** — message counts, top emojis, activity by hour, who said how much
+- **Exports to HTML** — save a clean, self-contained copy of any chat (see below)
+- **Stays private** — 100% in-browser, nothing uploaded, nothing stored
+- **Works offline** — once loaded, you can pull the plug
+- **Handles big files** — multi-GB zips stream through without eating your RAM
+
+## HTML Export
+
+Open a chat, then use the menu (⋮) → **Export HTML**. You get a single `.html` file you can open in any browser, email to yourself, or archive.
+
+To keep it small and fast, **media isn't embedded** — each photo, video, voice note, or document shows up as a labelled card with its original filename (e.g. `IMG-20240115-WA0012.jpg`), so you can always find it back in your export folder. The exported file is themed to match the viewer (WhatsApp green, Instagram dark), has all its CSS inlined, and depends on nothing external.
+
+## How to use it
+
+1. Export your chat from WhatsApp (Chat → More → Export) or Instagram (Settings → Download your information → JSON)
 2. Go to [chatlume.parassharma.in](https://chatlume.parassharma.in)
-3. Upload your file
-4. View your chat
+3. Drop the file in — or tap to pick it
+4. View, search, and explore
 
-[How-to guides](https://chatlume.parassharma.in/public/how-to-export.html) · [Privacy policy](https://chatlume.parassharma.in/privacy.html)
+[How-to guides](https://chatlume.parassharma.in/public/how-to-export.html) · [Privacy](https://chatlume.parassharma.in/privacy.html)
 
-## How It Works
+## How it works (the privacy bit)
 
-ChatLume processes everything locally using browser APIs — no server ever sees your data.
+Everything happens client-side using browser APIs. There is no backend that ever sees your data.
 
-**ZIP parsing pipeline (v1.1.0+):**
+For zips, ChatLume uses [zip.js](https://gildas-lormeau.github.io/zip.js/) with a `BlobReader`, so the archive is never loaded into memory all at once:
 
-1. The selected `File` is wrapped in a `BlobReader` from [zip.js](https://gildas-lormeau.github.io/zip.js/). The ZIP's central directory is read as metadata only — the full file is never buffered into an `ArrayBuffer`.
-2. `ZipReader.getEntries()` returns entry metadata (filename, size, offset). No file data is decompressed at this stage.
-3. The chat text entry (`_chat.txt` for WhatsApp, `message_N.json` for Instagram) is decompressed on demand using the browser's native `DecompressionStream` API, streamed directly into a `WritableStream`.
-4. The `WritableStream` decoder processes decompressed chunks with `TextDecoder` (streaming mode), splits on newlines, and feeds each line into the message parser incrementally — the full text string is never materialized in memory.
-5. Media files (images, videos, audio) are not pre-loaded. Each entry's `ZipEntry` object is stored alongside its metadata. When a media item scrolls into view, `entry.getData(new BlobWriter(mimeType))` decompresses that single entry into a `Blob`, and `URL.createObjectURL()` produces a temporary URL. The URL is revoked when the item leaves the render window.
+1. Only the zip's directory is read on open — file data stays compressed on disk.
+2. The chat text (`_chat.txt` / `message_N.json`) is decompressed on demand and streamed line-by-line into the parser. The full text string is never held in memory.
+3. Media is loaded lazily — a photo is only decompressed into a temporary URL when it scrolls into view, and that URL is released when it scrolls away.
 
-**Peak RAM usage for a 5 GB ZIP is roughly:** decompression buffer (a few MB) + current JS chunk (a few KB) + accumulated parsed message objects. The ZIP itself is never buffered. The practical ceiling is available RAM for the message object graph, not the file size.
+Peak memory for a multi-GB export is roughly: a few MB of decompression buffer + the parsed message objects. The zip itself is never buffered. The real ceiling is RAM for the message list, not file size.
 
-## Browser Support
+## Browser support
 
-| Browser | Minimum Version | Large File Support |
+| Browser | Minimum | Large files |
 |---|---|---|
-| Chrome / Edge | 80+ | ✅ Up to ~10 GB |
-| Firefox | 79+ | ✅ Up to ~10 GB |
-| Safari | 16.4+ | ✅ Up to ~10 GB |
-| Older browsers | — | ⚠️ 1 GB limit |
+| Chrome / Edge | 80+ | ✅ |
+| Firefox | 79+ | ✅ |
+| Safari | 16.4+ | ✅ |
+| Older | — | ⚠️ 1 GB cap + warning banner |
 
-On browsers without `DecompressionStream` and `WritableStream`, ChatLume falls back to a compatibility mode and enforces a 1 GB cap with a visible warning banner.
+On browsers without `DecompressionStream` / `WritableStream`, ChatLume falls back to a compatibility mode capped at 1 GB.
 
-## Performance
+## Tech
 
-On a modern machine (M-series Mac or recent Intel/AMD), a **5 GB WhatsApp ZIP** with several years of messages typically:
+Plain HTML, CSS, and vanilla JavaScript. No frameworks, no build step. [zip.js](https://gildas-lormeau.github.io/zip.js/) for streaming zip parsing, a service worker for offline use. That's it.
 
-- Opens and scans entries in under 1 second (only the ZIP directory is read)
-- Streams and parses the chat text in 5–30 seconds depending on message count
-- Media loads lazily on demand — no upfront cost for attachments
+## A note on support
 
-## v1.1.0
+ChatLume support is **temporarily paused** after the v1.2.2 update. The tool keeps working exactly as-is — nothing breaks, nothing expires. Support will resume; there's just no confirmed date yet.
 
-### Streaming ZIP Engine
-Replaced JSZip with zip.js using BlobReader — the ZIP archive is never buffered into
-memory. zip.js reads only the central directory on open, then decompresses each entry
-on-demand via the browser's native DecompressionStream API. This eliminates V8's ~1.4GB
-ArrayBuffer ceiling entirely.
+## Support the project
 
-### Large File Support (up to 10GB+)
-Peak RAM during a load is now a few MB of decompression buffer + the current line chunk,
-regardless of ZIP size. A 2.7GB export with 9,205 media files and 76,000+ messages was
-tested and parses successfully.
+ChatLume is free forever. If it saved you some hassle, you can [donate](https://chatlume.parassharma.in/donate.html). I built it in my spare time and every bit helps.
 
-### Streaming Line-by-Line Parser
-_chat.txt is never loaded as a full string. It streams through a WritableStream —
-zip.js decompresses on-the-fly into the stream, which decodes UTF-8 incrementally,
-splits on newlines, and feeds complete lines into the parser. The UI stays responsive
-throughout with live progress updates every 2,000 lines.
-
-### Lazy Media Loading
-Media files (images, video, audio) are no longer pre-loaded. Each file is decompressed
-on demand via BlobWriter only when first accessed, and the Object URL is cached for
-subsequent views. This keeps initial load time fast regardless of how many attachments
-are in the export.
-
-### Smart Chat File Detection
-The parser now always selects the largest .txt entry in the ZIP as the chat log,
-instead of relying on the filename _chat.txt alone. Fixes a bug where a forwarded
-.txt attachment was being parsed instead of the actual chat — causing zero messages
-to load on certain large exports.
-
-### Browser Compatibility Safeguards
-On browsers that don't support DecompressionStream, WritableStream, or TextDecoderStream
-(pre-Safari 16.4, older Chromium), a 1GB file size cap is enforced automatically and
-an amber warning banner is shown. Modern browsers have no cap.
-
-## Tech Stack
-
-- HTML, CSS, JavaScript (vanilla, no frameworks, no build step)
-- [zip.js](https://gildas-lormeau.github.io/zip.js/) for streaming ZIP parsing (CDN ESM import)
-- Service Worker for offline support
-- Runs 100% in your browser
-
-## Privacy
-
-Your chats never leave your device. Everything is processed locally. I don't store anything. I don't track anything. That's it.
-
-## Support
-
-If ChatLume is useful to you, consider [donating](https://chatlume.parassharma.in/donate.html). I built this in my spare time. Every bit helps.
-
-## Built By
+## Built by
 
 [Paras Sharma](https://parassharma.com) · [GitHub](https://github.com/parassharma2306) · [Twitter](https://twitter.com/parassharma2306)
 

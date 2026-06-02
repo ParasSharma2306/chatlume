@@ -1,155 +1,325 @@
 /**
- * ChatLume HTML Export
+ * ChatLume HTML Export (v1.2.2)
+ *
+ * Builds a self-contained, themed HTML document from already-parsed message
+ * data. Media files are intentionally NOT embedded — each attachment is shown
+ * as a styled placeholder card with its filename, so the export stays small
+ * and loads instantly. All CSS is inlined and uses the system font stack, so
+ * the file has zero external dependencies.
  *
  * @param {Object}   opts
- * @param {string}   opts.filename      Download filename
- * @param {Function} opts.renderAllFn   Returns an HTML string of the complete
- *                                      message list element (all messages, not
- *                                      just the current DOM window).
- * @param {Function} [opts.onProgress]  Called as (completedCount, totalCount)
- *                                      after each blob→base64 conversion.
+ * @param {string}   [opts.filename]      Download filename. Defaults to
+ *                                        chatlume-export-YYYY-MM-DD.html
+ * @param {"whatsapp"|"instagram"} [opts.theme]  Visual theme.
+ * @param {string}   [opts.title]         Chat title shown in the header.
+ * @param {number}   [opts.messageCount]  Total message count for the header.
+ * @param {Array}    opts.messages        Normalised export items. Each item is
+ *   one of:
+ *     { type: "date",   label }
+ *     { type: "system", text }
+ *     { type: "msg", sender, time, isMe, color, text,
+ *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-export async function exportChatAsHTML({ filename = 'chat-export.html', renderAllFn, onProgress } = {}) {
-  if (!renderAllFn) {
-    console.error('[ChatLume Export] renderAllFn is required');
-    return;
-  }
+export function exportChatAsHTML({
+  filename,
+  theme = 'whatsapp',
+  title = 'Chat',
+  messageCount = 0,
+  messages = [],
+} = {}) {
+  const today = new Date();
+  const dateStamp = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+  const fname = filename || `chatlume-export-${dateStamp}.html`;
 
-  // Render ALL messages (bypasses the 180-item virtual-scroll window)
-  const messagesHtml = renderAllFn();
+  const html = buildExportDocument({ theme, title, messageCount, messages, today });
+  triggerDownload(html, fname);
+}
 
-  // Wrap in a temporary container so we can manipulate elements in-memory
-  const temp = document.createElement('div');
-  temp.innerHTML = messagesHtml;
+// ── Constants ──────────────────────────────────────────────────────────────
+const SUPPORT_NOTICE = 'ChatLume support is temporarily paused. Tool works as-is.';
+const MEDIA_NOTICE =
+  '⚡ Media files are not included in this export to keep file size minimal and loading fast. ' +
+  'Reference the filenames above to locate media in your original export folder.';
 
-  // Collect every media element whose src is a live blob: URL.
-  // (Elements that were never scrolled into view have no src, so they're skipped.)
-  const blobMedia = [
-    ...[...temp.querySelectorAll('img')].filter(el => el.src?.startsWith('blob:')),
-    ...[...temp.querySelectorAll('video')].filter(el => el.src?.startsWith('blob:')),
-    ...[...temp.querySelectorAll('audio')].filter(el => el.src?.startsWith('blob:')),
-  ];
-  const total = blobMedia.length;
-  let completed = 0;
+// kind → emoji icon (spec section 1)
+const MEDIA_ICONS = {
+  image: '🖼️',
+  sticker: '🎭',
+  video: '🎥',
+  audio: '🎵',
+  voice: '🎵',
+  document: '📄',
+  archive: '📄',
+  contact: '📄',
+  missing: '📎',
+};
 
-  // Convert blob URLs to base64 with a concurrency ceiling of 5
-  await runWithConcurrency(blobMedia, 5, async (el) => {
-    try {
-      el.src = await fetchBlobAsBase64(el.src);
-    } catch {
-      el.removeAttribute('src');
-    }
-    onProgress?.(++completed, total);
-  });
+const MEDIA_LABELS = {
+  image: 'Image',
+  sticker: 'Sticker',
+  video: 'Video',
+  audio: 'Voice note / audio',
+  voice: 'Voice note',
+  document: 'Document',
+  archive: 'Archive',
+  contact: 'Contact',
+  missing: 'Attachment',
+};
 
-  // Browser-native lazy rendering: images load as the user scrolls, not all at once
-  temp.querySelectorAll('img').forEach(img => img.setAttribute('loading', 'lazy'));
-
-  // Inline all same-origin stylesheets (cross-origin CDN sheets are silently skipped)
-  let css = '';
-  for (const sheet of [...document.styleSheets]) {
-    try {
-      css += [...sheet.cssRules].map(r => r.cssText).join('\n') + '\n';
-    } catch { /* cross-origin – skip */ }
-  }
-
-  const themeClass = document.body.classList.contains('light-theme') ? 'light-theme' : '';
-  const exportedAt = new Date().toLocaleString('en-IN', {
+// ── Document builder ─────────────────────────────────────────────────────────
+function buildExportDocument({ theme, title, messageCount, messages, today }) {
+  const isIg = theme === 'instagram';
+  const exportedAt = today.toLocaleString(undefined, {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 
-  // The inlined CSS contains app-specific rules (body{overflow:hidden;height:100dvh})
-  // that break a static page. The override block appended below undoes them.
-  const fullHTML = `<!DOCTYPE html>
+  const body = renderMessages(messages, theme);
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Export — ChatLume</title>
-  <script>window.onload = function() { window.scrollTo(0, 0); }<\/script>
-  <style>
-${css}
-
-/* ── ChatLume Export: scroll + layout reset (appended after inlined CSS) ── */
-html, body {
-  height: auto !important;
-  min-height: unset !important;
-  overflow: visible !important;
-  overflow-y: auto !important;
-  scroll-behavior: auto !important;
-}
-body {
-  background-image: none !important;
-}
-[data-export-btn], .export-btn { display: none !important; }
-.chatlume-export-banner {
-  text-align: center;
-  padding: 10px 16px;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 12px;
-  opacity: 0.55;
-  border-bottom: 1px solid rgba(128,128,128,0.2);
-  margin-bottom: 8px;
-}
-.chatlume-export-banner a { color: inherit; text-decoration: underline; }
-.chatlume-export-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 8px 5% 32px;
-}
-#message-list,
-#ig-message-list {
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  position: static !important;
-  flex: none !important;
-}
-.sticky-date {
-  position: static !important;
-  top: unset !important;
-}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatLume Export — ${escapeHtml(title)}</title>
+<style>${exportStyles(isIg)}</style>
 </head>
-<body${themeClass ? ` class="${themeClass}"` : ''}>
-  <div class="chatlume-export-banner">
-    Exported with <a href="https://chatlume.parassharma.in" target="_blank">ChatLume</a> &middot; ${exportedAt}
-  </div>
-  <div class="chatlume-export-content">
-    ${temp.innerHTML}
+<body class="${isIg ? 'ig' : 'wa'}">
+  <div class="ce-wrap">
+    <header class="ce-header">
+      <div class="ce-brand">${isIg ? '📸' : '💬'} ChatLume Export</div>
+      <h1>${escapeHtml(title)}</h1>
+      <div class="ce-sub">${escapeHtml(exportedAt)} · ${Number(messageCount).toLocaleString()} messages</div>
+    </header>
+
+    <div class="ce-notice">${MEDIA_NOTICE}</div>
+
+    <main class="ce-list">
+${body}
+    </main>
+
+    <footer class="ce-footer">
+      <p>Generated by ChatLume — <a href="https://chatlume.parassharma.in" target="_blank" rel="noopener noreferrer">chatlume.parassharma.in</a> · Media files not embedded for efficiency.</p>
+      <p class="ce-support">${SUPPORT_NOTICE}</p>
+    </footer>
   </div>
 </body>
 </html>`;
-
-  triggerDownload(fullHTML, filename);
 }
 
-/**
- * Runs fn over every item with at most `limit` concurrent executions.
- */
-async function runWithConcurrency(items, limit, fn) {
-  if (!items.length) return;
-  const queue = [...items];
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, async () => {
-      let item;
-      while ((item = queue.shift()) !== undefined) {
-        await fn(item);
-      }
-    })
+// ── Message rendering ────────────────────────────────────────────────────────
+function renderMessages(messages, theme) {
+  let lastSender = null;
+  const out = [];
+
+  for (const item of messages) {
+    if (!item) continue;
+
+    if (item.type === 'date') {
+      out.push(`      <div class="ce-date">${escapeHtml(item.label || '')}</div>`);
+      lastSender = null;
+      continue;
+    }
+
+    if (item.type === 'system') {
+      out.push(`      <div class="ce-system">${renderText(item.text || '', theme)}</div>`);
+      lastSender = null;
+      continue;
+    }
+
+    // msg
+    const isFirst = item.sender !== lastSender;
+    const rowCls = `ce-row ${item.isMe ? 'sent' : 'received'}${isFirst ? ' first' : ''}`;
+    const senderHtml = !item.isMe && isFirst && item.sender
+      ? `<div class="ce-sender" style="color:${escapeAttr(item.color || '#888')}">${escapeHtml(item.sender)}</div>`
+      : '';
+    const textHtml = item.text ? `<div class="ce-text">${renderText(item.text, theme)}</div>` : '';
+    const mediaHtml = (item.media && item.media.length) ? renderMediaCards(item.media) : '';
+    const shareHtml = item.shareLink ? renderShare(item.shareLink, item.shareText) : '';
+    const reactionsHtml = (item.reactions && item.reactions.length) ? renderReactions(item.reactions) : '';
+    const timeHtml = item.time ? `<div class="ce-time">${escapeHtml(item.time)}</div>` : '';
+
+    out.push(
+`      <div class="${rowCls}">
+        <div class="ce-bubble">${senderHtml}${textHtml}${mediaHtml}${shareHtml}${timeHtml}</div>${reactionsHtml}
+      </div>`
+    );
+    lastSender = item.sender;
+  }
+
+  return out.join('\n');
+}
+
+function renderMediaCards(media) {
+  return media.map((m) => {
+    const kind = m.kind || 'document';
+    const icon = MEDIA_ICONS[kind] || MEDIA_ICONS.document;
+    const label = MEDIA_LABELS[kind] || 'File';
+    const name = m.name || 'attachment';
+    return `<div class="ce-media"><span class="ce-media-icon">${icon}</span><span class="ce-media-info"><span class="ce-media-label">${escapeHtml(label)}</span><span class="ce-media-name">${escapeHtml(name)}</span></span></div>`;
+  }).join('');
+}
+
+function renderShare(link, text) {
+  const label = text ? escapeHtml(text) : escapeHtml(link);
+  return `<div class="ce-share">🔗 <a href="${escapeAttr(link)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+}
+
+function renderReactions(reactions) {
+  const grouped = {};
+  reactions.forEach((r) => {
+    const emoji = r.reaction || '';
+    if (!emoji) return;
+    grouped[emoji] = (grouped[emoji] || 0) + 1;
+  });
+  const pills = Object.entries(grouped)
+    .map(([emoji, count]) => `<span class="ce-react">${escapeHtml(emoji)}${count > 1 ? ` ${count}` : ''}</span>`)
+    .join('');
+  return pills ? `<div class="ce-reactions">${pills}</div>` : '';
+}
+
+// Escape, linkify, and apply WhatsApp-style formatting. Newlines → <br>.
+function renderText(text, theme) {
+  let s = escapeHtml(text || '');
+  s = s.replace(
+    /(https?:\/\/[^\s<]+)/gi,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
   );
+  if (theme !== 'instagram') {
+    s = s.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+    s = s.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+    s = s.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  }
+  s = s.replace(/\n/g, '<br>');
+  return s;
 }
 
-function fetchBlobAsBase64(blobUrl) {
-  return fetch(blobUrl)
-    .then(r => r.blob())
-    .then(blob => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(/** @type {string} */ (reader.result));
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    }));
+// ── Theme styles ─────────────────────────────────────────────────────────────
+function exportStyles(isIg) {
+  const t = isIg
+    ? {
+        bg: '#000000',
+        surface: '#121212',
+        text: '#f5f5f5',
+        muted: '#a8a8a8',
+        sentBg: 'linear-gradient(135deg, #405DE6 0%, #833AB4 55%, #C13584 100%)',
+        sentText: '#ffffff',
+        recvBg: '#262626',
+        recvText: '#f5f5f5',
+        accent: '#C13584',
+        chip: 'rgba(38,38,38,0.92)',
+        border: 'rgba(255,255,255,0.08)',
+        link: '#7aa7ff',
+      }
+    : {
+        bg: '#0b141a',
+        surface: '#111b21',
+        text: '#e9edef',
+        muted: '#8696a0',
+        sentBg: '#005c4b',
+        sentText: '#e9edef',
+        recvBg: '#202c33',
+        recvText: '#e9edef',
+        accent: '#00a884',
+        chip: 'rgba(24,34,41,0.92)',
+        border: 'rgba(255,255,255,0.06)',
+        link: '#53bdeb',
+      };
+
+  return `
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:auto;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:${t.bg};color:${t.text};line-height:1.5;
+  -webkit-font-smoothing:antialiased;padding:16px;
+}
+a{color:${t.link};}
+.ce-wrap{max-width:780px;margin:0 auto;}
+.ce-header{text-align:center;padding:22px 16px 18px;border-bottom:1px solid ${t.border};margin-bottom:6px;}
+.ce-brand{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${t.accent};}
+.ce-header h1{font-size:24px;font-weight:700;margin:8px 0 6px;word-break:break-word;}
+.ce-sub{font-size:13px;color:${t.muted};}
+.ce-notice{
+  background:${t.surface};border:1px solid ${t.border};border-left:3px solid ${t.accent};
+  border-radius:10px;padding:12px 16px;margin:16px 0;font-size:13.5px;color:${t.muted};line-height:1.6;
+}
+.ce-list{display:flex;flex-direction:column;gap:2px;padding:4px 0 24px;}
+.ce-date{
+  align-self:center;background:${t.chip};color:${t.muted};font-size:12px;font-weight:600;
+  padding:5px 14px;border-radius:999px;margin:14px 0 8px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.ce-system{
+  align-self:center;text-align:center;background:${t.surface};color:${t.muted};
+  font-size:12px;padding:6px 14px;border-radius:8px;margin:8px 0;max-width:90%;
+}
+.ce-row{display:flex;flex-direction:column;max-width:78%;margin-bottom:2px;}
+.ce-row.first{margin-top:8px;}
+.ce-row.received{align-self:flex-start;align-items:flex-start;}
+.ce-row.sent{align-self:flex-end;align-items:flex-end;}
+.ce-bubble{
+  border-radius:16px;padding:7px 11px 6px;font-size:14.5px;position:relative;
+  box-shadow:0 1px 1px rgba(0,0,0,0.18);word-break:break-word;overflow-wrap:anywhere;
+}
+.ce-row.received .ce-bubble{background:${t.recvBg};color:${t.recvText};border-top-left-radius:4px;}
+.ce-row.sent .ce-bubble{background:${t.sentBg};color:${t.sentText};border-top-right-radius:4px;}
+.ce-row:not(.first) .ce-bubble{border-radius:16px;}
+.ce-sender{font-size:12.8px;font-weight:600;margin-bottom:3px;}
+.ce-text a{color:${isIg ? '#cbe' : '#aef'};text-decoration:underline;}
+.ce-text{white-space:normal;}
+.ce-time{font-size:10.5px;color:${t.muted};opacity:0.7;text-align:right;margin-top:3px;}
+.ce-row.sent .ce-time{color:rgba(255,255,255,0.7);}
+.ce-media{
+  display:flex;align-items:center;gap:10px;margin-top:6px;padding:9px 11px;
+  background:rgba(255,255,255,0.06);border:1px solid ${t.border};border-radius:10px;
+}
+.ce-media-icon{font-size:22px;flex-shrink:0;line-height:1;}
+.ce-media-info{display:flex;flex-direction:column;min-width:0;}
+.ce-media-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:${t.muted};font-weight:600;}
+.ce-media-name{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:12.5px;word-break:break-all;
+}
+.ce-share{
+  display:flex;align-items:center;gap:6px;margin-top:6px;padding:8px 11px;
+  background:rgba(255,255,255,0.05);border:1px solid ${t.border};border-radius:10px;font-size:13px;
+}
+.ce-share a{word-break:break-all;}
+.ce-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.ce-react{
+  background:${t.surface};border:1px solid ${t.border};border-radius:12px;
+  padding:2px 8px;font-size:13px;
+}
+.ce-footer{
+  text-align:center;padding:24px 16px 12px;margin-top:12px;border-top:1px solid ${t.border};
+  font-size:12px;color:${t.muted};line-height:1.7;
+}
+.ce-footer a{color:${t.accent};}
+.ce-support{opacity:0.75;margin-top:4px;}
+@media (max-width:600px){
+  .ce-row{max-width:88%;}
+  body{padding:10px;}
+}
+`;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, '&#96;');
 }
 
 function triggerDownload(htmlString, filename) {

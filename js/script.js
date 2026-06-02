@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
+const APP_VERSION = "1.2.2";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -72,6 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     bindUI();
     applySavedTheme();
     syncSettingsControls();
+    document.querySelectorAll("[data-app-version]").forEach((el) => { el.textContent = `v${APP_VERSION}`; });
     runLoader();
     checkBrowserCompatibility();
     if (window.innerWidth <= 800) {
@@ -167,6 +169,7 @@ function bindUI() {
     $("reset-settings")?.addEventListener("click", resetSettings);
 
     setupDropTarget();
+    setupGlobalDropZone();
     $("viewport")?.addEventListener("scroll", handleViewportScroll);
     $("message-list")?.addEventListener("click", handleMessageListClick);
     document.addEventListener("click", handleDocumentClick);
@@ -431,6 +434,78 @@ function setupDropTarget() {
         }
         reflectSelectedFile(file);
     });
+}
+
+// Full-window drag-and-drop overlay. Uses a dragenter/dragleave depth counter
+// so the overlay doesn't flicker when the cursor crosses child elements.
+function setupGlobalDropZone() {
+    const overlay = $("drag-overlay");
+    if (!overlay) return;
+
+    let depth = 0;
+    const dragHasFiles = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
+    const show = () => overlay.classList.add("active");
+    const hide = () => { overlay.classList.remove("active"); overlay.classList.remove("error"); };
+
+    window.addEventListener("dragenter", (event) => {
+        if (!dragHasFiles(event)) return;
+        event.preventDefault();
+        depth += 1;
+        show();
+    });
+
+    window.addEventListener("dragover", (event) => {
+        if (!dragHasFiles(event)) return;
+        event.preventDefault();
+    });
+
+    window.addEventListener("dragleave", (event) => {
+        if (!dragHasFiles(event)) return;
+        depth -= 1;
+        if (depth <= 0) {
+            depth = 0;
+            hide();
+        }
+    });
+
+    window.addEventListener("drop", (event) => {
+        if (!dragHasFiles(event)) return;
+        event.preventDefault();
+        depth = 0;
+        hide();
+        const file = event.dataTransfer?.files?.[0];
+        if (file) handleDroppedFile(file);
+    });
+}
+
+function handleDroppedFile(file) {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".txt") && !name.endsWith(".zip")) {
+        showToast("Please drop a WhatsApp .txt or .zip export");
+        return;
+    }
+    if (!SUPPORTS_STREAMING && file.size > COMPAT_FILE_SIZE_LIMIT) {
+        showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+        return;
+    }
+
+    state.selectedFile = file;
+    const fileInput = $("file-input");
+    try {
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        if (fileInput) fileInput.files = transfer.files;
+    } catch (error) {
+        console.warn("Unable to assign dropped file to input:", error);
+    }
+    reflectSelectedFile(file);
+
+    // If a chat is already open, the upload panel is hidden — let the user know
+    // how to reach the file they just dropped.
+    if ($("upload-panel")?.classList.contains("hidden")) {
+        if (window.innerWidth <= 800) setSidebarState(true);
+        showToast("File ready — tap Load Chat to open it");
+    }
 }
 
 function checkBrowserCompatibility() {
@@ -1134,73 +1209,28 @@ function renderChatList() {
     hydrateLazyMedia();
 }
 
-// Renders ALL messages in state.filteredMessages (not just the virtual-scroll window)
-// and returns the complete message-list element as an HTML string for export.
-function renderAllMessagesForExport() {
-    let lastSender = null;
-    let html = "";
-
-    for (let index = 0; index < state.filteredMessages.length; index += 1) {
-        const item = state.filteredMessages[index];
-        if (!item) continue;
-
+// Builds a normalised, theme-agnostic list of all parsed messages for the HTML
+// export. Reads from state.filteredMessages (the source of the rendered DOM) so
+// the export includes every message, not just the virtual-scroll window — and
+// never re-parses the raw file.
+function collectExportMessages() {
+    return state.filteredMessages.map((item) => {
         if (item.type === "date") {
-            html += `<div class="system-msg sticky-date" id="${item.id}">${escapeHtml(formatDateLabel(item.rawDate || item.content))}</div>`;
-            lastSender = null;
-            continue;
+            return { type: "date", label: formatDateLabel(item.rawDate || item.content) };
         }
-
         if (item.type === "system") {
-            html += `<div class="system-msg" id="${item.id}">${linkifyAndHighlight(item.content)}</div>`;
-            lastSender = null;
-            continue;
+            return { type: "system", text: item.content };
         }
-
-        const isFirst = item.sender !== lastSender;
-        const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
-        const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
-        const senderHtml = state.settings.showSenderNames && !item.isMe && isFirst
-            ? `<div class="sender" style="color:${getColor(item.sender)}">${escapeHtml(item.sender)}</div>`
-            : "";
-
-        let textHtml = "";
-        if (item.text) {
-            const isCall = /^(Missed voice call|Missed video call|Voice call|Video call|null)$/i.test(item.text);
-            if (isCall) {
-                const isVideo = item.text.toLowerCase().includes("video");
-                const isMissed = item.text.toLowerCase().includes("missed") || item.text === "null";
-                const callIcon = isVideo ? "ph-video-camera" : "ph-phone";
-                const callColor = isMissed ? "var(--danger)" : "var(--primary)";
-                const callText = item.text === "null" ? "Missed call" : item.text;
-                textHtml = `
-                    <div class="msg-text has-meta" style="display: flex; align-items: center; gap: 6px; font-weight: 500;">
-                        <i class="ph-fill ${callIcon}" style="font-size: 18px; color: ${callColor}"></i>
-                        ${escapeHtml(callText)}
-                    </div>`;
-            } else {
-                textHtml = `<div class="msg-text ${item.mediaItems.length ? "" : "has-meta"}">${renderMessageText(item.text)}</div>`;
-            }
-        }
-        const mediaHtml = item.mediaItems.length ? renderMediaStack(item.mediaItems) : "";
-        const readTick = item.isMe && state.settings.showReadTicks ? '<i class="ph-bold ph-checks" style="color:#53bdeb"></i>' : "";
-
-        html += `
-            <article class="${rowClass}" id="${item.id}">
-                <div class="bubble">
-                    ${senderHtml}
-                    ${textHtml}
-                    ${mediaHtml}
-                    <div class="meta">
-                        <span>${escapeHtml(formatMessageTime(item.rawTime || item.time))}</span>
-                        ${readTick}
-                    </div>
-                </div>
-            </article>`;
-
-        lastSender = item.sender;
-    }
-
-    return `<div class="message-list" id="message-list">${html}</div>`;
+        return {
+            type: "msg",
+            sender: item.sender,
+            time: formatMessageTime(item.rawTime || item.time),
+            isMe: item.isMe,
+            color: getColor(item.sender),
+            text: item.text,
+            media: (item.mediaItems || []).map((media) => ({ kind: media.kind, name: media.name }))
+        };
+    });
 }
 
 function clampRenderRange() {
@@ -1995,26 +2025,21 @@ function updateUIState(filename) {
         btn.className = "menu-item";
         btn.id = "export-chat-btn";
         btn.setAttribute("data-export-btn", "");
+        btn.title = "Exports text only — media referenced by filename for efficiency";
         btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
-        btn.addEventListener("click", async () => {
+        btn.addEventListener("click", () => {
             closeMenu();
-            btn.disabled = true;
-            btn.textContent = 'Exporting...';
             try {
-                await exportChatAsHTML({
-                    filename: "whatsapp-chat-export.html",
-                    renderAllFn: renderAllMessagesForExport,
-                    onProgress: (cur, tot) => {
-                        if (tot > 0) btn.textContent = `Exporting... ${cur}/${tot}`;
-                    }
+                exportChatAsHTML({
+                    theme: "whatsapp",
+                    title: state.chatTitle || "WhatsApp Chat",
+                    messageCount: state.messageOnlyCount,
+                    messages: collectExportMessages()
                 });
-                btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
+                showToast("Chat exported as HTML");
             } catch (err) {
                 console.error('[ChatLume] Export failed:', err);
-                btn.textContent = 'Export failed';
-                setTimeout(() => { btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML'; }, 2000);
-            } finally {
-                btn.disabled = false;
+                showToast("Export failed");
             }
         });
         menu.appendChild(btn);
