@@ -50,7 +50,7 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 
 ### WhatsApp
 - `_chat.txt` (exported without media)
-- `.zip` archive (exported with media — media previewed from local files if dropped together, otherwise referenced by filename)
+- `.zip` archive (media read directly from inside the .zip via lazy decompression; referenced by filename if exported without media)
 
 ### Instagram
 - `messages_X.json` from Instagram's "Download Your Data" archive (JSON format, not HTML)
