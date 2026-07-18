@@ -125,8 +125,39 @@
         </div>
     </section>
 
-    <footer class="landing-footer" style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); margin-top: 40px;">
-    <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a></p>
+    <footer class="landing-footer" style="padding: 60px 20px 40px; border-top: 1px solid var(--border); margin-top: 40px; background: var(--bg-sidebar);">
+    <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px;">
+            <div style="flex: 1; min-width: 200px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <i class="ph-bold ph-chat-teardrop-text" style="color: #fff; font-size: 18px;"></i>
+                    </div>
+                    <span style="font-size: 18px; font-weight: 700; color: var(--text-primary);">ChatLume</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0;">Privacy-first chat viewer and analytics tool. No uploads, completely local.</p>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <h4 style="color: var(--text-primary); font-size: 15px; margin: 0 0 16px 0; font-weight: 600;">Guides</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <a href="public/how-to-use.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">How to use ChatLume</a>
+                    <a href="public/how-to-export.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Export WhatsApp chat</a>
+                    <a href="public/how-to-export-instagram.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Export Instagram DMs</a>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <h4 style="color: var(--text-primary); font-size: 15px; margin: 0 0 16px 0; font-weight: 600;">Legal & Contact</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <a href="privacy.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Privacy Policy</a>
+                    <a href="mailto:hello@parassharma.com" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Contact Support</a>
+                    <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Developer Portfolio</a>
+                </div>
+            </div>
+        </div>
+        <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 24px;">
+            <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a>. All rights reserved.</p>
+        </div>
+    </div>
     <script>
         document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
     </script>
