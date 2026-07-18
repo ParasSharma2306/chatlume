@@ -17,7 +17,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || '22' }}
           script: |
-            cd /path/to/your/app/directory/ChatLume
+            cd /home/paras/chatlume
             git pull origin main
             # Restart your service (e.g., pm2, systemctl, docker)
             # systemctl restart chatlume.service
