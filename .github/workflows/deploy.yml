@@ -1,0 +1,25 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+          script: |
+            cd /path/to/your/app/directory/ChatLume
+            git pull origin main
+            # Restart your service (e.g., pm2, systemctl, docker)
+            # systemctl restart chatlume.service
+            # or if it's just static files served by nginx, nothing to restart.
+            echo "Deployment successful."

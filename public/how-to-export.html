@@ -260,16 +260,11 @@
         </div>
     </div>
 
-    <footer class="landing-footer">
-        <div class="footer-grid">
-            <div><h4>Use ChatLume</h4><a href="viewer.html">WhatsApp Viewer</a><a href="instagram-viewer.html">Instagram Viewer</a></div>
-            <div><h4>Learn</h4><a href="viewer.html">WhatsApp Viewer</a><a href="instagram-viewer.html">Instagram Viewer</a></div>
-            <div><h4>Resources</h4><a href="how-to-export.html">How to Export</a><a href="../privacy.html">Privacy</a></div>
-        </div>
-        <div class="footer-bottom"><p>&copy; <span class="footer-year">2025</span> ChatLume. Your chats never leave your device.</p>
-        <script>document.querySelectorAll('.footer-year').forEach(el => el.textContent = new Date().getFullYear());</script>
-        <p style="margin-top:6px;font-size:12px;color:var(--text-muted)">ChatLume is a free WhatsApp and Instagram chat viewer by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer">Paras Sharma</a>.</p>
-        </div>
-    </footer>
+    <footer class="landing-footer" style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); margin-top: 40px;">
+    <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a></p>
+    <script>
+        document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
+    </script>
+</footer>
 </body>
 </html>

@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * ChatLume Core Script
+ * ============================================================================
+ * This file handles the main WhatsApp viewer logic, including:
+ * - File parsing (ZIP and TXT)
+ * - Message rendering and DOM manipulation
+ * - Chat analytics and wrapped generation
+ * - Theme and settings management
+ * ============================================================================
+ */
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
@@ -16,7 +27,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.2.2";
+const APP_VERSION = "1.2.3";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -639,7 +650,7 @@ async function initViewer() {
         renderChatList();
         requestAnimationFrame(scrollToBottom);
         showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
-        showDonationModal();
+        showProjectModal();
     } catch (error) {
         console.error(error);
         const emptyEl = document.getElementById("empty-state");
@@ -1955,27 +1966,7 @@ function showToast(message) {
     }, 2200);
 }
 
-function showDonationModal() {
-    if (sessionStorage.getItem('donationShown')) return;
 
-    sessionStorage.setItem('donationShown', 'true');
-    const backdrop = $("donation-modal-backdrop");
-    if (!backdrop) return;
-
-    setTimeout(() => {
-        backdrop.removeAttribute('hidden');
-    }, 3000);
-
-    const closeBtn = $("donation-modal-close");
-    const dismissBtn = $("donation-dismiss");
-
-    const closeFn = () => backdrop.setAttribute('hidden', '');
-    closeBtn?.addEventListener('click', closeFn);
-    dismissBtn?.addEventListener('click', closeFn);
-    backdrop?.addEventListener('click', (e) => {
-        if (e.target === backdrop) closeFn();
-    });
-}
 
 async function copyUPI() {
     try {
@@ -2580,4 +2571,62 @@ function escapeAttribute(value) {
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+
+function showProjectModal() {
+    const storageKey = 'chatlume_project_popup_dismissed_v2';
+    if (localStorage.getItem(storageKey)) return;
+
+    if (document.getElementById('project-modal-backdrop')) return;
+
+    const modalHtml = `
+    <div class="project-modal-backdrop" id="project-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+            <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="ph ph-x"></i>
+            </button>
+            <div class="project-modal-content">
+                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
+                <a href="https://realtalk.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">RealTalk AI <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A basic AI personality report. Costs $1.99 USD.</p>
+                </a>
+                <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Portfolio <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Know me better at parassharma.com</p>
+                </a>
+            </div>
+            <div class="project-modal-actions" style="margin-top: 20px; text-align: center;">
+                <button class="btn-secondary" id="project-dismiss" type="button" style="width: 100%;">Dismiss</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const backdrop = document.getElementById('project-modal-backdrop');
+    const modal = backdrop.querySelector('.project-modal');
+    const closeBtn = document.getElementById('project-modal-close');
+    const dismissBtn = document.getElementById('project-dismiss');
+
+    // Slight delay for smooth animation
+    setTimeout(() => {
+        backdrop.style.opacity = '1';
+        modal.style.transform = 'translateY(0)';
+    }, 1500); // Wait 1.5 seconds after chat finishes loading
+
+    const closeModal = () => {
+        backdrop.style.opacity = '0';
+        modal.style.transform = 'translateY(20px)';
+        setTimeout(() => backdrop.remove(), 300);
+        try { localStorage.setItem(storageKey, 'true'); } catch (e) {}
+    };
+
+    closeBtn.onclick = closeModal;
+    dismissBtn.onclick = closeModal;
+    backdrop.onclick = (e) => {
+        if (e.target === backdrop) closeModal();
+    };
 }

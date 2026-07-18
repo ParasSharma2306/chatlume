@@ -12,7 +12,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.2.2";
+const IG_APP_VERSION = "1.2.3";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -480,8 +480,8 @@ async function loadIgThread(thread) {
     renderIgChatList();
     requestAnimationFrame(igScrollToBottom);
     showIgToast(`Loaded ${igState.messageOnlyCount.toLocaleString()} messages`);
-    showDonationModal();
     if (window.innerWidth <= 800) setIgSidebarState(false);
+    showProjectModal();
 
   } catch (err) {
     console.error(err);
@@ -1104,19 +1104,7 @@ function showIgToast(msg) {
   igState.toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
-function showDonationModal() {
-  if (sessionStorage.getItem('donationShown')) return;
-  sessionStorage.setItem('donationShown', 'true');
-  const backdrop = $ig("donation-modal-backdrop");
-  if (!backdrop) return;
-  setTimeout(() => backdrop.removeAttribute('hidden'), 3000);
-  const closeBtn = $ig("donation-modal-close");
-  const dismissBtn = $ig("donation-dismiss");
-  const closeFn = () => backdrop.setAttribute('hidden', '');
-  closeBtn?.addEventListener('click', closeFn);
-  dismissBtn?.addEventListener('click', closeFn);
-  backdrop?.addEventListener('click', (e) => { if (e.target === backdrop) closeFn(); });
-}
+
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function escIg(v) {
@@ -1175,4 +1163,62 @@ function detectIgMediaType(fileName) {
 
 function yieldIg() {
   return new Promise(r => { requestAnimationFrame(() => setTimeout(r, 30)); });
+}
+
+
+function showProjectModal() {
+    const storageKey = 'chatlume_project_popup_dismissed_v2';
+    if (localStorage.getItem(storageKey)) return;
+
+    if (document.getElementById('project-modal-backdrop')) return;
+
+    const modalHtml = `
+    <div class="project-modal-backdrop" id="project-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+            <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="ph ph-x"></i>
+            </button>
+            <div class="project-modal-content">
+                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
+                <a href="https://realtalk.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">RealTalk AI <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A basic AI personality report. Costs $1.99 USD.</p>
+                </a>
+                <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Portfolio <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Know me better at parassharma.com</p>
+                </a>
+            </div>
+            <div class="project-modal-actions" style="margin-top: 20px; text-align: center;">
+                <button class="btn-secondary" id="project-dismiss" type="button" style="width: 100%;">Dismiss</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    const backdrop = document.getElementById('project-modal-backdrop');
+    const modal = backdrop.querySelector('.project-modal');
+    const closeBtn = document.getElementById('project-modal-close');
+    const dismissBtn = document.getElementById('project-dismiss');
+
+    // Slight delay for smooth animation
+    setTimeout(() => {
+        backdrop.style.opacity = '1';
+        modal.style.transform = 'translateY(0)';
+    }, 1500); // Wait 1.5 seconds after chat finishes loading
+
+    const closeModal = () => {
+        backdrop.style.opacity = '0';
+        modal.style.transform = 'translateY(20px)';
+        setTimeout(() => backdrop.remove(), 300);
+        try { localStorage.setItem(storageKey, 'true'); } catch (e) {}
+    };
+
+    closeBtn.onclick = closeModal;
+    dismissBtn.onclick = closeModal;
+    backdrop.onclick = (e) => {
+        if (e.target === backdrop) closeModal();
+    };
 }

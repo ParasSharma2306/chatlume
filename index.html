@@ -125,34 +125,12 @@
         </div>
     </section>
 
-    <footer class="landing-footer">
-        <div class="footer-grid">
-            <div>
-                <h4>Use ChatLume</h4>
-                <a href="public/viewer.html">WhatsApp Viewer</a>
-                <a href="public/instagram-viewer.html">Instagram Viewer</a>
-            </div>
-            <div>
-                <h4>Learn</h4>
-                <a href="public/how-to-export.html">How to Export</a>
-                <a href="public/how-to-use.html">How to Use</a>
-                <a href="privacy.html">Privacy</a>
-            </div>
-            <div>
-                <h4>Support</h4>
-                <a href="donate.html">Donate</a>
-                <a href="https://github.com/parassharma2306/ChatLume" target="_blank" rel="noopener noreferrer">GitHub</a>
-            </div>
-            <div>
-                <h4>Contact</h4>
-                <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer">parassharma.com</a>
-                <a href="mailto:hello@parassharma.com">hello@parassharma.com</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>v1.2.2 &nbsp;&middot;&nbsp; &copy; <span class="footer-year">2025</span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer">Paras Sharma</a> &middot; <a href="https://github.com/parassharma2306/ChatLume" target="_blank" rel="noopener noreferrer">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; <a href="donate.html">Donate</a></p>
-            <script>document.querySelectorAll('.footer-year').forEach(el => el.textContent = new Date().getFullYear());</script>
-        </div>
-    </footer>
+    <footer class="landing-footer" style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); margin-top: 40px;">
+    <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a></p>
+    <script>
+        document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
+    </script>
+</footer>
+
 </body>
 </html>

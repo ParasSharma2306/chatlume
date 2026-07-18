@@ -5,7 +5,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.2.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.2.3-blue?style=flat-square)
 
 ---
 
@@ -194,18 +194,24 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Visit https://your-domain.com — you should see ChatLume over HTTPS with a valid certificate.
 
-**5. Keeping it updated**
-```bash
-cd /var/www/chatlume && git pull
-```
+**5. Automated Deployment (CI/CD)**
 
-No restart needed — it's static files, Nginx serves whatever is on disk.
+We have set up a GitHub Actions workflow to automatically deploy changes when pushed to the `main` branch. 
+
+To use this, add the following Repository Secrets in your GitHub repository (`Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`):
+
+*   `VPS_HOST`: Your VPS IP address or hostname.
+*   `VPS_USERNAME`: The SSH username (e.g., `root`, `ubuntu`).
+*   `VPS_PASSWORD`: The SSH password for that user.
+*   `VPS_PORT`: The SSH port (usually `22`, optional).
+
+Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.github/workflows/deploy.yml` matches where you cloned the repo on your VPS.
 
 ---
 
 ## ⚠️ Support Notice
 
-ChatLume support is temporarily paused after v1.2.2. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
+ChatLume support is temporarily paused after v1.2.3. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
 
 ---
 
