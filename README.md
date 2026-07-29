@@ -2,10 +2,12 @@
 
 > A browser-based viewer for WhatsApp and Instagram chat exports.
 
+<iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
+
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.2.3-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.2.4-blue?style=flat-square)
 
 ---
 
@@ -13,7 +15,7 @@
 
 ChatLume started on February 10, 2026 — built for my girlfriend, who wanted to relive some old memories from her WhatsApp chats. The default export is a raw `.txt` wall of text, completely unreadable. I wanted her to actually see the conversation, the way it looked when it happened.
 
-It turned out decent enough that I released it publicly. Now it handles WhatsApp and Instagram exports, works entirely in the browser, and exports chats as standalone HTML files.
+It turned out decent enough that I released it publicly. Now it handles WhatsApp and Instagram exports, works entirely in the browser, and exports chats as standalone HTML files. Along the way, I've taken help of Claude Code and Gemini/Antigravity CLI to build and refine this project.
 
 ---
 
@@ -211,7 +213,7 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ## ⚠️ Support Notice
 
-ChatLume support is temporarily paused after v1.2.3. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
+ChatLume support is temporarily paused after v1.2.4. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
 
 ---
 

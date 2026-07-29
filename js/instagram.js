@@ -12,7 +12,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.2.3";
+const IG_APP_VERSION = "1.2.4";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -1167,7 +1167,7 @@ function yieldIg() {
 
 
 function showProjectModal() {
-    const storageKey = 'chatlume_project_popup_dismissed_v2';
+    const storageKey = 'chatlume_project_popup_dismissed_v3';
     if (localStorage.getItem(storageKey)) return;
 
     if (document.getElementById('project-modal-backdrop')) return;
@@ -1180,6 +1180,13 @@ function showProjectModal() {
             </button>
             <div class="project-modal-content">
                 <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
+                <div style="background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Support ChatLume 💖</h3>
+                        <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
+                    </div>
+                    <iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px; flex-shrink: 0;"></iframe>
+                </div>
                 <a href="https://realtalk.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">RealTalk AI <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
                     <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A basic AI personality report. Costs $1.99 USD.</p>

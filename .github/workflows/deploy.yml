@@ -19,7 +19,3 @@ jobs:
           script: |
             cd /home/paras/chatlume
             git pull origin main
-            # Restart your service (e.g., pm2, systemctl, docker)
-            # systemctl restart chatlume.service
-            # or if it's just static files served by nginx, nothing to restart.
-            echo "Deployment successful."
