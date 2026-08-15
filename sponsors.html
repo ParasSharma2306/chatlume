@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#00a884">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Sponsors — ChatLume</title>
+    <meta name="description" content="A big thank you to our amazing sponsors who make ChatLume possible.">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="landing-page page-layout">
+    <nav class="landing-nav">
+        <a class="logo" href="index.html" style="text-decoration:none">
+            <i class="ph-fill ph-chat-teardrop-text"></i> ChatLume
+        </a>
+        <div class="nav-links">
+            <a href="public/viewer.html">WhatsApp</a>
+            <a href="public/instagram-viewer.html">Instagram</a>
+            <a href="sponsors.html" style="color: var(--primary);">Sponsors</a>
+        </div>
+    </nav>
+
+    <header class="sponsors-header">
+        <h1>Our Sponsors</h1>
+        <p>A huge thank you to everyone who supports ChatLume. Your contributions help keep this tool free, private, and running smoothly.</p>
+    </header>
+
+    <main class="content-container" style="max-width: 1000px; margin-top: 0; min-height: auto;">
+        <div class="sponsors-grid" id="sponsors-grid">
+            <!-- Rendered via JS -->
+        </div>
+
+        <div id="no-sponsors-message" style="display: none; text-align: center; color: var(--text-secondary); margin-bottom: 40px; font-size: 18px;">
+            No sponsors yet. Be the first to support ChatLume!
+        </div>
+
+        <div class="become-sponsor-btn" style="display: flex; justify-content: center; margin-bottom: 60px;">
+            <iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
+        </div>
+    </main>
+
+    <script>
+        fetch('sponsors.json')
+            .then(response => response.json())
+            .then(sponsors => {
+                const grid = document.getElementById('sponsors-grid');
+                const noSponsorsMsg = document.getElementById('no-sponsors-message');
+                if (sponsors.length === 0) {
+                    grid.style.display = 'none';
+                    noSponsorsMsg.style.display = 'block';
+                    return;
+                }
+                grid.innerHTML = sponsors.map(sponsor => `
+                    <div class="sponsor-card">
+                        <div class="sponsor-avatar"><i class="ph-fill ph-user"></i></div>
+                        <div class="sponsor-name">${sponsor.name}</div>
+                        <div class="sponsor-amount">${sponsor.amount}</div>
+                    </div>
+                `).join('');
+            })
+            .catch(err => console.error('Error loading sponsors:', err));
+    </script>
+
+    <footer class="landing-footer" style="padding: 60px 20px 40px; border-top: 1px solid var(--border); margin-top: 40px; background: var(--bg-sidebar);">
+        <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
+            <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 24px;">
+                <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a>. All rights reserved.</p>
+            </div>
+        </div>
+        <script>
+            document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
+        </script>
+    </footer>
+</body>
+</html>

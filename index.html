@@ -78,6 +78,7 @@
         <div class="nav-links">
             <a href="public/viewer.html">WhatsApp</a>
             <a href="public/instagram-viewer.html">Instagram</a>
+            <a href="sponsors.html">Sponsors</a>
         </div>
     </nav>
 
@@ -88,6 +89,43 @@
             <a href="public/viewer.html" class="btn-primary btn-large"><i class="ph ph-folder-open"></i> View a Chat</a>
         </div>
     </header>
+
+    <!-- Sponsors Marquee -->
+    <section class="sponsors-marquee-container" style="margin-bottom: 40px; cursor: pointer;" onclick="window.location.href='sponsors.html'">
+        <div class="sponsors-marquee" id="sponsors-marquee-content">
+            <!-- Rendered via JS -->
+        </div>
+    </section>
+
+    <script>
+        fetch('sponsors.json')
+            .then(response => response.json())
+            .then(sponsors => {
+                const marquee = document.getElementById('sponsors-marquee-content');
+                if (sponsors.length === 0) {
+                    let html = '';
+                    for (let i = 0; i < 16; i++) {
+                        html += `<div class="sponsors-marquee-item">Become our first sponsor! <span class="sponsors-marquee-amount">✨</span></div>`;
+                    }
+                    marquee.innerHTML = html;
+                    return;
+                }
+                
+                let itemsHtml = sponsors.map(s => `
+                    <div class="sponsors-marquee-item">${s.name} <span class="sponsors-marquee-amount">${s.amount}</span></div>
+                `).join('');
+                
+                // Duplicate items if too few to ensure the screen is filled
+                let repeatedHtml = itemsHtml;
+                while ((repeatedHtml.match(/sponsors-marquee-item/g) || []).length < 8) {
+                    repeatedHtml += itemsHtml;
+                }
+
+                // Append the repeated list twice for a seamless -50% translation loop
+                marquee.innerHTML = repeatedHtml + repeatedHtml;
+            })
+            .catch(err => console.error('Error loading sponsors:', err));
+    </script>
 
     <!-- Platform picker -->
     <section style="max-width:680px;margin:0 auto 16px;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
