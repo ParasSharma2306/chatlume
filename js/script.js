@@ -2596,7 +2596,7 @@ function showProjectModal() {
                 </div>
                 <a href="https://realtalk.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">RealTalk AI <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A confessions AI that judges you. Costs $0.99 - $4.99 USD.</p>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A confessions AI that judges you. Costs $1.99 - $5.99 USD.</p>
                 </a>
                 <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Know me better <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
