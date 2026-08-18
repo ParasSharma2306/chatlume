@@ -251,3 +251,11 @@ PRs are welcome. The codebase is plain HTML/CSS/JS — no build tools, no bundle
 ## License
 
 MIT — built by [Paras Sharma](https://parassharma.com)
+
+## Sponsors
+
+A special thank you to everyone who supported ChatLume through GitHub Sponsors.
+
+| Sponsor | Amount |
+| --- | ---: |
+| DikshitaBiswas | $5 |
