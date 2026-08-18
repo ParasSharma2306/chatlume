@@ -98,33 +98,58 @@
     </section>
 
     <script>
-        fetch('sponsors.json')
-            .then(response => response.json())
-            .then(sponsors => {
-                const marquee = document.getElementById('sponsors-marquee-content');
-                if (sponsors.length === 0) {
+        document.addEventListener("DOMContentLoaded", () => {
+            const marquee = document.getElementById('sponsors-marquee-content');
+            
+            // Show loading state
+            marquee.innerHTML = '<div class="sponsors-marquee-item" style="border:none;background:transparent;">Loading sponsors...</div>';
+
+            fetch('sponsors.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(sponsors => {
+                    if (!Array.isArray(sponsors)) throw new Error('Invalid JSON format');
+                    
+                    if (sponsors.length === 0) {
+                        let html = '';
+                        for (let i = 0; i < 16; i++) {
+                            html += `<div class="sponsors-marquee-item"><div class="sponsors-marquee-avatar"><i class="ph-fill ph-heart"></i></div>Become our first sponsor! <span class="sponsors-marquee-amount">✨</span></div>`;
+                        }
+                        marquee.innerHTML = html;
+                        return;
+                    }
+                    
+                    let itemsHtml = sponsors.map(s => {
+                        const avatarHtml = s.avatar ? `<img src="${s.avatar}" alt="${s.name}" onerror="this.outerHTML='<i class=\\'ph-fill ph-user\\'></i>'">` : `<i class="ph-fill ph-user"></i>`;
+                        const amountHtml = s.amount ? `<span class="sponsors-marquee-amount">${s.amount}</span>` : '';
+                        const nameText = s.name || 'Anonymous';
+                        return `
+                        <div class="sponsors-marquee-item">
+                            <div class="sponsors-marquee-avatar">${avatarHtml}</div>
+                            ${nameText} ${amountHtml}
+                        </div>`;
+                    }).join('');
+                    
+                    // Duplicate items if too few to ensure the screen is filled
+                    let repeatedHtml = itemsHtml;
+                    while ((repeatedHtml.match(/sponsors-marquee-item/g) || []).length < 8) {
+                        repeatedHtml += itemsHtml;
+                    }
+
+                    // Append the repeated list twice for a seamless -50% translation loop
+                    marquee.innerHTML = repeatedHtml + repeatedHtml;
+                })
+                .catch(err => {
+                    console.error('Error loading sponsors:', err);
                     let html = '';
                     for (let i = 0; i < 16; i++) {
-                        html += `<div class="sponsors-marquee-item">Become our first sponsor! <span class="sponsors-marquee-amount">✨</span></div>`;
+                        html += `<div class="sponsors-marquee-item"><div class="sponsors-marquee-avatar"><i class="ph-fill ph-heart"></i></div>Support ChatLume <span class="sponsors-marquee-amount">💖</span></div>`;
                     }
                     marquee.innerHTML = html;
-                    return;
-                }
-                
-                let itemsHtml = sponsors.map(s => `
-                    <div class="sponsors-marquee-item">${s.name} <span class="sponsors-marquee-amount">${s.amount}</span></div>
-                `).join('');
-                
-                // Duplicate items if too few to ensure the screen is filled
-                let repeatedHtml = itemsHtml;
-                while ((repeatedHtml.match(/sponsors-marquee-item/g) || []).length < 8) {
-                    repeatedHtml += itemsHtml;
-                }
-
-                // Append the repeated list twice for a seamless -50% translation loop
-                marquee.innerHTML = repeatedHtml + repeatedHtml;
-            })
-            .catch(err => console.error('Error loading sponsors:', err));
+                });
+        });
     </script>
 
     <!-- Platform picker -->

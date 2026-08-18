@@ -45,25 +45,53 @@
     </main>
 
     <script>
-        fetch('sponsors.json')
-            .then(response => response.json())
-            .then(sponsors => {
-                const grid = document.getElementById('sponsors-grid');
-                const noSponsorsMsg = document.getElementById('no-sponsors-message');
-                if (sponsors.length === 0) {
+        document.addEventListener("DOMContentLoaded", () => {
+            const grid = document.getElementById('sponsors-grid');
+            const noSponsorsMsg = document.getElementById('no-sponsors-message');
+            
+            // Show loading state
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px 0;"><i class="ph ph-spinner ph-spin" style="font-size: 32px; margin-bottom: 16px; display: inline-block;"></i><br>Loading sponsors...</div>';
+            noSponsorsMsg.style.display = 'none';
+            grid.style.display = 'block'; // Or flex/grid depending on loading visual
+
+            fetch('sponsors.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(sponsors => {
+                    if (!Array.isArray(sponsors)) throw new Error('Invalid JSON format');
+
+                    if (sponsors.length === 0) {
+                        grid.style.display = 'none';
+                        noSponsorsMsg.style.display = 'block';
+                        return;
+                    }
+                    
+                    grid.style.display = 'grid'; // Reset to grid
+                    
+                    grid.innerHTML = sponsors.map(sponsor => {
+                        const avatarHtml = sponsor.avatar ? `<img src="${sponsor.avatar}" alt="${sponsor.name}" onerror="this.outerHTML='<i class=\\'ph-fill ph-user\\'></i>'">` : `<i class="ph-fill ph-user"></i>`;
+                        const amountHtml = sponsor.amount ? `<div class="sponsor-amount">${sponsor.amount}</div>` : '';
+                        const nameText = sponsor.name || 'Anonymous Sponsor';
+                        const messageHtml = sponsor.message ? `<div class="sponsor-message">${sponsor.message}</div>` : '<div class="sponsor-message"><em>Generous Supporter</em></div>';
+
+                        return `
+                        <div class="sponsor-card">
+                            <div class="sponsor-avatar">${avatarHtml}</div>
+                            <div class="sponsor-name">${nameText}</div>
+                            ${messageHtml}
+                            ${amountHtml}
+                        </div>`;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading sponsors:', err);
                     grid.style.display = 'none';
                     noSponsorsMsg.style.display = 'block';
-                    return;
-                }
-                grid.innerHTML = sponsors.map(sponsor => `
-                    <div class="sponsor-card">
-                        <div class="sponsor-avatar"><i class="ph-fill ph-user"></i></div>
-                        <div class="sponsor-name">${sponsor.name}</div>
-                        <div class="sponsor-amount">${sponsor.amount}</div>
-                    </div>
-                `).join('');
-            })
-            .catch(err => console.error('Error loading sponsors:', err));
+                    noSponsorsMsg.innerHTML = '<i class="ph ph-warning-circle" style="font-size: 32px; margin-bottom: 12px; display: inline-block; color: #f39c12;"></i><br>Failed to load sponsors.<br><span style="font-size:14px; opacity: 0.7;">Check your connection or try again later.</span>';
+                });
+        });
     </script>
 
     <footer class="landing-footer" style="padding: 60px 20px 40px; border-top: 1px solid var(--border); margin-top: 40px; background: var(--bg-sidebar);">

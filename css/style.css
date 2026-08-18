@@ -2539,22 +2539,48 @@ body.has-support-banner .app-layout {
 .sponsors-marquee-item {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-right: 32px;
-    font-size: 14px;
+    gap: 12px;
+    margin-right: 24px;
+    font-size: 15px;
+    font-weight: 500;
     color: var(--text-primary);
-    background: var(--bg-elevated);
-    padding: 8px 16px;
-    border-radius: 20px;
+    background: var(--bg-sidebar);
+    padding: 10px 20px 10px 12px;
+    border-radius: 30px;
     border: 1px solid var(--border);
-    transition: border-color 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
 }
-.sponsors-marquee-container:hover .sponsors-marquee-item {
-    border-color: rgba(0, 168, 132, 0.3);
+.sponsors-marquee-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+}
+.sponsors-marquee-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 14px;
+    overflow: hidden;
+}
+.sponsors-marquee-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .sponsors-marquee-amount {
     color: var(--primary);
     font-weight: 700;
+    font-size: 13px;
+    background: rgba(0, 168, 132, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 4px;
 }
 @keyframes marquee-scroll {
     0% { transform: translateX(0); }
@@ -2590,33 +2616,51 @@ body.has-support-banner .app-layout {
     background: var(--bg-sidebar);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 30px 20px;
+    padding: 24px;
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s, border-color 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 .sponsor-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    border-color: rgba(0, 168, 132, 0.5);
 }
 .sponsor-avatar {
-    width: 72px;
-    height: 72px;
+    width: 80px;
+    height: 80px;
     background: var(--bg-elevated);
     border-radius: 50%;
     margin: 0 auto 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 32px;
     color: var(--primary);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.sponsor-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .sponsor-name {
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 6px;
+}
+.sponsor-message {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    flex-grow: 1;
 }
 .sponsor-amount {
     display: inline-block;
@@ -2624,8 +2668,9 @@ body.has-support-banner .app-layout {
     color: var(--primary);
     padding: 6px 14px;
     border-radius: 12px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
+    border: 1px solid rgba(0, 168, 132, 0.2);
 }
 .become-sponsor-btn {
     display: flex;
