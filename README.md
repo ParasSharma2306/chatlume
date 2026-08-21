@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.3.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.3.2-blue?style=flat-square)
 
 ---
 
@@ -21,17 +21,20 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 
 ---
 
-## What's New in v1.3.1
+## What's New in v1.3.2
 
+- **Real logo everywhere**: The generic Phosphor chat glyph is gone. The ChatLume mark is now the favicon (a multi-resolution `.ico`, 16px→256px), the PWA icon, the apple-touch icon, and appears in every nav, footer, loader and the Wrapped card. Source art had a baked-in white background — it's been cut to true transparency.
+- **Install as an app**: A dismissible install card now appears when the browser offers installation, on the landing pages and both viewers. The service worker registers site-wide, which is what makes the pages installable in the first place. Separate `maskable` icons were added so Android stops cropping the mark.
+- **Zarya**: Added to the post-load projects card — a private space for understanding yourself and getting through difficult days.
 - **Product Hunt**: ChatLume is live on Product Hunt — the badge is on the homepage, the sponsors page and in the app's info drawer.
 - **Motion pass**: Scroll-reveals on the landing page, a sheen on the primary CTA, drawer content stagger, animated analytics (stat count-up, bars that grow from zero), and modal entrances. All of it collapses under `prefers-reduced-motion`.
 - **Real empty states**: The viewers now explain themselves when there's nothing to show — idle placeholders with format hints, a full "no messages matched" panel for search, a dedicated state when an export parses but contains no messages, and empty analytics copy instead of a wall of zeroes.
 - **Skeletons**: Shimmer placeholders for the sponsors grid, the homepage marquee, and the sidebar chat entry while an export parses.
-- **Sponsors rebuilt**: Tiered cards (Gold / Silver / Supporter), a contribution summary, a real CTA section replacing the bare GitHub iframe, plus proper loading / empty / error-with-retry states. Sponsor fields are now HTML-escaped and `javascript:` URLs are rejected.
+- **Sponsors rebuilt**: Every sponsor gets the same card — no tiers, no ranking badges. Plus a contribution summary, a real CTA section replacing the bare GitHub iframe, and proper loading / empty / error-with-retry states. Sponsor fields are now HTML-escaped and `javascript:` URLs are rejected.
 - **Theme everywhere**: The light/dark choice now applies to the landing, sponsors and guide pages too, and is applied before first paint so there's no flash.
 - **Bug fixes**: See the list below.
 
-### Fixed in v1.3.1
+### Fixed in v1.3.2
 
 - The "try my other projects" dialog inserted a transparent full-screen backdrop 1.5s before revealing itself, silently swallowing every click in that window. It also had no Escape handler and re-appeared on every chat load.
 - Sponsor names, messages and avatar URLs were interpolated into `innerHTML` unescaped.
@@ -249,7 +252,7 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ## ⚠️ Support Notice
 
-ChatLume support is temporarily paused after v1.3.1. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
+ChatLume support is temporarily paused after v1.3.2. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
 
 ---
 

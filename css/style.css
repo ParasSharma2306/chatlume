@@ -263,8 +263,10 @@ a {
 }
 
 .loader-logo {
-    font-size: 64px;
-    color: var(--primary);
+    width: 72px;
+    height: 72px;
+    display: block;
+    margin: 0 auto;
 }
 
 .progress-bar {
@@ -3132,50 +3134,18 @@ body.light-theme .ph-badge-wrap a {
     inset: 0;
     z-index: -1;
     opacity: 0;
-    background: radial-gradient(circle at 50% 0%, var(--tier-glow, rgba(0, 168, 132, 0.16)), transparent 70%);
+    background: radial-gradient(circle at 50% 0%, rgba(0, 168, 132, 0.16), transparent 70%);
     transition: opacity 0.3s ease;
 }
 .sponsor-card:hover::before { opacity: 1; }
-.sponsor-card:hover { border-color: var(--tier-color, rgba(0, 168, 132, 0.5)); }
+.sponsor-card:hover { border-color: rgba(0, 168, 132, 0.5); }
 .sponsor-avatar {
     transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), border-color 0.3s ease;
 }
 .sponsor-card:hover .sponsor-avatar {
     transform: scale(1.06);
-    border-color: var(--tier-color, var(--primary));
+    border-color: var(--primary);
 }
-.sponsor-amount {
-    background: var(--tier-soft, rgba(0, 168, 132, 0.1));
-    color: var(--tier-color, var(--primary));
-    border-color: var(--tier-border, rgba(0, 168, 132, 0.2));
-}
-
-/* Unified sponsor styling (no tiers) */
-.sponsor-card {
-    --tier-color: var(--primary);
-    --tier-soft: rgba(0, 168, 132, 0.1);
-    --tier-border: rgba(0, 168, 132, 0.2);
-    --tier-glow: rgba(0, 168, 132, 0.16);
-}
-
-.sponsor-tier-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    background: var(--tier-soft, rgba(0, 168, 132, 0.12));
-    border: 1px solid var(--tier-border, rgba(0, 168, 132, 0.22));
-    color: var(--tier-color, var(--primary));
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-}
-.sponsor-tier-badge i { font-size: 11px; }
 
 .sponsor-link {
     display: inline-flex;
@@ -3188,7 +3158,7 @@ body.light-theme .ph-badge-wrap a {
     text-decoration: none;
     transition: color 0.2s ease;
 }
-.sponsor-link:hover { color: var(--tier-color, var(--primary)); }
+.sponsor-link:hover { color: var(--primary); }
 
 /* Skeleton card that matches the real card's footprint exactly. */
 .sponsor-card.is-skeleton {
@@ -3664,3 +3634,130 @@ body.light-theme .ph-badge-wrap a {
     .empty-hint { font-size: 11px; padding: 5px 10px; }
     .sponsors-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Brand mark ──
+   The logo is a self-contained green tile, so it never sits inside another
+   coloured plate — it replaces those wrappers outright. */
+.brand-mark {
+    display: block;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.footer-brand .brand-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Empty-state illustration when it carries the logo instead of a glyph. */
+.empty-placeholder .illustration img {
+    width: 84px;
+    height: 84px;
+    display: block;
+    opacity: 0.75;
+}
+
+/* The Wrapped card mark is rasterised by html2canvas — keep it plain. */
+.wg-logo img {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+/* ── PWA install prompt ──
+   Replaces Chrome's mini-infobar; only rendered when the browser fires
+   `beforeinstallprompt`, and never again once installed or dismissed. */
+.install-prompt {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(460px, calc(100vw - 32px));
+    padding: 14px 16px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+    transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.install-prompt.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.install-prompt-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: block;
+}
+.install-prompt-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.install-prompt-text strong {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.install-prompt-text span {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+.install-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.install-prompt-actions button {
+    border: 0;
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.install-prompt-no {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 9px 10px;
+}
+.install-prompt-no:hover { color: var(--text-primary); }
+.install-prompt-yes {
+    background: var(--primary);
+    color: #fff;
+}
+.install-prompt-yes:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+@media (max-width: 560px) {
+    .install-prompt {
+        flex-wrap: wrap;
+        gap: 10px 12px;
+        bottom: 12px;
+    }
+    .install-prompt-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* The back-to-top button must not sit under the install card. */
+.install-prompt.show ~ .to-top { bottom: 96px; }
