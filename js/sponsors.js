@@ -36,21 +36,6 @@
         return match ? parseFloat(match[0]) : 0;
     }
 
-    function tierFor(sponsor) {
-        var explicit = String(sponsor.tier || "").toLowerCase();
-        if (explicit === "gold" || explicit === "silver" || explicit === "bronze") return explicit;
-        var value = amountValue(sponsor.amount);
-        if (value >= 50) return "gold";
-        if (value >= 15) return "silver";
-        return "bronze";
-    }
-
-    var TIER_META = {
-        gold: { label: "Gold", icon: "ph-fill ph-crown-simple" },
-        silver: { label: "Silver", icon: "ph-fill ph-star" },
-        bronze: { label: "Supporter", icon: "ph-fill ph-heart" }
-    };
-
     function normalize(sponsor) {
         var record = sponsor && typeof sponsor === "object" ? sponsor : {};
         return {
@@ -59,7 +44,7 @@
             message: String(record.message || "").trim(),
             avatar: safeUrl(record.avatar),
             url: safeUrl(record.url || record.link || record.profile),
-            tier: tierFor(record),
+            // `value` only orders the list — every sponsor is presented alike.
             value: amountValue(record.amount)
         };
     }
@@ -156,7 +141,6 @@
     /* ── Sponsors page grid ──────────────────────────────────────────────── */
 
     function sponsorCard(sponsor) {
-        var meta = TIER_META[sponsor.tier];
         var message = sponsor.message
             ? '<div class="sponsor-message">' + esc(sponsor.message) + "</div>"
             : '<div class="sponsor-message"><em>Thanks for keeping ChatLume free.</em></div>';
@@ -168,8 +152,7 @@
               '<i class="ph ph-arrow-square-out" aria-hidden="true"></i> Profile</a>'
             : "";
 
-        return '<article class="sponsor-card tier-' + sponsor.tier + '">' +
-            '<span class="sponsor-tier-badge"><i class="' + meta.icon + '" aria-hidden="true"></i>' + meta.label + "</span>" +
+        return '<article class="sponsor-card">' +
             '<div class="sponsor-avatar">' + avatarMarkup(sponsor) + "</div>" +
             '<div class="sponsor-name">' + esc(sponsor.name) + "</div>" +
             message + amount + link +
@@ -219,7 +202,6 @@
             return;
         }
         var total = sponsors.reduce(function (sum, s) { return sum + s.value; }, 0);
-        var tiers = sponsors.filter(function (s) { return s.tier !== "bronze"; }).length;
 
         node.hidden = false;
         node.innerHTML =
@@ -228,10 +210,6 @@
             (total > 0
                 ? '<div class="sponsor-summary-item"><span class="val">$' + total.toLocaleString() +
                   '</span><span class="label">Contributed</span></div>'
-                : "") +
-            (tiers > 0
-                ? '<div class="sponsor-summary-item"><span class="val">' + tiers +
-                  '</span><span class="label">Top tier</span></div>'
                 : "") +
             '<div class="sponsor-summary-item"><span class="val">$0</span><span class="label">Cost to you</span></div>';
     }

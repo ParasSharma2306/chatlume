@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.3.2";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -227,12 +227,24 @@ function setupPWAInstall() {
         if (installBtn) {
             installBtn.hidden = false;
             installBtn.addEventListener("click", async () => {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
+                // site.js shows an install card from the same event; whichever
+                // the user takes first consumes the prompt, so calling it again
+                // rejects. Fail quietly rather than throwing.
+                if (!deferredPrompt) {
                     installBtn.hidden = true;
+                    return;
                 }
-                deferredPrompt = null;
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        installBtn.hidden = true;
+                    }
+                } catch (err) {
+                    installBtn.hidden = true;
+                } finally {
+                    deferredPrompt = null;
+                }
             }, { once: true });
         }
     });
@@ -259,6 +271,14 @@ async function downloadWrappedGraphic() {
                 document.head.appendChild(script);
             });
         }
+
+        // html2canvas rasterises whatever is decoded at call time — an undecoded
+        // logo would come out blank in the downloaded PNG.
+        await Promise.all(
+            Array.from(element.querySelectorAll("img")).map((img) =>
+                img.complete ? Promise.resolve() : img.decode().catch(() => {})
+            )
+        );
 
         const canvas = await html2canvas(element, {
             backgroundColor: "#000",
@@ -1151,7 +1171,7 @@ function populateWrappedGraphic() {
         </div>
 
         <div class="wg-brand-footer">
-            <div class="wg-logo"><i class="ph-fill ph-chat-teardrop-text"></i> ChatLume</div>
+            <div class="wg-logo"><img src="../assets/logo-64.png" alt=""> ChatLume</div>
             <div class="wg-url">${SITE_URL.replace(/^https?:\/\//, "")}</div>
         </div>
     `;
@@ -2738,6 +2758,10 @@ function showProjectModal() {
                         <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
                     </div>
                     <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
+                </a>
+                <a href="https://zarya.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(139, 122, 232, 0.06); border: 1px solid rgba(139, 122, 232, 0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Zarya <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A private space for understanding yourself and getting through difficult days.</p>
                 </a>
                 <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>

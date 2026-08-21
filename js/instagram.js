@@ -12,7 +12,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.3.1";
+const IG_APP_VERSION = "1.3.2";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -1324,6 +1324,10 @@ function showProjectModal() {
                         <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
                     </div>
                     <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
+                </a>
+                <a href="https://zarya.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(139, 122, 232, 0.06); border: 1px solid rgba(139, 122, 232, 0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Zarya <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
+                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A private space for understanding yourself and getting through difficult days.</p>
                 </a>
                 <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>

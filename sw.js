@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.3.1';
+const CACHE_NAME = 'chatlume-v1.3.2';
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -21,6 +21,13 @@ const ASSETS_TO_CACHE = [
     'robots.txt',
     'sitemap.xml',
     'assets/favicon.ico',
+    'assets/logo.png',
+    'assets/logo-192.png',
+    'assets/logo-64.png',
+    'assets/logo-32.png',
+    'assets/apple-touch-icon.png',
+    'assets/maskable-192.png',
+    'assets/maskable-512.png',
     'assets/icon-192.png',
     'assets/icon-512.png',
     'assets/og-image.png'

@@ -31,6 +31,10 @@
     }
 
     function setupTheme() {
+        // The viewer pages own their own theme wiring (and their own
+        // theme-color values); this only drives the marketing/content chrome.
+        if (!document.querySelector("[data-theme-toggle]")) return;
+
         paintTheme(readTheme());
         document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
             btn.addEventListener("click", function () {
@@ -108,12 +112,102 @@
         });
     }
 
+    /**
+     * Registers the service worker. Installability needs a SW with a fetch
+     * handler in scope — without this the landing page never fires
+     * `beforeinstallprompt`, so the install prompt below could never appear.
+     */
+    function setupServiceWorker() {
+        if (!("serviceWorker" in navigator)) return;
+        if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+        var depth = location.pathname.replace(/\/[^/]*$/, "").split("/").filter(Boolean).length;
+        var path = new Array(depth + 1).join("../") + "sw.js";
+        navigator.serviceWorker.register(path).catch(function () { /* offline support is optional */ });
+    }
+
+    var DISMISS_KEY = "chatlume-install-dismissed";
+
+    /** Dismissible "Install ChatLume" card, shown only when the browser offers it. */
+    function setupInstallPrompt() {
+        var deferred = null;
+
+        try {
+            if (localStorage.getItem(DISMISS_KEY)) return;
+        } catch (e) {}
+
+        // Already running as an installed app — nothing to offer.
+        if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return;
+        if (navigator.standalone) return;
+
+        window.addEventListener("beforeinstallprompt", function (event) {
+            // Chrome's mini-infobar is replaced by our own card.
+            event.preventDefault();
+            deferred = event;
+            show();
+        });
+
+        window.addEventListener("appinstalled", function () {
+            try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) {}
+            var el = document.querySelector(".install-prompt");
+            if (el) el.remove();
+        });
+
+        function show() {
+            if (document.querySelector(".install-prompt")) return;
+
+            var card = document.createElement("div");
+            card.className = "install-prompt";
+            card.setAttribute("role", "dialog");
+            card.setAttribute("aria-label", "Install ChatLume");
+            card.innerHTML =
+                '<img src="' + iconPath() + '" alt="" class="install-prompt-icon">' +
+                '<div class="install-prompt-text">' +
+                    "<strong>Install ChatLume</strong>" +
+                    "<span>Open your chats offline, straight from your home screen.</span>" +
+                "</div>" +
+                '<div class="install-prompt-actions">' +
+                    '<button type="button" class="install-prompt-no">Not now</button>' +
+                    '<button type="button" class="install-prompt-yes">Install</button>' +
+                "</div>";
+            document.body.appendChild(card);
+            requestAnimationFrame(function () { card.classList.add("show"); });
+
+            card.querySelector(".install-prompt-no").addEventListener("click", function () {
+                dismiss(card, true);
+            });
+            card.querySelector(".install-prompt-yes").addEventListener("click", function () {
+                if (!deferred) return dismiss(card, true);
+                deferred.prompt();
+                deferred.userChoice.then(function (choice) {
+                    // A dismissed prompt can be re-offered later; an accepted one can't.
+                    dismiss(card, choice && choice.outcome === "accepted");
+                    deferred = null;
+                });
+            });
+        }
+
+        function dismiss(card, remember) {
+            card.classList.remove("show");
+            setTimeout(function () { card.remove(); }, 300);
+            if (!remember) return;
+            try { localStorage.setItem(DISMISS_KEY, "1"); } catch (e) {}
+        }
+
+        function iconPath() {
+            return location.pathname.indexOf("/public/") !== -1
+                ? "../assets/logo-192.png"
+                : "assets/logo-192.png";
+        }
+    }
+
     function init() {
         setupTheme();
         setupReveals();
         setupToTop();
         setupYear();
         setupActiveNav();
+        setupServiceWorker();
+        setupInstallPrompt();
     }
 
     if (document.readyState === "loading") {

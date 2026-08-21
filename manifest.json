@@ -13,29 +13,48 @@
   "icons": [
     {
       "src": "assets/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "256x256 128x128 64x64 48x48 32x32 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "assets/icon-192.png",
+      "src": "assets/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "assets/icon-512.png",
+      "src": "assets/logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "assets/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Open Viewer",
-      "short_name": "Viewer",
-      "description": "View WhatsApp Chats locally",
+      "name": "WhatsApp Viewer",
+      "short_name": "WhatsApp",
+      "description": "View WhatsApp chats locally",
       "url": "/public/viewer.html",
-      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "assets/logo-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Instagram Viewer",
+      "short_name": "Instagram",
+      "description": "View Instagram DMs locally",
+      "url": "/public/instagram-viewer.html",
+      "icons": [{ "src": "assets/logo-192.png", "sizes": "192x192" }]
     }
   ]
 }
