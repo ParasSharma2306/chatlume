@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.3.0)
+ * ChatLume HTML Export (v1.3.1)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Media files are intentionally NOT embedded — each attachment is shown

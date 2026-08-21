@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#00a884">
+    <meta name="theme-color" content="#0b141a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ChatLume — Free WhatsApp & Instagram Chat Viewer</title>
@@ -24,9 +24,12 @@
     <meta name="twitter:title" content="ChatLume — Free WhatsApp & Instagram Chat Viewer">
     <meta name="twitter:description" content="100% private WhatsApp & Instagram chat viewer. Everything stays on your device.">
     <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.ico" sizes="any">
+    <link rel="icon" href="assets/icon-192.png" type="image/png">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="preconnect" href="https://api.producthunt.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <script type="application/ld+json">
@@ -53,8 +56,31 @@
     }
     </script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
+    <script>
+        // Apply the saved theme before first paint so light-theme users don't
+        // get a dark flash. site.js owns everything after this.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        /* Paint the light background immediately when booting into light theme. */
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head>
 <body class="landing-page">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <div class="support-banner" id="support-banner" role="note">
         <span><i class="ph ph-info"></i>ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
         <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
@@ -64,124 +90,87 @@
             var KEY = "chatlume-support-notice-dismissed";
             var banner = document.getElementById("support-banner");
             if (!banner) return;
-            if (localStorage.getItem(KEY)) { banner.remove(); return; }
+            try {
+                if (localStorage.getItem(KEY)) { banner.remove(); return; }
+            } catch (e) {}
             document.getElementById("support-banner-close").addEventListener("click", function () {
                 banner.remove();
                 try { localStorage.setItem(KEY, "1"); } catch (e) {}
             });
         })();
     </script>
+
     <nav class="landing-nav">
-        <a class="logo" href="index.html" style="text-decoration:none">
-            <i class="ph-fill ph-chat-teardrop-text"></i> ChatLume
+        <a class="logo" href="index.html">
+            <img src="assets/logo-64.png" alt="ChatLume"> ChatLume
         </a>
         <div class="nav-links">
             <a href="public/viewer.html">WhatsApp</a>
             <a href="public/instagram-viewer.html">Instagram</a>
             <a href="sponsors.html">Sponsors</a>
+            <button type="button" class="nav-theme-toggle" data-theme-toggle aria-label="Toggle theme">
+                <i class="ph ph-moon-stars"></i>
+            </button>
         </div>
     </nav>
 
     <header class="hero">
-        <h1>View your chats privately</h1>
-        <p>Upload your WhatsApp or Instagram exports. They stay on your device. No accounts, no tracking, no server uploads.</p>
-        <div class="hero-actions">
+        <div class="hero-badges cl-enter">
+            <span class="hero-badge"><span class="live-dot" aria-hidden="true"></span> No uploads, ever</span>
+            <span class="hero-badge"><i class="ph-fill ph-lock-key"></i> Runs 100% in your browser</span>
+            <span class="hero-badge"><i class="ph-fill ph-currency-circle-dollar"></i> Free forever</span>
+        </div>
+        <h1 class="cl-enter cl-enter-delay-1">View your chats <span class="hero-accent">privately</span></h1>
+        <p class="cl-enter cl-enter-delay-2">Open your WhatsApp or Instagram exports and read them like the real app. They stay on your device — no accounts, no tracking, no server uploads.</p>
+        <div class="hero-actions cl-enter cl-enter-delay-3">
             <a href="public/viewer.html" class="btn-primary btn-large"><i class="ph ph-folder-open"></i> View a Chat</a>
+        </div>
+        <div class="ph-badge-wrap cl-enter cl-enter-delay-4" style="margin-top:32px">
+            <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
+                <img
+                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1228472&amp;theme=light&amp;t=1787313528828"
+                    alt="ChatLume - Shed light on your chats. | Product Hunt"
+                    width="250" height="54" loading="lazy" decoding="async">
+            </a>
         </div>
     </header>
 
-    <!-- Sponsors Marquee -->
-    <section class="sponsors-marquee-container" style="margin-bottom: 40px; cursor: pointer;" onclick="window.location.href='sponsors.html'">
-        <div class="sponsors-marquee" id="sponsors-marquee-content">
-            <!-- Rendered via JS -->
-        </div>
-    </section>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const marquee = document.getElementById('sponsors-marquee-content');
-            
-            // Show loading state
-            marquee.innerHTML = '<div class="sponsors-marquee-item" style="border:none;background:transparent;">Loading sponsors...</div>';
-
-            fetch('sponsors.json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(sponsors => {
-                    if (!Array.isArray(sponsors)) throw new Error('Invalid JSON format');
-                    
-                    if (sponsors.length === 0) {
-                        let html = '';
-                        for (let i = 0; i < 16; i++) {
-                            html += `<div class="sponsors-marquee-item"><div class="sponsors-marquee-avatar"><i class="ph-fill ph-heart"></i></div>Become our first sponsor! <span class="sponsors-marquee-amount">✨</span></div>`;
-                        }
-                        marquee.innerHTML = html;
-                        return;
-                    }
-                    
-                    let itemsHtml = sponsors.map(s => {
-                        const avatarHtml = s.avatar ? `<img src="${s.avatar}" alt="${s.name}" onerror="this.outerHTML='<i class=\\'ph-fill ph-user\\'></i>'">` : `<i class="ph-fill ph-user"></i>`;
-                        const amountHtml = s.amount ? `<span class="sponsors-marquee-amount">${s.amount}</span>` : '';
-                        const nameText = s.name || 'Anonymous';
-                        return `
-                        <div class="sponsors-marquee-item">
-                            <div class="sponsors-marquee-avatar">${avatarHtml}</div>
-                            ${nameText} ${amountHtml}
-                        </div>`;
-                    }).join('');
-                    
-                    // Duplicate items if too few to ensure the screen is filled
-                    let repeatedHtml = itemsHtml;
-                    while ((repeatedHtml.match(/sponsors-marquee-item/g) || []).length < 8) {
-                        repeatedHtml += itemsHtml;
-                    }
-
-                    // Append the repeated list twice for a seamless -50% translation loop
-                    marquee.innerHTML = repeatedHtml + repeatedHtml;
-                })
-                .catch(err => {
-                    console.error('Error loading sponsors:', err);
-                    let html = '';
-                    for (let i = 0; i < 16; i++) {
-                        html += `<div class="sponsors-marquee-item"><div class="sponsors-marquee-avatar"><i class="ph-fill ph-heart"></i></div>Support ChatLume <span class="sponsors-marquee-amount">💖</span></div>`;
-                    }
-                    marquee.innerHTML = html;
-                });
-        });
-    </script>
+    <!-- Sponsors marquee — rendered by js/sponsors.js -->
+    <a class="sponsors-marquee-container" href="sponsors.html" aria-label="See everyone sponsoring ChatLume"
+       data-sponsors-marquee data-sponsors-src="sponsors.json" style="margin-bottom:40px;text-decoration:none">
+        <div class="sponsors-marquee" id="sponsors-marquee-content" aria-hidden="true"></div>
+    </a>
 
     <!-- Platform picker -->
-    <section style="max-width:680px;margin:0 auto 16px;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <a href="public/viewer.html" style="display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--bg-sidebar);border:1px solid var(--border);border-radius:18px;padding:28px 20px;text-decoration:none;color:var(--text-primary);transition:border-color 0.2s,box-shadow 0.2s" onmouseover="this.style.borderColor='#00a884';this.style.boxShadow='0 4px 16px rgba(0,168,132,0.12)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''">
-            <i class="ph-fill ph-whatsapp-logo" style="font-size:40px;color:#25D366"></i>
-            <div style="text-align:center">
-                <div style="font-weight:700;font-size:16px;margin-bottom:4px">WhatsApp Chats</div>
-                <div style="font-size:13px;color:var(--text-secondary)">Open .txt or .zip exports</div>
+    <section class="platform-picker">
+        <a href="public/viewer.html" class="platform-card is-whatsapp cl-reveal">
+            <i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i>
+            <div class="platform-text">
+                <div class="platform-title">WhatsApp Chats</div>
+                <div class="platform-sub">Open .txt or .zip exports</div>
             </div>
         </a>
-        <a href="public/instagram-viewer.html" style="display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--bg-sidebar);border:1px solid var(--border);border-radius:18px;padding:28px 20px;text-decoration:none;color:var(--text-primary);transition:border-color 0.2s,box-shadow 0.2s" onmouseover="this.style.borderColor='#C13584';this.style.boxShadow='0 4px 16px rgba(193,53,132,0.12)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''">
-            <i class="ph-fill ph-instagram-logo" style="font-size:40px;background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
-            <div style="text-align:center">
-                <div style="font-weight:700;font-size:16px;margin-bottom:4px">Instagram DMs</div>
-                <div style="font-size:13px;color:var(--text-secondary)">Open JSON export .zip files</div>
+        <a href="public/instagram-viewer.html" class="platform-card is-instagram cl-reveal">
+            <i class="ph-fill ph-instagram-logo" aria-hidden="true"></i>
+            <div class="platform-text">
+                <div class="platform-title">Instagram DMs</div>
+                <div class="platform-sub">Open JSON export .zip files</div>
             </div>
         </a>
     </section>
 
     <section class="features">
-        <div class="feature-card">
+        <div class="feature-card cl-reveal">
             <i class="ph-fill ph-shield-check"></i>
             <h3>Private by default</h3>
             <p>Everything runs in your browser. No server, no accounts, no data collection. Your chats never leave your device.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card cl-reveal">
             <i class="ph-fill ph-lightning"></i>
             <h3>Works offline</h3>
             <p>After the page loads, you don't need internet. Parse and view massive exports instantly, no waiting.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card cl-reveal">
             <i class="ph-fill ph-chart-pie-slice"></i>
             <h3>See your stats</h3>
             <p>Who messages most. Your favorite emojis. Message frequency by hour. Simple analytics, nothing fancy.</p>
@@ -198,33 +187,43 @@
                     </div>
                     <span style="font-size: 18px; font-weight: 700; color: var(--text-primary);">ChatLume</span>
                 </div>
-                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0;">Privacy-first chat viewer and analytics tool. No uploads, completely local.</p>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0 0 20px;">Privacy-first chat viewer and analytics tool. No uploads, completely local.</p>
+                <div class="ph-badge-wrap" style="justify-content:flex-start">
+                    <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
+                        <img
+                            src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1228472&amp;theme=light&amp;t=1787313528828"
+                            alt="ChatLume - Shed light on your chats. | Product Hunt"
+                            width="250" height="54" loading="lazy" decoding="async">
+                    </a>
+                </div>
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <h4 style="color: var(--text-primary); font-size: 15px; margin: 0 0 16px 0; font-weight: 600;">Guides</h4>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <a href="public/how-to-use.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">How to use ChatLume</a>
-                    <a href="public/how-to-export.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Export WhatsApp chat</a>
-                    <a href="public/how-to-export-instagram.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Export Instagram DMs</a>
+                    <a href="public/how-to-use.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">How to use ChatLume</a>
+                    <a href="public/how-to-export.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Export WhatsApp chat</a>
+                    <a href="public/how-to-export-instagram.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Export Instagram DMs</a>
                 </div>
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <h4 style="color: var(--text-primary); font-size: 15px; margin: 0 0 16px 0; font-weight: 600;">Legal & Contact</h4>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <a href="privacy.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Privacy Policy</a>
-                    <a href="mailto:hello@parassharma.com" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Contact Support</a>
-                    <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">Developer Portfolio</a>
+                    <a href="privacy.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Privacy Policy</a>
+                    <a href="sponsors.html" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Sponsors</a>
+                    <a href="mailto:hello@parassharma.com" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Contact Support</a>
+                    <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Developer Portfolio</a>
                 </div>
             </div>
         </div>
-        <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 24px;">
+        <div style="text-align: center; padding-top: 24px;">
             <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a>. All rights reserved.</p>
         </div>
     </div>
-    <script>
-        document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
-    </script>
 </footer>
 
+    <button type="button" class="to-top" data-to-top aria-label="Back to top"><i class="ph ph-arrow-up"></i></button>
+
+    <script src="./js/site.js" defer></script>
+    <script src="./js/sponsors.js" defer></script>
 </body>
 </html>

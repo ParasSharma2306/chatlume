@@ -279,8 +279,30 @@
     }
   </style>
   <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
+    <script>
+        // Apply the saved theme before first paint so light-theme users don't
+        // get a dark flash.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head>
 <body>
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
 
 <nav class="nav">
   <a href="index.html" class="nav-logo">Chat<span>Lume</span></a>
@@ -385,6 +407,6 @@
         document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
     </script>
 </footer>
-<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+    <script src="js/site.js" defer></script>
 </body>
 </html>

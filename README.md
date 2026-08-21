@@ -4,11 +4,12 @@
 
 > [💖 Sponsor this project](https://github.com/sponsors/ParasSharma2306)
 
+<a href="https://www.producthunt.com/products/chatlume?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-chatlume" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1228472&theme=light&t=1787313528828" alt="ChatLume - Shed light on your chats. | Product Hunt" width="250" height="54" /></a>
 
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.3.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.3.1-blue?style=flat-square)
 
 ---
 
@@ -17,6 +18,31 @@
 ChatLume started on February 10, 2026 — built for my girlfriend, who wanted to relive some old memories from her WhatsApp chats. The default export is a raw `.txt` wall of text, completely unreadable. I wanted her to actually see the conversation, the way it looked when it happened.
 
 It turned out decent enough that I released it publicly. Now it handles WhatsApp and Instagram exports, works entirely in the browser, and exports chats as standalone HTML files. Along the way, I've taken help of Claude Code and Gemini/Antigravity CLI to build and refine this project.
+
+---
+
+## What's New in v1.3.1
+
+- **Product Hunt**: ChatLume is live on Product Hunt — the badge is on the homepage, the sponsors page and in the app's info drawer.
+- **Motion pass**: Scroll-reveals on the landing page, a sheen on the primary CTA, drawer content stagger, animated analytics (stat count-up, bars that grow from zero), and modal entrances. All of it collapses under `prefers-reduced-motion`.
+- **Real empty states**: The viewers now explain themselves when there's nothing to show — idle placeholders with format hints, a full "no messages matched" panel for search, a dedicated state when an export parses but contains no messages, and empty analytics copy instead of a wall of zeroes.
+- **Skeletons**: Shimmer placeholders for the sponsors grid, the homepage marquee, and the sidebar chat entry while an export parses.
+- **Sponsors rebuilt**: Tiered cards (Gold / Silver / Supporter), a contribution summary, a real CTA section replacing the bare GitHub iframe, plus proper loading / empty / error-with-retry states. Sponsor fields are now HTML-escaped and `javascript:` URLs are rejected.
+- **Theme everywhere**: The light/dark choice now applies to the landing, sponsors and guide pages too, and is applied before first paint so there's no flash.
+- **Bug fixes**: See the list below.
+
+### Fixed in v1.3.1
+
+- The "try my other projects" dialog inserted a transparent full-screen backdrop 1.5s before revealing itself, silently swallowing every click in that window. It also had no Escape handler and re-appeared on every chat load.
+- Sponsor names, messages and avatar URLs were interpolated into `innerHTML` unescaped.
+- Toasts were always success-green — failures now render in red, warnings in amber.
+- The Instagram toast was styled inline, so it could never pick up those tones.
+- Instagram search with no results skipped the re-render, leaving stale highlights from the previous query on screen.
+- Missing `<link rel="icon">` on every page but `privacy.html` — browsers were requesting a nonexistent `/favicon.ico`.
+- `privacy.html` threw on every load from a leftover script referencing a removed `#yr` element.
+- The service worker used `cache.addAll()`, so one missing asset failed the entire install and left no offline cache.
+- The sponsors marquee's edge fades were painted with the wrong background variable, leaving visible seams; its scroll speed also ignored how many sponsors there were.
+- The Instagram thread picker had no way to filter, which is unusable for exports with hundreds of conversations.
 
 ---
 
@@ -223,7 +249,7 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ## ⚠️ Support Notice
 
-ChatLume support is temporarily paused after v1.3.0. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
+ChatLume support is temporarily paused after v1.3.1. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
 
 ---
 

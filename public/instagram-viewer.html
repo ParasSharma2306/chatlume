@@ -21,6 +21,8 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="ChatLume – Private Instagram DM Viewer">
     <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <link rel="icon" href="../assets/favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/icon-192.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/icon-192.png">
@@ -238,14 +240,22 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.3.0</div>
+                    <div class="app-version-label" data-app-version>v1.3.1</div>
                 </section>
 
                 <!-- Thread selector -->
                 <section class="chat-list hidden" id="ig-thread-panel" aria-label="Thread list">
                     <div class="section-label">SELECT A CONVERSATION</div>
-                    <p class="panel-hint">Multiple conversations found. Pick one to view.</p>
+                    <label class="thread-filter" for="ig-thread-filter">
+                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                        <input type="text" id="ig-thread-filter" placeholder="Filter conversations" autocomplete="off" aria-label="Filter conversations">
+                    </label>
+                    <p class="thread-count" id="ig-thread-count"></p>
                     <div id="ig-thread-list"></div>
+                    <div class="thread-empty" id="ig-thread-empty" hidden>
+                        <i class="ph-duotone ph-user-list" aria-hidden="true"></i>
+                        No conversation matches that name.
+                    </div>
                 </section>
 
                 <!-- Chat loaded -->
@@ -335,10 +345,20 @@
                         <i class="ph-duotone ph-instagram-logo" style="background:linear-gradient(135deg,#833AB4,#C13584,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text"></i>
                     </div>
                     <h2 class="ig-brand">Instagram DMs</h2>
-                    <p>Load your Instagram export ZIP to view DMs privately.<br>Secure. Fast. 100% local.</p>
-                    <a href="how-to-export-instagram.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#C13584;text-decoration:none">
+                    <p>Drop the ZIP Instagram emailed you and your conversations open right here —<br>photos, reels and reactions included.</p>
+                    <div class="empty-hints">
+                        <span class="empty-hint"><i class="ph-fill ph-file-zip"></i> JSON export only</span>
+                        <span class="empty-hint"><i class="ph-fill ph-images"></i> Media stays local</span>
+                        <span class="empty-hint"><i class="ph-fill ph-shield-check"></i> Never uploaded</span>
+                    </div>
+                    <a class="empty-cta" href="how-to-export-instagram.html">
                         <i class="ph ph-question"></i> How to export your Instagram DMs
                     </a>
+                </div>
+                <div class="search-empty" id="ig-search-empty" hidden role="status">
+                    <i class="ph-duotone ph-magnifying-glass"></i>
+                    <h3>No messages matched</h3>
+                    <p>Nothing in this conversation contains <span class="query" id="ig-search-empty-query"></span>. Try a shorter word or different spelling.</p>
                 </div>
                 <div class="message-list" id="ig-message-list"></div>
             </section>
@@ -380,18 +400,10 @@
             </div>
         </div>
 
-        <div id="ig-toast" aria-live="polite" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-sidebar);color:var(--text-primary);padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:9999;white-space:nowrap"></div>
+        <div id="ig-toast" aria-live="polite"></div>
     </div>
 
     
 
-    <script>
-        // Toast show class wiring (mirrors style.css .toast.show behaviour)
-        (function () {
-            const style = document.createElement("style");
-            style.textContent = "#ig-toast.show { opacity: 1 !important; transform: translateX(-50%) translateY(0) !important; }";
-            document.head.appendChild(style);
-        })();
-    </script>
 </body>
 </html>
