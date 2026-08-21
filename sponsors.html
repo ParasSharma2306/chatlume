@@ -3,17 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#00a884">
+    <meta name="theme-color" content="#0b141a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Sponsors — ChatLume</title>
-    <meta name="description" content="A big thank you to our amazing sponsors who make ChatLume possible.">
+    <meta name="description" content="A big thank you to the sponsors who keep ChatLume free, private and ad-free.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://chatlume.parassharma.in/sponsors.html">
+    <meta property="og:site_name" content="ChatLume">
+    <meta property="og:title" content="Sponsors — ChatLume">
+    <meta property="og:description" content="A big thank you to the sponsors who keep ChatLume free, private and ad-free.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chatlume.parassharma.in/sponsors.html">
+    <meta property="og:image" content="https://chatlume.parassharma.in/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sponsors — ChatLume">
+    <meta name="twitter:description" content="A big thank you to the sponsors who keep ChatLume free, private and ad-free.">
+    <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/og-image.png">
+    <link rel="icon" href="assets/favicon.ico" sizes="any">
+    <link rel="icon" href="assets/icon-192.png" type="image/png">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="preconnect" href="https://api.producthunt.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head>
 <body class="landing-page page-layout">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <nav class="landing-nav">
         <a class="logo" href="index.html" style="text-decoration:none">
             <i class="ph-fill ph-chat-teardrop-text"></i> ChatLume
@@ -21,88 +57,60 @@
         <div class="nav-links">
             <a href="public/viewer.html">WhatsApp</a>
             <a href="public/instagram-viewer.html">Instagram</a>
-            <a href="sponsors.html" style="color: var(--primary);">Sponsors</a>
+            <a href="sponsors.html">Sponsors</a>
+            <button type="button" class="nav-theme-toggle" data-theme-toggle aria-label="Toggle theme">
+                <i class="ph ph-moon-stars"></i>
+            </button>
         </div>
     </nav>
 
     <header class="sponsors-header">
-        <h1>Our Sponsors</h1>
-        <p>A huge thank you to everyone who supports ChatLume. Your contributions help keep this tool free, private, and running smoothly.</p>
+        <span class="sponsors-hero-tagline cl-enter"><i class="ph-fill ph-heart" aria-hidden="true"></i> Powered by people, not ads</span>
+        <h1 class="cl-enter cl-enter-delay-1">Our Sponsors</h1>
+        <p class="cl-enter cl-enter-delay-2">ChatLume has no ads, no accounts and no paid tier. It exists because a handful of people decided to chip in — these are them.</p>
+        <div class="sponsor-summary cl-enter cl-enter-delay-3" data-sponsor-summary hidden></div>
     </header>
 
-    <main class="content-container" style="max-width: 1000px; margin-top: 0; min-height: auto;">
-        <div class="sponsors-grid" id="sponsors-grid">
-            <!-- Rendered via JS -->
-        </div>
+    <main class="content-container" style="max-width: 1000px; margin-top: 24px; min-height: auto;">
+        <div class="sponsors-grid" id="sponsors-grid" data-sponsors-grid data-sponsors-src="sponsors.json"></div>
 
-        <div id="no-sponsors-message" style="display: none; text-align: center; color: var(--text-secondary); margin-bottom: 40px; font-size: 18px;">
-            No sponsors yet. Be the first to support ChatLume!
-        </div>
+        <section class="sponsor-cta cl-reveal">
+            <h2>Keep ChatLume free</h2>
+            <p>Every sponsorship goes straight into hosting, domain renewals and the time it takes to keep both viewers working as WhatsApp and Instagram change their export formats.</p>
+            <div class="sponsor-cta-actions">
+                <a class="btn-primary" href="https://github.com/sponsors/ParasSharma2306" target="_blank" rel="noopener noreferrer">
+                    <i class="ph-fill ph-heart" aria-hidden="true"></i> Sponsor on GitHub
+                </a>
+                <a class="btn-secondary" href="https://parassharma.com" target="_blank" rel="noopener noreferrer">
+                    <i class="ph ph-user" aria-hidden="true"></i> About the developer
+                </a>
+            </div>
+            <div class="sponsor-perks">
+                <span><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Your name on this page</span>
+                <span><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Featured in the homepage marquee</span>
+                <span><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Cancel any time</span>
+            </div>
+        </section>
 
-        <div class="become-sponsor-btn" style="display: flex; justify-content: center; margin-bottom: 60px;">
-            <iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px;"></iframe>
+        <div class="ph-badge-wrap cl-reveal" style="margin-bottom:60px">
+            <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
+                <img
+                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1228472&amp;theme=light&amp;t=1787313528828"
+                    alt="ChatLume - Shed light on your chats. | Product Hunt"
+                    width="250" height="54" loading="lazy" decoding="async">
+            </a>
         </div>
     </main>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const grid = document.getElementById('sponsors-grid');
-            const noSponsorsMsg = document.getElementById('no-sponsors-message');
-            
-            // Show loading state
-            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px 0;"><i class="ph ph-spinner ph-spin" style="font-size: 32px; margin-bottom: 16px; display: inline-block;"></i><br>Loading sponsors...</div>';
-            noSponsorsMsg.style.display = 'none';
-            grid.style.display = 'block'; // Or flex/grid depending on loading visual
-
-            fetch('sponsors.json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(sponsors => {
-                    if (!Array.isArray(sponsors)) throw new Error('Invalid JSON format');
-
-                    if (sponsors.length === 0) {
-                        grid.style.display = 'none';
-                        noSponsorsMsg.style.display = 'block';
-                        return;
-                    }
-                    
-                    grid.style.display = 'grid'; // Reset to grid
-                    
-                    grid.innerHTML = sponsors.map(sponsor => {
-                        const avatarHtml = sponsor.avatar ? `<img src="${sponsor.avatar}" alt="${sponsor.name}" onerror="this.outerHTML='<i class=\\'ph-fill ph-user\\'></i>'">` : `<i class="ph-fill ph-user"></i>`;
-                        const amountHtml = sponsor.amount ? `<div class="sponsor-amount">${sponsor.amount}</div>` : '';
-                        const nameText = sponsor.name || 'Anonymous Sponsor';
-                        const messageHtml = sponsor.message ? `<div class="sponsor-message">${sponsor.message}</div>` : '<div class="sponsor-message"><em>Generous Supporter</em></div>';
-
-                        return `
-                        <div class="sponsor-card">
-                            <div class="sponsor-avatar">${avatarHtml}</div>
-                            <div class="sponsor-name">${nameText}</div>
-                            ${messageHtml}
-                            ${amountHtml}
-                        </div>`;
-                    }).join('');
-                })
-                .catch(err => {
-                    console.error('Error loading sponsors:', err);
-                    grid.style.display = 'none';
-                    noSponsorsMsg.style.display = 'block';
-                    noSponsorsMsg.innerHTML = '<i class="ph ph-warning-circle" style="font-size: 32px; margin-bottom: 12px; display: inline-block; color: #f39c12;"></i><br>Failed to load sponsors.<br><span style="font-size:14px; opacity: 0.7;">Check your connection or try again later.</span>';
-                });
-        });
-    </script>
-
-    <footer class="landing-footer" style="padding: 60px 20px 40px; border-top: 1px solid var(--border); margin-top: 40px; background: var(--bg-sidebar);">
-        <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
-            <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 24px;">
-                <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a>. All rights reserved.</p>
-            </div>
+    <footer class="landing-footer" style="padding: 40px 20px; border-top: 1px solid var(--border); margin-top: 0; background: var(--bg-sidebar);">
+        <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+            <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">&copy; <span class="dynamic-year"></span> <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: none;">Paras Sharma</a>. All rights reserved.</p>
         </div>
-        <script>
-            document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
-        </script>
     </footer>
+
+    <button type="button" class="to-top" data-to-top aria-label="Back to top"><i class="ph ph-arrow-up"></i></button>
+
+    <script src="./js/site.js" defer></script>
+    <script src="./js/sponsors.js" defer></script>
 </body>
 </html>

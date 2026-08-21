@@ -53,7 +53,8 @@ body.light-theme {
     background: var(--bg-header); backdrop-filter: blur(10px);
     position: sticky; top: 0; z-index: 1000;
 }
-.landing-nav .logo { font-size: 20px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;}
+.landing-nav .logo { font-size: 20px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.landing-nav .logo img { width: 28px; height: 28px; display: block; }
 .landing-nav .nav-links a { margin-left: 20px; text-decoration: none; color: var(--text-secondary); font-weight: 500;}
 .landing-nav .nav-links a:hover { color: var(--primary); }
 
@@ -1853,20 +1854,33 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     position: fixed;
     inset: 0;
     z-index: 1700;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
     background: rgba(6, 12, 15, 0.68);
     backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
 }
 
 .processing-overlay.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+}
+
+.processing-overlay.open .processing-card {
+    transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
 .processing-card {
     width: min(360px, 92vw);
+    transform: translateY(14px) scale(0.97);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--bg-sidebar);
     border: 1px solid var(--border);
     border-radius: 18px;
@@ -1900,7 +1914,8 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     }
 }
 
-#toast {
+#toast,
+#ig-toast {
     position: fixed;
     bottom: 30px;
     left: 50%;
@@ -1918,7 +1933,8 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-#toast.show {
+#toast.show,
+#ig-toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
@@ -2522,11 +2538,11 @@ body.has-support-banner .app-layout {
 }
 .sponsors-marquee-container::before {
     left: 0;
-    background: linear-gradient(to right, var(--bg-main), transparent);
+    background: linear-gradient(to right, var(--bg-sidebar) 20%, transparent);
 }
 .sponsors-marquee-container::after {
     right: 0;
-    background: linear-gradient(to left, var(--bg-main), transparent);
+    background: linear-gradient(to left, var(--bg-sidebar) 20%, transparent);
 }
 .sponsors-marquee {
     display: flex;
@@ -2676,4 +2692,975 @@ body.has-support-banner .app-layout {
     display: flex;
     justify-content: center;
     margin-bottom: 60px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI POLISH LAYER
+   Motion, empty states, skeletons, sponsor surfaces and landing chrome.
+   Everything here degrades to "no animation" under prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The processing overlay now fades, so `hidden` needs to win over display:flex. */
+.processing-overlay[hidden] { display: none; }
+
+/* ── Shared motion vocabulary ── */
+@keyframes cl-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cl-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes cl-pop-in {
+    0%   { opacity: 0; transform: translateY(12px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes cl-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+}
+@keyframes cl-pulse-ring {
+    0%   { transform: scale(0.85); opacity: 0.55; }
+    70%  { transform: scale(1.35); opacity: 0; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+@keyframes cl-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+@keyframes cl-sheen {
+    0%   { transform: translateX(-120%) skewX(-18deg); }
+    60%, 100% { transform: translateX(260%) skewX(-18deg); }
+}
+
+/* Scroll-reveal: elements start hidden and are released by IntersectionObserver.
+   `.no-js`-safe — if the observer never runs, `.cl-revealed` is applied on load. */
+.cl-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s cubic-bezier(0.19, 1, 0.22, 1),
+                transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    transition-delay: var(--cl-delay, 0ms);
+    will-change: opacity, transform;
+}
+.cl-reveal.cl-revealed {
+    opacity: 1;
+    transform: none;
+}
+
+/* One-shot entrance for above-the-fold chrome (no observer needed). */
+.cl-enter { animation: cl-fade-up 0.7s cubic-bezier(0.19, 1, 0.22, 1) both; }
+.cl-enter-delay-1 { animation-delay: 0.08s; }
+.cl-enter-delay-2 { animation-delay: 0.16s; }
+.cl-enter-delay-3 { animation-delay: 0.24s; }
+.cl-enter-delay-4 { animation-delay: 0.32s; }
+
+/* ── Button micro-interactions ── */
+.btn-primary,
+.btn-secondary {
+    transition: transform 0.18s cubic-bezier(0.19, 1, 0.22, 1),
+                box-shadow 0.18s ease,
+                background 0.18s ease,
+                border-color 0.18s ease,
+                opacity 0.18s ease;
+}
+.btn-primary:not(:disabled):hover { transform: translateY(-2px); }
+.btn-primary:not(:disabled):active,
+.btn-secondary:not(:disabled):active { transform: translateY(0) scale(0.985); }
+.btn-primary:disabled,
+.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+/* Sheen sweep on the big landing CTA. */
+.btn-large {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.btn-large::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    bottom: -50%;
+    left: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+    z-index: -1;
+}
+.btn-large:hover::after { animation: cl-sheen 0.9s ease forwards; }
+
+/* Keyboard focus that is visible on every surface. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* ── Nav polish ── */
+.landing-nav .logo i {
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.landing-nav .logo:hover i { transform: rotate(-8deg) scale(1.12); }
+
+.landing-nav .nav-links a {
+    position: relative;
+    transition: color 0.2s ease;
+}
+.landing-nav .nav-links a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.landing-nav .nav-links a:hover::after,
+.landing-nav .nav-links a[aria-current="page"]::after { transform: scaleX(1); }
+.landing-nav .nav-links a[aria-current="page"] { color: var(--primary); }
+
+/* Theme toggle that lives in the landing nav. */
+.nav-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-left: 20px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+.nav-theme-toggle:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: rotate(18deg);
+}
+
+/* ── Hero ── */
+.hero h1 .hero-accent {
+    background: linear-gradient(100deg, var(--primary), #45d6b4 55%, #7ce0ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Soft ambient glow behind the hero — purely decorative. */
+.hero {
+    position: relative;
+    isolation: isolate;
+}
+.hero::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: -10%;
+    left: 50%;
+    width: min(760px, 110vw);
+    height: 420px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(0, 168, 132, 0.16), transparent 68%);
+    filter: blur(12px);
+    pointer-events: none;
+}
+body.light-theme .hero::before {
+    background: radial-gradient(ellipse at center, rgba(0, 168, 132, 0.13), transparent 68%);
+}
+
+.hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 0 auto 26px;
+}
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-sidebar);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1;
+}
+.hero-badge i { font-size: 14px; color: var(--primary); }
+
+/* Live "no uploads" dot. */
+.hero-badge .live-dot {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+}
+.hero-badge .live-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: cl-pulse-ring 2s ease-out infinite;
+}
+
+/* ── Product Hunt badge ── */
+.ph-badge-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+}
+.ph-badge-wrap a {
+    display: inline-flex;
+    line-height: 0;
+    border-radius: 12px;
+    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1), filter 0.25s ease;
+}
+.ph-badge-wrap a:hover { transform: translateY(-3px) scale(1.02); }
+.ph-badge-wrap img {
+    width: 250px;
+    height: 54px;
+    max-width: 100%;
+    display: block;
+}
+/* The badge art is light-on-transparent; give it a plate on dark backgrounds. */
+.ph-badge-wrap a {
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+}
+body.light-theme .ph-badge-wrap a {
+    background: transparent;
+    border-color: transparent;
+}
+.ph-badge-wrap a:hover { border-color: rgba(218, 85, 47, 0.5); }
+
+/* ── Platform picker cards (moved out of inline styles) ── */
+.platform-picker {
+    max-width: 680px;
+    margin: 0 auto 16px;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.platform-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 20px;
+    text-decoration: none;
+    color: var(--text-primary);
+    overflow: hidden;
+    isolation: isolate;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.platform-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: radial-gradient(circle at 50% 0%, var(--platform-glow, rgba(0, 168, 132, 0.18)), transparent 70%);
+}
+.platform-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--platform-accent, var(--primary));
+    box-shadow: 0 12px 28px var(--platform-shadow, rgba(0, 168, 132, 0.14));
+}
+.platform-card:hover::before { opacity: 1; }
+.platform-card > i {
+    font-size: 40px;
+    transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.platform-card:hover > i { transform: scale(1.12) translateY(-2px); }
+.platform-card .platform-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+.platform-card .platform-sub { font-size: 13px; color: var(--text-secondary); }
+.platform-card .platform-text { text-align: center; }
+
+.platform-card.is-whatsapp {
+    --platform-accent: #25D366;
+    --platform-glow: rgba(37, 211, 102, 0.16);
+    --platform-shadow: rgba(0, 168, 132, 0.16);
+}
+.platform-card.is-instagram {
+    --platform-accent: #C13584;
+    --platform-glow: rgba(193, 53, 132, 0.16);
+    --platform-shadow: rgba(193, 53, 132, 0.16);
+}
+.platform-card.is-whatsapp > i { color: #25D366; }
+.platform-card.is-instagram > i {
+    background: linear-gradient(135deg, #833AB4, #C13584, #E1306C);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+@media (max-width: 560px) {
+    .platform-picker { grid-template-columns: 1fr; }
+}
+
+/* ── Feature cards ── */
+.feature-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.feature-card:hover { border-color: rgba(0, 168, 132, 0.4); }
+.feature-card i {
+    display: inline-block;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.feature-card:hover i { transform: translateY(-4px) scale(1.08); }
+
+/* ── Sponsors: marquee ── */
+/* Duration is set per-render from the item count so speed stays constant. */
+.sponsors-marquee { animation-duration: var(--marquee-duration, 30s); }
+.sponsors-marquee-container:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.sponsors-marquee-item {
+    /* The whole strip is one link target; don't fight it with per-item cursors. */
+    cursor: inherit;
+    white-space: nowrap;
+}
+.sponsors-marquee-item.is-skeleton {
+    border-color: var(--border);
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+    background-size: 200% 100%;
+    animation: cl-shimmer 1.6s linear infinite;
+    color: transparent;
+    min-width: 170px;
+    height: 48px;
+}
+.sponsors-marquee-item.is-skeleton .sponsors-marquee-avatar { background: rgba(255, 255, 255, 0.05); }
+.sponsors-marquee-item.is-cta {
+    border-style: dashed;
+    border-color: rgba(0, 168, 132, 0.45);
+    color: var(--primary);
+}
+.sponsors-marquee-item.is-cta .sponsors-marquee-avatar {
+    background: rgba(0, 168, 132, 0.12);
+}
+
+/* ── Sponsors: page ── */
+.sponsors-hero-tagline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(0, 168, 132, 0.3);
+    border-radius: 999px;
+    background: rgba(0, 168, 132, 0.08);
+    color: var(--primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.sponsor-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    max-width: 1000px;
+    margin: 28px auto 0;
+    padding: 0 20px;
+}
+.sponsor-summary-item {
+    flex: 1 1 150px;
+    max-width: 220px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 16px;
+    text-align: center;
+}
+.sponsor-summary-item .val {
+    display: block;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.sponsor-summary-item .label {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.sponsor-card {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.sponsor-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 0%, var(--tier-glow, rgba(0, 168, 132, 0.16)), transparent 70%);
+    transition: opacity 0.3s ease;
+}
+.sponsor-card:hover::before { opacity: 1; }
+.sponsor-card:hover { border-color: var(--tier-color, rgba(0, 168, 132, 0.5)); }
+.sponsor-avatar {
+    transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), border-color 0.3s ease;
+}
+.sponsor-card:hover .sponsor-avatar {
+    transform: scale(1.06);
+    border-color: var(--tier-color, var(--primary));
+}
+.sponsor-amount {
+    background: var(--tier-soft, rgba(0, 168, 132, 0.1));
+    color: var(--tier-color, var(--primary));
+    border-color: var(--tier-border, rgba(0, 168, 132, 0.2));
+}
+
+/* Unified sponsor styling (no tiers) */
+.sponsor-card {
+    --tier-color: var(--primary);
+    --tier-soft: rgba(0, 168, 132, 0.1);
+    --tier-border: rgba(0, 168, 132, 0.2);
+    --tier-glow: rgba(0, 168, 132, 0.16);
+}
+
+.sponsor-tier-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--tier-soft, rgba(0, 168, 132, 0.12));
+    border: 1px solid var(--tier-border, rgba(0, 168, 132, 0.22));
+    color: var(--tier-color, var(--primary));
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+.sponsor-tier-badge i { font-size: 11px; }
+
+.sponsor-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.sponsor-link:hover { color: var(--tier-color, var(--primary)); }
+
+/* Skeleton card that matches the real card's footprint exactly. */
+.sponsor-card.is-skeleton {
+    pointer-events: none;
+    border-color: var(--border);
+}
+.sponsor-card.is-skeleton .skel-line,
+.sponsor-card.is-skeleton .skel-circle {
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+    background-size: 200% 100%;
+    animation: cl-shimmer 1.6s linear infinite;
+    border-radius: 7px;
+}
+.sponsor-card.is-skeleton .skel-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 16px;
+}
+.sponsor-card.is-skeleton .skel-line { height: 12px; width: 70%; margin-bottom: 8px; }
+.sponsor-card.is-skeleton .skel-line.short { width: 45%; }
+.sponsor-card.is-skeleton .skel-line.pill { width: 60px; height: 26px; border-radius: 12px; margin-top: 8px; }
+
+/* ── Shared empty / error states ── */
+.state-panel {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+    padding: 56px 24px;
+    border: 1px dashed var(--border);
+    border-radius: 20px;
+    background: var(--bg-sidebar);
+    animation: cl-fade-up 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+.state-panel .state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 68px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: rgba(0, 168, 132, 0.1);
+    color: var(--primary);
+    font-size: 32px;
+    animation: cl-float 3.6s ease-in-out infinite;
+}
+.state-panel.is-error .state-icon {
+    background: rgba(255, 107, 107, 0.12);
+    color: var(--danger);
+    animation: none;
+}
+.state-panel h3 {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.state-panel p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 380px;
+}
+.state-panel .state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+/* ── Sponsor CTA card (replaces the bare GitHub iframe) ── */
+.sponsor-cta {
+    max-width: 640px;
+    margin: 0 auto 60px;
+    padding: 32px 28px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(0, 168, 132, 0.07), transparent), var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+}
+.sponsor-cta h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.sponsor-cta p {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    line-height: 1.65;
+    max-width: 460px;
+    margin: 0 auto 22px;
+}
+.sponsor-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+}
+.sponsor-cta-actions .btn-primary,
+.sponsor-cta-actions .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+.sponsor-cta-actions .btn-secondary {
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    background: transparent;
+}
+.sponsor-cta-actions .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+.sponsor-perks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    justify-content: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.sponsor-perks span { display: inline-flex; align-items: center; gap: 6px; }
+.sponsor-perks i { color: var(--primary); }
+
+/* ── In-app empty states (viewer + Instagram) ── */
+.empty-placeholder {
+    gap: 4px;
+    animation: cl-fade-up 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+.empty-placeholder .illustration {
+    animation: cl-float 4.5s ease-in-out infinite;
+}
+.empty-placeholder p { line-height: 1.65; }
+
+.empty-hints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 22px;
+    max-width: 420px;
+}
+.empty-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-sidebar);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+.empty-hint i { font-size: 13px; color: var(--primary); }
+
+.empty-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+    padding: 9px 18px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.empty-cta:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-2px); }
+
+/* Search "no matches" state, layered over the message list. */
+.search-empty {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 24px;
+    /* Translucent so the chat wallpaper still reads behind it. */
+    background: color-mix(in srgb, var(--bg-main) 88%, transparent);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    animation: cl-fade-in 0.25s ease both;
+}
+/* Fallback for browsers without color-mix(). */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+    .search-empty { background: var(--bg-main); }
+}
+.search-empty[hidden] { display: none; }
+.search-empty i {
+    font-size: 52px;
+    color: var(--border);
+    margin-bottom: 12px;
+}
+.search-empty h3 { font-size: 17px; color: var(--text-primary); font-weight: 600; }
+.search-empty p { font-size: 13.5px; color: var(--text-secondary); max-width: 300px; line-height: 1.6; }
+.search-empty .query {
+    color: var(--primary);
+    font-weight: 600;
+    word-break: break-word;
+}
+.messages-viewport { position: relative; }
+
+/* ── Sidebar chat-list skeleton shown while an export is parsing ── */
+.chat-skeleton { padding: 4px 0; }
+.chat-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+}
+.chat-skeleton-row .sk-avatar,
+.chat-skeleton-row .sk-line {
+    background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+    background-size: 200% 100%;
+    animation: cl-shimmer 1.6s linear infinite;
+    border-radius: 6px;
+}
+.chat-skeleton-row .sk-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.chat-skeleton-row .sk-body { flex: 1; min-width: 0; }
+.chat-skeleton-row .sk-line { height: 11px; margin-bottom: 8px; }
+.chat-skeleton-row .sk-line.w70 { width: 70%; }
+.chat-skeleton-row .sk-line.w40 { width: 40%; margin-bottom: 0; height: 9px; }
+
+/* Stagger the rows so the shimmer reads as a wave. */
+.chat-skeleton-row:nth-child(2) .sk-avatar,
+.chat-skeleton-row:nth-child(2) .sk-line { animation-delay: 0.12s; }
+.chat-skeleton-row:nth-child(3) .sk-avatar,
+.chat-skeleton-row:nth-child(3) .sk-line { animation-delay: 0.24s; }
+.chat-skeleton-row:nth-child(4) .sk-avatar,
+.chat-skeleton-row:nth-child(4) .sk-line { animation-delay: 0.36s; }
+
+/* ── Toast variants ── */
+/* The toast was always success-green, including for failures. */
+#toast.is-error,
+#ig-toast.is-error {
+    background: var(--danger);
+    color: #2a0d0d;
+}
+#toast.is-warn,
+#ig-toast.is-warn {
+    background: var(--highlight);
+    color: #23200a;
+}
+#toast.is-info,
+#ig-toast.is-info {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+/* ── Modal entrances ── */
+.media-modal.open .media-modal-dialog,
+.date-sheet-backdrop.open .date-sheet {
+    animation: cl-pop-in 0.28s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+.media-modal.open { animation: cl-fade-in 0.2s ease both; }
+
+/* ── Drawer content stagger ── */
+.drawer.open .drawer-scroll > * {
+    animation: cl-fade-up 0.45s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+.drawer.open .drawer-scroll > *:nth-child(1) { animation-delay: 0.04s; }
+.drawer.open .drawer-scroll > *:nth-child(2) { animation-delay: 0.08s; }
+.drawer.open .drawer-scroll > *:nth-child(3) { animation-delay: 0.12s; }
+.drawer.open .drawer-scroll > *:nth-child(4) { animation-delay: 0.16s; }
+.drawer.open .drawer-scroll > *:nth-child(n+5) { animation-delay: 0.2s; }
+
+/* ── Stat boxes count-up polish ── */
+.stat-box {
+    transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1), border-color 0.25s ease;
+}
+.stat-box:hover { transform: translateY(-3px); border-color: rgba(0, 168, 132, 0.4); }
+.stat-box .val { font-variant-numeric: tabular-nums; }
+
+/* ── Drop target ── */
+.drop-target {
+    transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.drop-target:not(:disabled):hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+.drop-target i { transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1); }
+.drop-target:not(:disabled):hover i { transform: translateY(-3px) scale(1.06); }
+
+/* ── Thread filter (Instagram multi-conversation exports) ── */
+.thread-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-input);
+}
+.thread-filter i { color: var(--text-secondary); font-size: 16px; flex-shrink: 0; }
+.thread-filter input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+}
+.thread-filter:focus-within { border-color: var(--primary); }
+.thread-empty {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+.thread-empty i { display: block; font-size: 30px; margin-bottom: 10px; color: var(--border); }
+.thread-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 10px 2px;
+}
+
+/* ── Footer link polish ── */
+.landing-footer a { transition: color 0.2s ease; }
+
+/* ── Back-to-top button ── */
+.to-top {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 900;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-sidebar);
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease, border-color 0.2s ease, color 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+.to-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+.to-top:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── Respect the user's motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+    .cl-reveal { opacity: 1; transform: none; }
+    .sponsors-marquee { animation: none; }
+    .btn-primary:not(:disabled):hover,
+    .platform-card:hover,
+    .feature-card:hover,
+    .sponsor-card:hover { transform: none; }
+}
+
+/* Error copy is longer than a confirmation — let the toast wrap instead of
+   stretching past the viewport. */
+#toast,
+#ig-toast {
+    max-width: min(520px, calc(100vw - 40px));
+    text-align: center;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+/* ── Drawer empty states (analytics before a chat is loaded) ── */
+.drawer-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    padding: 34px 18px;
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: var(--bg-soft);
+}
+.drawer-empty i {
+    font-size: 34px;
+    color: var(--text-muted);
+    animation: cl-float 4.5s ease-in-out infinite;
+}
+.drawer-empty p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 250px;
+}
+
+/* Per-sender bars grow from zero when the drawer opens, staggered by row. */
+.progress-val {
+    transition: width 0.85s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.stats-list .stat-row:nth-child(2) .progress-val { transition-delay: 0.06s; }
+.stats-list .stat-row:nth-child(3) .progress-val { transition-delay: 0.12s; }
+.stats-list .stat-row:nth-child(4) .progress-val { transition-delay: 0.18s; }
+.stats-list .stat-row:nth-child(n+5) .progress-val { transition-delay: 0.24s; }
+
+/* The emoji tiles pop in with the drawer. */
+.emoji-item {
+    animation: cl-pop-in 0.4s cubic-bezier(0.19, 1, 0.22, 1) both;
+    transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.emoji-item:hover { transform: translateY(-3px) scale(1.04); }
+.emoji-item:nth-child(2) { animation-delay: 0.03s; }
+.emoji-item:nth-child(3) { animation-delay: 0.06s; }
+.emoji-item:nth-child(4) { animation-delay: 0.09s; }
+.emoji-item:nth-child(5) { animation-delay: 0.12s; }
+.emoji-item:nth-child(6) { animation-delay: 0.15s; }
+.emoji-item:nth-child(n+7) { animation-delay: 0.18s; }
+
+/* ── One-shot conversation reveal ──
+   Applied once when a chat finishes loading. The message list is virtualised
+   and re-renders on scroll, so only the container animates. */
+.messages-viewport.chat-revealed .message-list {
+    animation: cl-fade-up 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+.chat-header .header-profile.chat-revealed {
+    animation: cl-fade-up 0.45s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+/* ── Responsive tidy-ups for the new landing chrome ── */
+@media (max-width: 800px) {
+    .nav-theme-toggle { margin-left: 0; }
+    .hero { padding-top: 60px; }
+    .hero-badges { margin-bottom: 20px; }
+    .hero-badge { font-size: 11.5px; padding: 5px 11px; }
+    .sponsor-summary { gap: 10px; }
+    .sponsor-summary-item { flex-basis: 130px; padding: 14px 12px; }
+    .sponsor-summary-item .val { font-size: 22px; }
+    .sponsor-cta { padding: 26px 20px; margin-bottom: 40px; }
+    .sponsor-cta-actions { flex-direction: column; align-items: stretch; }
+    .sponsor-cta-actions .btn-primary,
+    .sponsor-cta-actions .btn-secondary { justify-content: center; }
+    .to-top { right: 16px; bottom: 16px; }
+}
+
+@media (max-width: 480px) {
+    .hero h1 { font-size: 38px; }
+    .hero p { font-size: 16px; }
+    .empty-hints { gap: 6px; }
+    .empty-hint { font-size: 11px; padding: 5px 10px; }
+    .sponsors-grid { grid-template-columns: 1fr; }
 }

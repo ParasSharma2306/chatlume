@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#00a884">
     <title>Page Not Found — ChatLume</title>
     <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="../assets/favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/icon-192.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="apple-touch-icon" href="../assets/icon-192.png">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -21,7 +23,7 @@
         }
         .notfound {
             text-align: center;
-            max-width: 400px;
+            max-width: 420px;
         }
         .notfound-icon {
             font-size: 64px;
@@ -61,16 +63,82 @@
             box-shadow: 0 4px 12px rgba(0,168,132,0.3);
             transition: background 0.2s;
         }
-        .home-btn:hover { background: var(--primary-hover); }
+        .home-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        .notfound-links {
+            display: grid;
+            gap: 8px;
+            margin: 0 0 28px;
+            text-align: left;
+        }
+        .notfound-links a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-sidebar);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+        }
+        .notfound-links a:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateX(3px);
+        }
+        .notfound-links i { font-size: 18px; }
+        .notfound-links a:nth-child(2) i {
+            background: linear-gradient(135deg, #833AB4, #C13584, #E1306C);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .notfound-links a:nth-child(3) i,
+        .notfound-links a:nth-child(4) i { color: var(--primary); }
+
+        .notfound { animation: cl-fade-up 0.6s cubic-bezier(0.19, 1, 0.22, 1) both; }
+    </style>
+    <script>
+        // Apply the saved theme before first paint so light-theme users don't
+        // get a dark flash.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
     </style>
 </head>
-<body>
+<body class="landing-page">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <div class="notfound">
         <div class="notfound-icon"><i class="ph-duotone ph-chat-teardrop-slash"></i></div>
         <h1>404</h1>
         <h2>Page not found</h2>
-        <p>The page you're looking for doesn't exist or may have moved.</p>
+        <p>This page doesn't exist or has moved. Here's where everything actually lives.</p>
+        <div class="notfound-links">
+            <a href="viewer.html"><i class="ph-fill ph-whatsapp-logo" style="color:#25D366"></i> WhatsApp viewer</a>
+            <a href="instagram-viewer.html"><i class="ph-fill ph-instagram-logo"></i> Instagram DM viewer</a>
+            <a href="how-to-use.html"><i class="ph ph-book-open"></i> How to use ChatLume</a>
+            <a href="../sponsors.html"><i class="ph-fill ph-heart"></i> Sponsors</a>
+        </div>
         <a class="home-btn" href="../index.html"><i class="ph ph-house"></i> Back to Home</a>
     </div>
+    <script src="../js/site.js" defer></script>
 </body>
 </html>

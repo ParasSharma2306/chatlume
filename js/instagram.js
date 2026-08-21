@@ -12,7 +12,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.3.0";
+const IG_APP_VERSION = "1.3.1";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -147,7 +147,7 @@ function bindIgUI() {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!IG_SUPPORTS_STREAMING && f.size > IG_COMPAT_FILE_SIZE_LIMIT) {
-      showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+      showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
       e.target.value = "";
       return;
     }
@@ -164,7 +164,7 @@ function bindIgUI() {
       if (!files?.length) return;
       const f = files[0];
       if (!IG_SUPPORTS_STREAMING && f.size > IG_COMPAT_FILE_SIZE_LIMIT) {
-        showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+        showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
         return;
       }
       igState.selectedFile = f;
@@ -217,7 +217,37 @@ function bindIgUI() {
   });
 }
 
-function openIgDrawer(id) { $ig(`${id}-drawer`)?.classList.add("open"); }
+function openIgDrawer(id) {
+  $ig(`${id}-drawer`)?.classList.add("open");
+  if (id === "ig-stats") animateIgStatsIn();
+}
+
+/** Counts the stat tiles up and grows the per-sender bars from zero. */
+function animateIgStatsIn() {
+  const reduce = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  [["ig-stat-total", igState.messageOnlyCount], ["ig-stat-media", igState.mediaCount]].forEach(([id, target]) => {
+    const el = $ig(id);
+    if (!el) return;
+    if (reduce || !target) { el.innerText = Number(target || 0).toLocaleString(); return; }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / 750);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      el.innerText = Math.round(target * eased).toLocaleString();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+
+  if (reduce) return;
+  document.querySelectorAll("#ig-stats-list .progress-val").forEach((bar) => {
+    const width = bar.style.width;
+    bar.style.width = "0%";
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = width; }));
+  });
+}
 function closeIgDrawer(id) { $ig(`${id}-drawer`)?.classList.remove("open"); }
 
 // ── File UI ───────────────────────────────────────────────────────────────────
@@ -281,15 +311,15 @@ function setupIgGlobalDropZone() {
 function handleIgDroppedFile(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith(".txt")) {
-    showIgToast("Instagram exports are .zip (JSON format) — .txt is WhatsApp only");
+    showIgToast("Instagram exports are .zip (JSON format) — .txt is WhatsApp only", "error");
     return;
   }
   if (!name.endsWith(".zip")) {
-    showIgToast("Please drop a .zip Instagram export");
+    showIgToast("Please drop a .zip Instagram export", "error");
     return;
   }
   if (!IG_SUPPORTS_STREAMING && file.size > IG_COMPAT_FILE_SIZE_LIMIT) {
-    showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+    showIgToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
     return;
   }
   igState.selectedFile = file;
@@ -304,7 +334,7 @@ function handleIgDroppedFile(file) {
   reflectIgFile(file);
   if ($ig("ig-upload-panel")?.classList.contains("hidden")) {
     if (window.innerWidth <= 800) setIgSidebarState(true);
-    showIgToast("File ready — tap Load DMs to open it");
+    showIgToast("File ready — tap Load DMs to open it", "info");
   }
 }
 
@@ -312,11 +342,11 @@ function handleIgDroppedFile(file) {
 async function initIgViewer() {
   if (igState.isLoading) return;
   const file = $ig("ig-file-input")?.files?.[0] || igState.selectedFile;
-  if (!file) { showIgToast("Please select an Instagram export ZIP"); return; }
-  if (!file.name.toLowerCase().endsWith(".zip")) { showIgToast("Please select a .zip file"); return; }
+  if (!file) { showIgToast("Please select an Instagram export ZIP", "warn"); return; }
+  if (!file.name.toLowerCase().endsWith(".zip")) { showIgToast("Please select a .zip file", "warn"); return; }
 
   if (!IG_SUPPORTS_STREAMING && file.size > IG_COMPAT_FILE_SIZE_LIMIT) {
-    showIgToast(`File is too large for your browser (${(file.size / 1073741824).toFixed(1)} GB). Use Chrome 80+, Firefox 79+, or Safari 16.4+ for files over 1 GB.`);
+    showIgToast(`File is too large for your browser (${(file.size / 1073741824).toFixed(1)} GB). Use Chrome 80+, Firefox 79+, or Safari 16.4+ for files over 1 GB.`, "error");
     return;
   }
 
@@ -358,7 +388,7 @@ async function initIgViewer() {
         </a>`;
       emptyEl.classList.remove("hidden");
     } else {
-      showIgToast(err.message || "Error loading ZIP");
+      showIgToast(err.message || "Error loading ZIP", "error");
     }
     setIgLoading(false);
   }
@@ -381,25 +411,64 @@ function findIgThreads(entries) {
 // ── Thread selector ───────────────────────────────────────────────────────────
 function showIgThreadSelector(threads) {
   $ig("ig-upload-panel")?.classList.add("hidden");
+  $ig("ig-chat-list-panel")?.classList.add("hidden");
   const panel = $ig("ig-thread-panel");
   const list = $ig("ig-thread-list");
   if (!panel || !list) return;
   panel.classList.remove("hidden");
 
-  list.innerHTML = threads.map((t, i) => `
-    <button class="chat-item" type="button" data-thread-idx="${i}">
-      <div class="chat-item-avatar" style="background:linear-gradient(135deg,#833AB4,#C13584,#E1306C)" aria-hidden="true"></div>
+  // Sort by folder label so a long export is scannable, and remember the
+  // original index — loadIgThread indexes into igState.threads.
+  const entries = threads
+    .map((thread, index) => ({ index, label: igFolderLabel(thread.folder), files: thread.files.length }))
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+
+  const filterInput = $ig("ig-thread-filter");
+  const countEl = $ig("ig-thread-count");
+  const emptyEl = $ig("ig-thread-empty");
+
+  function paint(query) {
+    const needle = query.trim().toLowerCase();
+    const visible = needle
+      ? entries.filter(e => e.label.toLowerCase().includes(needle))
+      : entries;
+
+    list.innerHTML = visible.map(e => `
+    <button class="chat-item" type="button" data-thread-idx="${e.index}">
+      <div class="chat-item-avatar" style="background:linear-gradient(135deg,#833AB4,#C13584,#E1306C)" aria-hidden="true">${escIg(e.label.charAt(0).toUpperCase())}</div>
       <div class="chat-item-info">
-        <h4>${escIg(igFolderLabel(t.folder))}</h4>
-        <span>${t.files.length} file${t.files.length !== 1 ? "s" : ""}</span>
+        <h4>${escIg(e.label)}</h4>
+        <span>${e.files} file${e.files !== 1 ? "s" : ""}</span>
       </div>
     </button>`).join("");
 
-  list.querySelectorAll("[data-thread-idx]").forEach(btn => {
-    btn.addEventListener("click", async () => {
+    if (countEl) {
+      countEl.innerText = needle
+        ? `${visible.length} of ${entries.length} conversations`
+        : `${entries.length} conversation${entries.length === 1 ? "" : "s"} found`;
+    }
+    if (emptyEl) emptyEl.hidden = visible.length > 0;
+  }
+
+  if (filterInput) {
+    filterInput.value = "";
+    // Re-bound on every call, so replace the node to drop stale listeners.
+    const fresh = filterInput.cloneNode(true);
+    filterInput.replaceWith(fresh);
+    fresh.addEventListener("input", () => paint(fresh.value));
+  }
+
+  paint("");
+
+  // Delegated once — the selector can be reopened from the empty state.
+  if (!list.dataset.bound) {
+    list.dataset.bound = "1";
+    list.addEventListener("click", async (event) => {
+      const btn = event.target.closest("[data-thread-idx]");
+      if (!btn) return;
       await loadIgThread(igState.threads[parseInt(btn.dataset.threadIdx, 10)]);
     });
-  });
+  }
 
   if (window.innerWidth <= 800) setIgSidebarState(true);
 }
@@ -471,7 +540,17 @@ async function loadIgThread(thread) {
     parseIgMessages(validRaw);
 
     if (igState.messageOnlyCount === 0) {
-      showIgToast("No messages found in this thread.");
+      const emptyEl = $ig("ig-empty-state");
+      if (emptyEl) {
+        emptyEl.innerHTML = `
+          <div class="illustration"><i class="ph-duotone ph-file-dashed" style="color:#f5a623"></i></div>
+          <h2>This conversation is empty</h2>
+          <p style="max-width:340px">The thread parsed fine but contained no readable messages. Instagram sometimes ships placeholder folders for conversations you deleted.</p>
+          ${igState.threads.length > 1 ? `<button type="button" class="empty-cta" id="ig-back-to-threads"><i class="ph ph-arrow-left"></i> Pick another conversation</button>` : ""}`;
+        emptyEl.classList.remove("hidden");
+        $ig("ig-back-to-threads")?.addEventListener("click", () => showIgThreadSelector(igState.threads));
+      }
+      showIgToast("No messages found in this thread", "error");
       setIgLoading(false);
       return;
     }
@@ -496,7 +575,7 @@ async function loadIgThread(thread) {
         </a>`;
       emptyEl.classList.remove("hidden");
     } else {
-      showIgToast(err.message || "Error parsing thread");
+      showIgToast(err.message || "Error parsing thread", "error");
     }
   } finally {
     setIgLoading(false);
@@ -898,7 +977,7 @@ async function downloadIgMedia(id) {
   try {
     const url = await ensureIgMediaUrl(media);
     const a = document.createElement("a"); a.href = url; a.download = media.name; a.click();
-  } catch { showIgToast("Unable to download media"); }
+  } catch { showIgToast("Unable to download media", "error"); }
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -914,16 +993,43 @@ function toggleIgSearch() {
   igState.searchPointer = -1;
   igState.renderRange = { start: Math.max(0, igState.filteredMessages.length - IG_MAX_RENDERED), end: igState.filteredMessages.length };
   updateIgSearchCounter();
+  setIgSearchEmptyState(false);
   renderIgChatList();
 }
 
 function runIgSearch(query) {
-  if (!query) { igState.searchResults = []; igState.searchPointer = -1; updateIgSearchCounter(); renderIgChatList(); return; }
+  if (!query) {
+    igState.searchResults = [];
+    igState.searchPointer = -1;
+    updateIgSearchCounter();
+    setIgSearchEmptyState(false);
+    renderIgChatList();
+    return;
+  }
   igState.searchResults = igState.messages.filter(m => m.type === "msg" && `${m.sender} ${m.text}`.toLowerCase().includes(query)).map(m => m.id);
-  if (!igState.searchResults.length) { igState.searchPointer = -1; updateIgSearchCounter("No matches"); return; }
+  if (!igState.searchResults.length) {
+    igState.searchPointer = -1;
+    updateIgSearchCounter("No matches");
+    setIgSearchEmptyState(true, query);
+    // Re-render so highlights from the previous query don't linger.
+    renderIgChatList();
+    return;
+  }
   igState.searchPointer = 0;
   updateIgSearchCounter();
+  setIgSearchEmptyState(false);
   igJumpToMsg(igState.searchResults[0]);
+}
+
+/** Shows the full-panel "nothing matched" state over the message list. */
+function setIgSearchEmptyState(visible, query = "") {
+  const panel = $ig("ig-search-empty");
+  if (!panel) return;
+  if (visible) {
+    const q = $ig("ig-search-empty-query");
+    if (q) q.innerText = `"${query}"`;
+  }
+  panel.hidden = !visible;
 }
 
 function navIgSearch(dir) {
@@ -1015,7 +1121,13 @@ function generateIgStats() {
   const med = $ig("ig-stat-media"); if (med) med.innerText = igState.mediaCount.toLocaleString();
 
   const list = $ig("ig-stats-list");
-  if (list) {
+  if (list && !igState.messageOnlyCount) {
+    list.innerHTML = `
+      <div class="drawer-empty">
+        <i class="ph-duotone ph-chart-bar" aria-hidden="true"></i>
+        <p>Load a conversation and this fills up with who talks most, when, and how often.</p>
+      </div>`;
+  } else if (list) {
     list.innerHTML = Object.entries(igState.senderStats).sort((a, b) => b[1] - a[1]).map(([name, count]) => {
       const pct = igState.messageOnlyCount ? ((count / igState.messageOnlyCount) * 100).toFixed(1) : "0.0";
       return `<div class="stat-row"><div class="stat-header"><span class="stat-name">${escIg(name)}</span><span class="stat-pct">${pct}% (${count})</span></div><div class="progress-bg"><div class="progress-val" style="width:${pct}%"></div></div></div>`;
@@ -1027,7 +1139,10 @@ function generateIgStats() {
     const top = Object.entries(igState.emojiStats).sort((a, b) => b[1] - a[1]).slice(0, 12);
     grid.innerHTML = top.length
       ? top.map(([e, c]) => `<div class="emoji-item"><span class="emoji-char">${e}</span><span class="emoji-count">${c.toLocaleString()}</span></div>`).join("")
-      : `<p style="grid-column:1/-1;text-align:center;font-size:13px;color:var(--text-secondary)">No emojis found.</p>`;
+      : `<div class="drawer-empty" style="grid-column:1/-1">
+           <i class="ph-duotone ph-smiley-blank" aria-hidden="true"></i>
+           <p>${igState.messageOnlyCount ? "No emojis in this conversation — a rare breed." : "Emoji highlights appear once a conversation is loaded."}</p>
+         </div>`;
   }
 }
 
@@ -1039,6 +1154,17 @@ function updateIgUI(title, participants) {
   $ig("ig-thread-panel")?.classList.add("hidden");
   $ig("ig-chat-list-panel")?.classList.remove("hidden");
   $ig("ig-empty-state")?.classList.add("hidden");
+
+  // One-shot reveal: the message list is virtualised, so animate the container
+  // rather than each message.
+  const vp = $ig("ig-viewport");
+  const hp = qig(".chat-header .header-profile");
+  vp?.classList.remove("chat-revealed");
+  hp?.classList.remove("chat-revealed");
+  requestAnimationFrame(() => {
+    vp?.classList.add("chat-revealed");
+    hp?.classList.add("chat-revealed");
+  });
 
   const withMedia = igState.mediaCount ? ` • ${igState.mediaCount.toLocaleString()} media` : "";
   const avatar = qig(".chat-item-avatar", $ig("ig-chat-list-item"));
@@ -1072,7 +1198,7 @@ function updateIgUI(title, participants) {
         showIgToast("Chat exported as HTML");
       } catch (err) {
         console.error('[ChatLume] Export failed:', err);
-        showIgToast("Export failed");
+        showIgToast("Export failed", "error");
       }
     });
     menu.appendChild(btn);
@@ -1085,10 +1211,14 @@ function setIgLoading(on, title = "Loading", copy = "Please wait...") {
   const te = $ig("ig-processing-title"); if (te) te.innerText = title;
   const ce = $ig("ig-processing-copy"); if (ce) ce.innerText = copy;
   $ig("ig-load-btn")?.toggleAttribute("disabled", on);
+  $ig("ig-drop-target")?.toggleAttribute("disabled", on);
+  $ig("ig-my-name")?.toggleAttribute("disabled", on);
+  $ig("ig-file-input")?.toggleAttribute("disabled", on);
   if (!ov) return;
   if (on) { ov.hidden = false; requestAnimationFrame(() => ov.classList.add("open")); return; }
   ov.classList.remove("open");
-  setTimeout(() => { if (!ov.classList.contains("open")) ov.hidden = true; }, 120);
+  // Matches the 0.22s fade added to .processing-overlay.
+  setTimeout(() => { if (!ov.classList.contains("open")) ov.hidden = true; }, 260);
 }
 
 function toggleIgSidebar() { setIgSidebarState(!$ig("ig-sidebar")?.classList.contains("active")); }
@@ -1097,11 +1227,15 @@ function setIgSidebarState(open) {
   $ig("ig-sidebar-backdrop")?.classList.toggle("active", open);
 }
 
-function showIgToast(msg) {
+function showIgToast(msg, tone = "success") {
   const t = $ig("ig-toast"); if (!t) return;
-  t.innerText = msg; t.classList.add("show");
+  t.innerText = msg;
+  t.classList.remove("is-error", "is-warn", "is-info");
+  if (tone !== "success") t.classList.add(`is-${tone}`);
+  t.classList.add("show");
   clearTimeout(igState.toastTimer);
-  igState.toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  // Errors carry more text than a confirmation, so give them longer to read.
+  igState.toastTimer = setTimeout(() => t.classList.remove("show"), tone === "error" ? 4200 : 2200);
 }
 
 
@@ -1166,26 +1300,31 @@ function yieldIg() {
 }
 
 
+const PROJECT_MODAL_KEY = 'chatlume-projects-modal-seen';
+
 function showProjectModal() {
-
-
     if (document.getElementById('project-modal-backdrop')) return;
 
+    // Loading a second chat in the same session shouldn't re-prompt.
+    try {
+        if (sessionStorage.getItem(PROJECT_MODAL_KEY)) return;
+    } catch (e) {}
+
     const modalHtml = `
-    <div class="project-modal-backdrop" id="project-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+    <div class="project-modal-backdrop" id="project-modal-backdrop" role="dialog" aria-modal="true" aria-label="More from the developer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
         <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
             <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                 <i class="ph ph-x"></i>
             </button>
             <div class="project-modal-content">
                 <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
-                <div style="background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <a href="https://github.com/sponsors/ParasSharma2306" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-decoration: none;">
                     <div>
-                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Support ChatLume 💖</h3>
+                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0;">Support ChatLume 💖</h3>
                         <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
                     </div>
-                    <iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px; flex-shrink: 0;"></iframe>
-                </div>
+                    <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
+                </a>
                 <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
                     <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Play Backdoor. A free game that runs in your browser.</p>
@@ -1208,19 +1347,42 @@ function showProjectModal() {
     const modal = backdrop.querySelector('.project-modal');
     const closeBtn = document.getElementById('project-modal-close');
     const dismissBtn = document.getElementById('project-dismiss');
+    const previouslyFocused = document.activeElement;
 
-    // Slight delay for smooth animation
-    setTimeout(() => {
+    // The backdrop is inserted transparent but full-screen. Without
+    // pointer-events:none it silently swallowed every click for the 1.5s
+    // before the reveal — the app looked frozen right after a chat loaded.
+    const revealTimer = setTimeout(() => {
         backdrop.style.opacity = '1';
+        backdrop.style.pointerEvents = 'auto';
         modal.style.transform = 'translateY(0)';
-    }, 1500); // Wait 1.5 seconds after chat finishes loading
+        dismissBtn.focus({ preventScroll: true });
+    }, 1500);
 
+    let closed = false;
     const closeModal = () => {
+        if (closed) return;
+        closed = true;
+        clearTimeout(revealTimer);
         backdrop.style.opacity = '0';
+        backdrop.style.pointerEvents = 'none';
         modal.style.transform = 'translateY(20px)';
+        document.removeEventListener('keydown', onKeydown, true);
         setTimeout(() => backdrop.remove(), 300);
-
+        try { sessionStorage.setItem(PROJECT_MODAL_KEY, '1'); } catch (e) {}
+        if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+            previouslyFocused.focus({ preventScroll: true });
+        }
     };
+
+    function onKeydown(event) {
+        if (event.key !== 'Escape') return;
+        // Only claim Escape once the dialog is actually interactive.
+        if (backdrop.style.pointerEvents !== 'auto') return;
+        event.stopPropagation();
+        closeModal();
+    }
+    document.addEventListener('keydown', onKeydown, true);
 
     closeBtn.onclick = closeModal;
     dismissBtn.onclick = closeModal;

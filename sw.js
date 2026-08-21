@@ -1,8 +1,10 @@
-const CACHE_NAME = 'chatlume-v1.3.0';
+const CACHE_NAME = 'chatlume-v1.3.1';
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
     'privacy.html',
+    'sponsors.html',
+    'sponsors.json',
     'public/viewer.html',
     'public/instagram-viewer.html',
     'public/how-it-works.html',
@@ -13,6 +15,8 @@ const ASSETS_TO_CACHE = [
     'js/script.js',
     'js/instagram.js',
     'js/export.js',
+    'js/site.js',
+    'js/sponsors.js',
     'manifest.json',
     'robots.txt',
     'sitemap.xml',
@@ -27,7 +31,12 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE);
+            // cache.addAll() rejects the whole install if a single entry 404s,
+            // which would leave the app with no offline cache at all. Add each
+            // asset independently so one missing file can't take out the rest.
+            return Promise.all(
+                ASSETS_TO_CACHE.map((asset) => cache.add(asset).catch(() => {}))
+            );
         })
     );
 });

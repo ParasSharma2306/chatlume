@@ -18,6 +18,8 @@
     <meta property="og:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
     <meta property="og:image:alt" content="ChatLume app icon">
     <meta name="twitter:card" content="summary">
+    <link rel="icon" href="../assets/favicon.ico" sizes="any">
+    <link rel="icon" href="../assets/icon-192.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/icon-192.png">
@@ -151,14 +153,35 @@
             .platform-heading { font-size: 19px; }
         }
     </style>
+    <script>
+        // Apply the saved theme before first paint so light-theme users don't
+        // get a dark flash.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head>
 <body class="page-layout">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <nav class="landing-nav">
         <a class="logo" href="../index.html" style="text-decoration:none"><i class="ph-fill ph-chat-teardrop-text"></i> ChatLume</a>
         <div class="nav-links">
             <a href="viewer.html">WhatsApp</a>
-            <a href="instagram-viewer.html">Instagram</a>
-        </div>
+            <a href="instagram-viewer.html">Instagram</a><a href="../sponsors.html">Sponsors</a><button type="button" class="nav-theme-toggle" data-theme-toggle aria-label="Toggle theme"><i class="ph ph-moon-stars"></i></button></div>
     </nav>
 
     <div class="export-page">
@@ -297,5 +320,7 @@
         document.querySelectorAll('.dynamic-year').forEach(el => el.textContent = new Date().getFullYear());
     </script>
 </footer>
+    <script src="../js/site.js" defer></script>
+    <button type="button" class="to-top" data-to-top aria-label="Back to top"><i class="ph ph-arrow-up"></i></button>
 </body>
 </html>

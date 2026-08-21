@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.3.1";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -155,7 +155,7 @@ function bindUI() {
     // WRAPPED FEATURE
     $("generate-wrapped")?.addEventListener("click", () => {
         if (state.messageOnlyCount === 0) {
-            showToast("Load a chat first to generate ChatLume Wrapped!");
+            showToast("Load a chat first to generate ChatLume Wrapped!", "warn");
             return;
         }
         populateWrappedGraphic();
@@ -250,7 +250,7 @@ async function downloadWrappedGraphic() {
 
     try {
         if (typeof html2canvas === "undefined") {
-            showToast("Loading image generator...");
+            showToast("Loading image generator...", "info");
             await new Promise((resolve, reject) => {
                 const script = document.createElement("script");
                 script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
@@ -276,7 +276,7 @@ async function downloadWrappedGraphic() {
         showToast("Image downloaded!");
     } catch (err) {
         console.error(err);
-        showToast("Failed to download image.");
+        showToast("Failed to download image.", "error");
     } finally {
         btn.innerHTML = oldText;
         btn.disabled = false;
@@ -433,7 +433,7 @@ function setupDropTarget() {
         if (!files || files.length === 0) return;
         const file = files[0];
         if (!SUPPORTS_STREAMING && file.size > COMPAT_FILE_SIZE_LIMIT) {
-            showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+            showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
             return;
         }
         const fileInput = $("file-input");
@@ -492,11 +492,11 @@ function setupGlobalDropZone() {
 function handleDroppedFile(file) {
     const name = file.name.toLowerCase();
     if (!name.endsWith(".txt") && !name.endsWith(".zip")) {
-        showToast("Please drop a WhatsApp .txt or .zip export");
+        showToast("Please drop a WhatsApp .txt or .zip export", "error");
         return;
     }
     if (!SUPPORTS_STREAMING && file.size > COMPAT_FILE_SIZE_LIMIT) {
-        showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+        showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
         return;
     }
 
@@ -515,7 +515,7 @@ function handleDroppedFile(file) {
     // how to reach the file they just dropped.
     if ($("upload-panel")?.classList.contains("hidden")) {
         if (window.innerWidth <= 800) setSidebarState(true);
-        showToast("File ready — tap Load Chat to open it");
+        showToast("File ready — tap Load Chat to open it", "info");
     }
 }
 
@@ -538,7 +538,7 @@ function handleFileInputChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!SUPPORTS_STREAMING && file.size > COMPAT_FILE_SIZE_LIMIT) {
-        showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.");
+        showToast("File exceeds the 1 GB limit for your browser. Use Chrome 80+, Firefox 79+, or Safari 16.4+ for larger files.", "error");
         event.target.value = "";
         return;
     }
@@ -589,11 +589,11 @@ async function initViewer() {
     const displayName = nameInput?.value.trim();
 
     if (!file) {
-        showToast("Please select a file");
+        showToast("Please select a file", "warn");
         return;
     }
     if (!displayName) {
-        showToast("Enter your display name");
+        showToast("Enter your display name", "warn");
         return;
     }
 
@@ -609,6 +609,7 @@ async function initViewer() {
 
     cleanupMediaStore();
     resetChatState();
+    restoreEmptyState();
 
     if (window.innerWidth <= 800) {
         setSidebarState(false);
@@ -618,7 +619,7 @@ async function initViewer() {
 
     if (!SUPPORTS_STREAMING && file.size > COMPAT_FILE_SIZE_LIMIT) {
         setLoadingState(false);
-        showToast(`File is too large for your browser (${(file.size / 1073741824).toFixed(1)} GB). Use Chrome 80+, Firefox 79+, or Safari 16.4+ for files over 1 GB.`);
+        showToast(`File is too large for your browser (${(file.size / 1073741824).toFixed(1)} GB). Use Chrome 80+, Firefox 79+, or Safari 16.4+ for files over 1 GB.`, "error");
         return;
     }
 
@@ -642,7 +643,14 @@ async function initViewer() {
         }
 
         if (state.messageOnlyCount === 0) {
-            showToast("No messages could be parsed. Check export format and display name.");
+            showEmptyState({
+                icon: "ph-duotone ph-file-dashed",
+                iconColor: "#f5a623",
+                title: "No messages found",
+                body: "The file opened, but nothing in it looked like WhatsApp messages. Exports must be plain-text chat exports — not backups or database files.",
+                actions: `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`
+            });
+            showToast("No messages could be parsed from this export", "error");
             return;
         }
 
@@ -653,18 +661,15 @@ async function initViewer() {
         showProjectModal();
     } catch (error) {
         console.error(error);
-        const emptyEl = document.getElementById("empty-state");
-        if (emptyEl) {
-            emptyEl.innerHTML = `
-                <div class="illustration"><i class="ph-duotone ph-warning-circle" style="color:#f5a623"></i></div>
-                <h2>Couldn't parse this file</h2>
-                <p style="max-width:300px">${String(error.message || "Make sure it's a valid WhatsApp .txt or .zip export.").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>
-                <a href="how-to-export.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--primary);text-decoration:none">
-                    <i class="ph ph-question"></i> How to export WhatsApp chats
-                </a>`;
-            emptyEl.classList.remove("hidden");
-        } else {
-            showToast(`Error: ${error.message}`);
+        const shown = showEmptyState({
+            icon: "ph-duotone ph-warning-circle",
+            iconColor: "#f5a623",
+            title: "Couldn't parse this file",
+            body: error.message || "Make sure it's a valid WhatsApp .txt or .zip export.",
+            actions: `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`
+        });
+        if (!shown) {
+            showToast(`Error: ${error.message}`, "error");
         }
     } finally {
         setLoadingState(false);
@@ -729,6 +734,7 @@ function resetChatState() {
     state.activeMediaId = "";
     disconnectMediaObserver();
     updateSearchCounter();
+    setSearchEmptyState(false);
     if ($("message-list")) $("message-list").innerHTML = "";
     if ($("emoji-grid")) $("emoji-grid").innerHTML = "";
 }
@@ -789,7 +795,7 @@ async function downloadMedia(mediaId) {
         window.setTimeout(() => releaseMediaUrlIfUnused(media), 1000);
     } catch (error) {
         console.error(error);
-        showToast("Unable to download media");
+        showToast("Unable to download media", "error");
     }
 }
 
@@ -1006,7 +1012,13 @@ function generateStats() {
     $("stat-media").innerText = state.mediaCount.toLocaleString();
 
     const list = $("stats-list");
-    if (list) {
+    if (list && !state.messageOnlyCount) {
+        list.innerHTML = `
+            <div class="drawer-empty">
+                <i class="ph-duotone ph-chart-bar" aria-hidden="true"></i>
+                <p>Load a chat and this fills up with who talks most, when, and how often.</p>
+            </div>`;
+    } else if (list) {
         const sorted = Object.entries(state.senderStats).sort((a, b) => b[1] - a[1]);
         list.innerHTML = sorted.map(([name, count]) => {
             const pct = state.messageOnlyCount ? ((count / state.messageOnlyCount) * 100).toFixed(1) : "0.0";
@@ -1029,8 +1041,12 @@ function generateStats() {
         const sortedEmojis = Object.entries(state.emojiStats).sort((a, b) => b[1] - a[1]);
         const top12 = sortedEmojis.slice(0, 12);
         
-        if(top12.length === 0) {
-            grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; font-size: 13px; color: var(--text-secondary);">No emojis found yet.</p>`;
+        if (top12.length === 0) {
+            grid.innerHTML = `
+                <div class="drawer-empty" style="grid-column:1/-1">
+                    <i class="ph-duotone ph-smiley-blank" aria-hidden="true"></i>
+                    <p>${state.messageOnlyCount ? "No emojis in this chat — a rare breed." : "Emoji highlights appear once a chat is loaded."}</p>
+                </div>`;
         } else {
             grid.innerHTML = top12.map(([emoji, count]) => `
                 <div class="emoji-item">
@@ -1413,6 +1429,7 @@ function toggleSearch() {
     window.clearTimeout(state.searchTimer);
     state.searchTimer = null;
     handleSearch("");
+    setSearchEmptyState(false);
     resetRenderToBottom();
 }
 
@@ -1430,6 +1447,7 @@ function handleSearch(query) {
         state.searchResults = [];
         state.searchPointer = -1;
         updateSearchCounter();
+        setSearchEmptyState(false);
         renderChatList();
         return;
     }
@@ -1441,13 +1459,27 @@ function handleSearch(query) {
     if (!state.searchResults.length) {
         state.searchPointer = -1;
         updateSearchCounter("No matches");
+        setSearchEmptyState(true, query.trim());
         renderChatList();
         return;
     }
 
     state.searchPointer = 0;
     updateSearchCounter();
+    setSearchEmptyState(false);
     jumpToMessage(state.searchResults[state.searchPointer]);
+}
+
+/** Shows the full-panel "nothing matched" state over the message list. */
+function setSearchEmptyState(visible, query = "") {
+    const panel = $("search-empty");
+    if (!panel) return;
+
+    if (visible) {
+        const queryEl = $("search-empty-query");
+        if (queryEl) queryEl.innerText = `"${query}"`;
+    }
+    panel.hidden = !visible;
 }
 
 function navSearch(direction) {
@@ -1716,6 +1748,45 @@ function closeMediaModal() {
 function openDrawer(id) {
     $(`${id}-drawer`)?.classList.add("open");
     pushHistoryState(`drawer-${id}`);
+    if (id === "stats") animateStatsIn();
+}
+
+const prefersReducedMotion = () =>
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Counts the stat tiles up and grows the per-sender bars from zero. */
+function animateStatsIn() {
+    const reduce = prefersReducedMotion();
+
+    [["stat-total", state.messageOnlyCount], ["stat-media", state.mediaCount]].forEach(([id, target]) => {
+        const el = $(id);
+        if (!el) return;
+        if (reduce || !target) {
+            el.innerText = Number(target || 0).toLocaleString();
+            return;
+        }
+        countUp(el, target, 750);
+    });
+
+    document.querySelectorAll("#stats-list .progress-val").forEach((bar) => {
+        const width = bar.style.width;
+        if (reduce) return;
+        bar.style.width = "0%";
+        requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = width; }));
+    });
+}
+
+function countUp(el, target, duration) {
+    const start = performance.now();
+    const step = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        // easeOutCubic — fast start, gentle landing.
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.innerText = Math.round(target * eased).toLocaleString();
+        if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
 }
 
 function closeDrawer(id) {
@@ -1779,7 +1850,7 @@ function handleDateJumpAction(event) {
     closeMenu();
 
     if (!state.messages.length) {
-        showToast("Load a chat first");
+        showToast("Load a chat first", "warn");
         return;
     }
 
@@ -1815,7 +1886,7 @@ function closeDateSheet() {
 function applyDateSheetSelection() {
     const selectedDate = $("date-sheet-input")?.value || "";
     if (!selectedDate) {
-        showToast("Select a date");
+        showToast("Select a date", "warn");
         return;
     }
 
@@ -1829,7 +1900,7 @@ function handleDateSelection(dateValue) {
 
     const targetDate = new Date(`${dateValue}T00:00:00`);
     if (Number.isNaN(targetDate.getTime())) {
-        showToast("Invalid date format");
+        showToast("Invalid date format", "error");
         return;
     }
 
@@ -1862,7 +1933,7 @@ function handleDateSelection(dateValue) {
 
     const bestIndex = exactIndex !== -1 ? exactIndex : bestBeforeIndex;
     if (bestIndex === -1) {
-        showToast(bestAfterIndex !== -1 ? "No messages on or before that date" : "No valid date markers found");
+        showToast(bestAfterIndex !== -1 ? "No messages on or before that date" : "No valid date markers found", "warn");
         return;
     }
 
@@ -1931,6 +2002,13 @@ function setLoadingState(isLoading, title = "Loading chat", copy = "Parsing your
     nameInput?.toggleAttribute("disabled", isLoading);
     fileInput?.toggleAttribute("disabled", isLoading);
 
+    // While parsing, stand a shimmering placeholder where the chat entry lands.
+    const skeleton = $("chat-list-skeleton");
+    if (skeleton) {
+        const showSkeleton = isLoading && $("chat-list-panel")?.classList.contains("hidden");
+        skeleton.classList.toggle("hidden", !showSkeleton);
+    }
+
     if (!overlay) return;
 
     if (isLoading) {
@@ -1944,7 +2022,61 @@ function setLoadingState(isLoading, title = "Loading chat", copy = "Parsing your
         if (!overlay.classList.contains("open")) {
             overlay.hidden = true;
         }
-    }, 120);
+    }, 260);
+}
+
+/**
+ * One-shot fade for the conversation the first time it paints. The message list
+ * is virtualised and re-renders on every scroll, so per-message animation would
+ * re-fire constantly — this animates the container instead and then gets out of
+ * the way.
+ */
+function playChatRevealOnce() {
+    const viewport = $("viewport");
+    const header = q(".chat-header .header-profile");
+    if (!viewport) return;
+
+    viewport.classList.remove("chat-revealed");
+    header?.classList.remove("chat-revealed");
+    requestAnimationFrame(() => {
+        viewport.classList.add("chat-revealed");
+        header?.classList.add("chat-revealed");
+    });
+}
+
+let pristineEmptyStateHtml = null;
+
+/** Remembers the markup shipped in the HTML so a state swap can be undone. */
+function rememberEmptyState() {
+    const emptyEl = $("empty-state");
+    if (emptyEl && pristineEmptyStateHtml === null) {
+        pristineEmptyStateHtml = emptyEl.innerHTML;
+    }
+    return emptyEl;
+}
+
+function restoreEmptyState() {
+    const emptyEl = rememberEmptyState();
+    if (emptyEl && pristineEmptyStateHtml !== null) {
+        emptyEl.innerHTML = pristineEmptyStateHtml;
+    }
+}
+
+/**
+ * Replaces the viewport placeholder with a titled state.
+ * `actions` is trusted markup built here, never user input.
+ */
+function showEmptyState({ icon, iconColor, title, body, actions = "" }) {
+    const emptyEl = rememberEmptyState();
+    if (!emptyEl) return false;
+
+    emptyEl.innerHTML = `
+        <div class="illustration"><i class="${icon}"${iconColor ? ` style="color:${iconColor}"` : ""}></i></div>
+        <h2>${escapeHtml(title)}</h2>
+        <p style="max-width:340px">${escapeHtml(body)}</p>
+        ${actions}`;
+    emptyEl.classList.remove("hidden");
+    return true;
 }
 
 function updateLoadingCopy(copy) {
@@ -1954,16 +2086,21 @@ function updateLoadingCopy(copy) {
     }
 }
 
-function showToast(message) {
+function showToast(message, tone = "success") {
     const toast = $("toast");
     if (!toast) return;
 
     toast.innerText = message;
+    toast.classList.remove("is-error", "is-warn", "is-info");
+    if (tone !== "success") {
+        toast.classList.add(`is-${tone}`);
+    }
     toast.classList.add("show");
     window.clearTimeout(state.toastTimer);
+    // Errors carry more text than a confirmation, so give them longer to read.
     state.toastTimer = window.setTimeout(() => {
         toast.classList.remove("show");
-    }, 2200);
+    }, tone === "error" ? 4200 : 2200);
 }
 
 
@@ -1974,7 +2111,7 @@ async function copyUPI() {
         showToast("UPI ID copied");
     } catch (error) {
         console.error(error);
-        showToast("Could not copy UPI ID");
+        showToast("Could not copy UPI ID", "error");
     }
 }
 
@@ -1996,6 +2133,7 @@ function updateUIState(filename) {
     $("upload-panel")?.classList.add("hidden");
     $("chat-list-panel")?.classList.remove("hidden");
     $("empty-state")?.classList.add("hidden");
+    playChatRevealOnce();
 
     state.chatTitle = filename.replace(/(_chat\.txt|WhatsApp Chat with |\.\w+$)/gi, "").trim() || "Chat History";
     const withMedia = state.mediaCount ? ` • ${state.mediaCount.toLocaleString()} media` : "";
@@ -2030,7 +2168,7 @@ function updateUIState(filename) {
                 showToast("Chat exported as HTML");
             } catch (err) {
                 console.error('[ChatLume] Export failed:', err);
-                showToast("Export failed");
+                showToast("Export failed", "error");
             }
         });
         menu.appendChild(btn);
@@ -2038,8 +2176,10 @@ function updateUIState(filename) {
 }
 
 function getSearchableText(entry) {
-    const mediaNames = entry.mediaItems.map((item) => item.name).join(" ");
-    return `${entry.sender} ${entry.text} ${mediaNames}`.toLowerCase();
+    // Defensive: one message without mediaItems would otherwise throw and take
+    // down search for the whole chat.
+    const mediaNames = (entry.mediaItems || []).map((item) => item.name).join(" ");
+    return `${entry.sender || ""} ${entry.text || ""} ${mediaNames}`.toLowerCase();
 }
 
 function hydrateLazyMedia() {
@@ -2574,26 +2714,31 @@ function escapeRegExp(value) {
 }
 
 
+const PROJECT_MODAL_KEY = 'chatlume-projects-modal-seen';
+
 function showProjectModal() {
-
-
     if (document.getElementById('project-modal-backdrop')) return;
 
+    // Loading a second chat in the same session shouldn't re-prompt.
+    try {
+        if (sessionStorage.getItem(PROJECT_MODAL_KEY)) return;
+    } catch (e) {}
+
     const modalHtml = `
-    <div class="project-modal-backdrop" id="project-modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+    <div class="project-modal-backdrop" id="project-modal-backdrop" role="dialog" aria-modal="true" aria-label="More from the developer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
         <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
             <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                 <i class="ph ph-x"></i>
             </button>
             <div class="project-modal-content">
                 <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
-                <div style="background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <a href="https://github.com/sponsors/ParasSharma2306" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-decoration: none;">
                     <div>
-                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Support ChatLume 💖</h3>
+                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0;">Support ChatLume 💖</h3>
                         <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
                     </div>
-                    <iframe src="https://github.com/sponsors/ParasSharma2306/button" title="Sponsor ParasSharma2306" height="32" width="114" style="border: 0; border-radius: 6px; flex-shrink: 0;"></iframe>
-                </div>
+                    <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
+                </a>
                 <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
                     <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
                     <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Play Backdoor. A free game that runs in your browser.</p>
@@ -2616,19 +2761,42 @@ function showProjectModal() {
     const modal = backdrop.querySelector('.project-modal');
     const closeBtn = document.getElementById('project-modal-close');
     const dismissBtn = document.getElementById('project-dismiss');
+    const previouslyFocused = document.activeElement;
 
-    // Slight delay for smooth animation
-    setTimeout(() => {
+    // The backdrop is inserted transparent but full-screen. Without
+    // pointer-events:none it silently swallowed every click for the 1.5s
+    // before the reveal — the app looked frozen right after a chat loaded.
+    const revealTimer = setTimeout(() => {
         backdrop.style.opacity = '1';
+        backdrop.style.pointerEvents = 'auto';
         modal.style.transform = 'translateY(0)';
-    }, 1500); // Wait 1.5 seconds after chat finishes loading
+        dismissBtn.focus({ preventScroll: true });
+    }, 1500);
 
+    let closed = false;
     const closeModal = () => {
+        if (closed) return;
+        closed = true;
+        clearTimeout(revealTimer);
         backdrop.style.opacity = '0';
+        backdrop.style.pointerEvents = 'none';
         modal.style.transform = 'translateY(20px)';
+        document.removeEventListener('keydown', onKeydown, true);
         setTimeout(() => backdrop.remove(), 300);
-
+        try { sessionStorage.setItem(PROJECT_MODAL_KEY, '1'); } catch (e) {}
+        if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+            previouslyFocused.focus({ preventScroll: true });
+        }
     };
+
+    function onKeydown(event) {
+        if (event.key !== 'Escape') return;
+        // Only claim Escape once the dialog is actually interactive.
+        if (backdrop.style.pointerEvents !== 'auto') return;
+        event.stopPropagation();
+        closeModal();
+    }
+    document.addEventListener('keydown', onKeydown, true);
 
     closeBtn.onclick = closeModal;
     dismissBtn.onclick = closeModal;
