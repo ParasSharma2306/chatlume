@@ -15,46 +15,9 @@
 
 ## The Story
 
-ChatLume started on February 10, 2026 — built for my girlfriend, who wanted to relive some old memories from her WhatsApp chats. The default export is a raw `.txt` wall of text, completely unreadable. I wanted her to actually see the conversation, the way it looked when it happened.
+ChatLume started as a favor for my girlfriend. She wanted to look back through some old WhatsApp chats, but the export WhatsApp actually gives you is a raw `.txt` wall of text: readable if you squint, but nothing like what the conversation actually looked like. I wanted her to see it the way it happened, so I built a small viewer to do just that.
 
-It turned out decent enough that I released it publicly. Now it handles WhatsApp and Instagram exports, works entirely in the browser, and exports chats as standalone HTML files. Along the way, I've taken help of Claude Code and Gemini/Antigravity CLI to build and refine this project.
-
----
-
-## What's New in v1.3.2
-
-- **Real logo everywhere**: The generic Phosphor chat glyph is gone. The ChatLume mark is now the favicon (a multi-resolution `.ico`, 16px→256px), the PWA icon, the apple-touch icon, and appears in every nav, footer, loader and the Wrapped card. Source art had a baked-in white background — it's been cut to true transparency.
-- **Install as an app**: A dismissible install card now appears when the browser offers installation, on the landing pages and both viewers. The service worker registers site-wide, which is what makes the pages installable in the first place. Separate `maskable` icons were added so Android stops cropping the mark.
-- **Zarya**: Added to the post-load projects card — a private space for understanding yourself and getting through difficult days.
-- **Product Hunt**: ChatLume is live on Product Hunt — the badge is on the homepage, the sponsors page and in the app's info drawer.
-- **Motion pass**: Scroll-reveals on the landing page, a sheen on the primary CTA, drawer content stagger, animated analytics (stat count-up, bars that grow from zero), and modal entrances. All of it collapses under `prefers-reduced-motion`.
-- **Real empty states**: The viewers now explain themselves when there's nothing to show — idle placeholders with format hints, a full "no messages matched" panel for search, a dedicated state when an export parses but contains no messages, and empty analytics copy instead of a wall of zeroes.
-- **Skeletons**: Shimmer placeholders for the sponsors grid, the homepage marquee, and the sidebar chat entry while an export parses.
-- **Sponsors rebuilt**: Every sponsor gets the same card — no tiers, no ranking badges. Plus a contribution summary, a real CTA section replacing the bare GitHub iframe, and proper loading / empty / error-with-retry states. Sponsor fields are now HTML-escaped and `javascript:` URLs are rejected.
-- **Theme everywhere**: The light/dark choice now applies to the landing, sponsors and guide pages too, and is applied before first paint so there's no flash.
-- **Bug fixes**: See the list below.
-
-### Fixed in v1.3.2
-
-- The "try my other projects" dialog inserted a transparent full-screen backdrop 1.5s before revealing itself, silently swallowing every click in that window. It also had no Escape handler and re-appeared on every chat load.
-- Sponsor names, messages and avatar URLs were interpolated into `innerHTML` unescaped.
-- Toasts were always success-green — failures now render in red, warnings in amber.
-- The Instagram toast was styled inline, so it could never pick up those tones.
-- Instagram search with no results skipped the re-render, leaving stale highlights from the previous query on screen.
-- Missing `<link rel="icon">` on every page but `privacy.html` — browsers were requesting a nonexistent `/favicon.ico`.
-- `privacy.html` threw on every load from a leftover script referencing a removed `#yr` element.
-- The service worker used `cache.addAll()`, so one missing asset failed the entire install and left no offline cache.
-- The sponsors marquee's edge fades were painted with the wrong background variable, leaving visible seams; its scroll speed also ignored how many sponsors there were.
-- The Instagram thread picker had no way to filter, which is unusable for exports with hundreds of conversations.
-
----
-
-## What's New in v1.3.0
-
-- **Sponsors Page Overhaul**: The sponsors page and carousel have been completely redesigned with improved spacing, better cards, avatar support, and graceful error handling. 
-- **Dynamic Sponsors**: Sponsors are now loaded dynamically from a single `sponsors.json` source of truth. Adding a sponsor requires simply editing this file, and changes will be reflected in both the dedicated page and the landing page carousel.
-- **UI & UX Polish**: Enhanced responsive layouts across devices, refined hover and active states for interactive elements, and resolved visual rough edges.
-- **Bug Fixes**: Resolved various minor bugs including overflow issues, missing empty states, and console errors under specific edge cases.
+It turned out better than I expected, so I cleaned it up and put it online. It now handles WhatsApp and Instagram exports, runs entirely in the browser, and can save any chat back out as a standalone HTML file. I built and keep improving it with help from Claude Code and Gemini's Antigravity CLI.
 
 ---
 
@@ -70,7 +33,7 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 |---------|---------|
 | WhatsApp viewer | Renders `_chat.txt` or `.zip` exports as a real chat UI |
 | Instagram viewer | Renders Instagram JSON export archives |
-| HTML Export | Save any chat as a standalone `.html` file — text only, media referenced by filename |
+| HTML Export | Save any chat as a standalone `.html` file, text only, media referenced by filename |
 | 100% private | Files processed in your browser. Nothing is uploaded, ever. |
 | No account needed | Open the page, drop a file, done. |
 | Open source | MIT licensed, self-hostable, forkable |
@@ -83,7 +46,7 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 - Your chat files never leave your device
 - No server receives any chat content
 - No analytics on chat data, no logging, no storage
-- Even self-hosted: no backend, no database — it's all static files
+- Even self-hosted: no backend, no database. It's all static files
 
 ---
 
@@ -102,9 +65,9 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 ## HTML Export
 
 - Exports the full conversation as a self-contained `.html` file
-- No external dependencies — opens offline in any browser
+- No external dependencies, opens offline in any browser
 - Styled to match the viewer (WhatsApp or Instagram theme)
-- **Media is not embedded** — images, videos, voice notes appear as placeholder cards showing the original filename (e.g. 🖼️ `IMG-20240115-WA0012.jpg`). This keeps exports lightweight and fast.
+- **Media is not embedded**: images, videos, voice notes appear as placeholder cards showing the original filename (e.g. 🖼️ `IMG-20240115-WA0012.jpg`). This keeps exports lightweight and fast.
 - To view media: reference the filename in your original export folder
 - Footer on every export: generated by ChatLume + support notice
 
@@ -112,7 +75,7 @@ It turned out decent enough that I released it publicly. Now it handles WhatsApp
 
 ## Self-Hosting
 
-### Option 1 — Run locally on your PC
+### Option 1: Run locally on your PC
 
 No installation required beyond having Node.js (or Python) available.
 
@@ -137,7 +100,7 @@ No database. No environment variables. No build step.
 
 ---
 
-### Option 2 — Host on a VPS
+### Option 2: Host on a VPS
 
 Tested on Ubuntu 22.04+ with Nginx. Assumes you have SSH access to your server.
 
@@ -191,7 +154,7 @@ Your site is now live on port 80 at your server IP.
 
 ---
 
-### Option 3 — VPS + Custom Domain + SSL
+### Option 3: VPS + Custom Domain + SSL
 
 Continuing from Option 2.
 
@@ -233,7 +196,7 @@ Follow the prompts. Certbot will automatically update your Nginx config for HTTP
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Visit https://your-domain.com — you should see ChatLume over HTTPS with a valid certificate.
+Visit https://your-domain.com. You should see ChatLume over HTTPS with a valid certificate.
 
 **5. Automated Deployment (CI/CD)**
 
@@ -252,7 +215,7 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ## ⚠️ Support Notice
 
-ChatLume support is temporarily paused after v1.3.2. The tool is fully stable and functional — this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
+ChatLume support is temporarily paused. The tool is fully stable and functional, so this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
 
 ---
 
@@ -260,16 +223,16 @@ ChatLume support is temporarily paused after v1.3.2. The tool is fully stable an
 
 | Layer | Tech |
 |-------|------|
-| Frontend | Vanilla HTML, CSS, JavaScript — no framework |
+| Frontend | Vanilla HTML, CSS, JavaScript (no framework) |
 | Parsing | Browser-native JS (no libraries) |
 | Hosting | Nginx on a VPS |
-| Deployment | git pull — no build step |
+| Deployment | git pull (no build step) |
 
 ---
 
 ## Contributing
 
-PRs are welcome. The codebase is plain HTML/CSS/JS — no build tools, no bundler, just files.
+PRs are welcome. The codebase is plain HTML/CSS/JS: no build tools, no bundler, just files.
 
 - Issues: open on GitHub
 - PRs: open against `main`
@@ -279,7 +242,7 @@ PRs are welcome. The codebase is plain HTML/CSS/JS — no build tools, no bundle
 
 ## License
 
-MIT — built by [Paras Sharma](https://parassharma.com)
+MIT. Built by [Paras Sharma](https://parassharma.com)
 
 ## Sponsors
 
