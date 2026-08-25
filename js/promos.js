@@ -32,13 +32,6 @@ const PROJECTS = [
         border: "rgba(245, 166, 35, 0.22)"
     },
     {
-        name: "Zarya",
-        url: "https://zarya.parassharma.in",
-        blurb: "A private space for understanding yourself and getting through difficult days.",
-        tint: "rgba(139, 122, 232, 0.06)",
-        border: "rgba(139, 122, 232, 0.2)"
-    },
-    {
         name: "Backdoor",
         url: "https://backdoor.parassharma.in",
         blurb: "Play Backdoor. A free game that runs in your browser.",
