@@ -18,6 +18,11 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chatlume.parassharma.in/viewer">
     <meta property="og:image" content="https://chatlume.parassharma.in/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
+    <meta name="twitter:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Chat Viewer — ChatLume">
     <meta name="twitter:description" content="View WhatsApp and Instagram chat exports privately. 100% local, no uploads.">
@@ -27,10 +32,11 @@
     <link rel="stylesheet" href="../css/style.css">     
     <link rel="manifest" href="../manifest.json">     
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">     
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-    </style>
     <script type="module" src="../js/script.js"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
 </head> 
@@ -44,11 +50,13 @@
             var KEY = "chatlume-support-notice-dismissed";
             var banner = document.getElementById("support-banner");
             if (!banner) return;
-            if (localStorage.getItem(KEY)) {
-                banner.remove();
-                document.body.classList.remove("has-support-banner");
-                return;
-            }
+            try {
+                if (localStorage.getItem(KEY)) {
+                    banner.remove();
+                    document.body.classList.remove("has-support-banner");
+                    return;
+                }
+            } catch (e) {}
             document.getElementById("support-banner-close").addEventListener("click", function () {
                 banner.remove();
                 document.body.classList.remove("has-support-banner");
@@ -81,7 +89,7 @@
         <aside class="sidebar" id="sidebar" aria-label="Sidebar">             
             <header class="sidebar-header">                 
                 <button class="profile-thumb profile-button" id="open-profile" type="button" title="My Profile" aria-label="Open profile">                     
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" id="my-pfp-img" alt="Your profile picture" loading="lazy">                 
+                    <img src="../assets/avatar-placeholder.svg" id="my-pfp-img" alt="Your profile picture" loading="lazy">                 
                 </button>                 
                 <div class="sidebar-nav">                 
                     <button id="install-pwa" type="button" title="Install App" aria-label="Install App" hidden><i class="ph ph-download-simple"></i></button>                     
@@ -116,7 +124,7 @@
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.3.2</div>
+                    <div class="app-version-label" data-app-version>v1.4.1</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -147,7 +155,7 @@
                 <div class="drawer-scroll">                     
                     <div class="profile-hero">                         
                         <button class="large-avatar avatar-upload-trigger" id="open-pfp-upload" type="button">                             
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" id="drawer-pfp-img" alt="Profile preview" loading="lazy">                             
+                            <img src="../assets/avatar-placeholder.svg" id="drawer-pfp-img" alt="Profile preview" loading="lazy">                             
                             <span class="overlay"><i class="ph ph-camera"></i></span>                         
                         </button>                         
                         <input type="file" id="pfp-upload" hidden accept="image/*">                         
@@ -294,7 +302,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.3.2 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.4.1 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
@@ -330,14 +338,14 @@
             <header class="chat-header">                 
                 <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open sidebar"><i class="ph ph-list"></i></button>                 
                 <div class="header-profile">                     
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" class="header-pfp" alt="Chat avatar" loading="lazy">                     
+                    <img src="../assets/avatar-placeholder.svg" class="header-pfp" alt="Chat avatar" loading="lazy">                     
                     <div class="header-info">                         
                         <h2 id="header-name">Welcome</h2>                         
                         <p id="header-meta">ChatLume</p>                     
                     </div>                 
                 </div>                 
                 <div class="header-tools">                     
-                    <button id="search-toggle" type="button" aria-label="Search messages"><i class="ph ph-magnifying-glass"></i></button>                     
+                    <button id="search-toggle" type="button" aria-label="Search messages" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>                     
                     <div class="menu-container">                         
                         <button id="menu-toggle" type="button" aria-label="Open chat menu"><i class="ph ph-dots-three-vertical"></i></button>                         
                         <div class="dropdown-menu" id="header-menu">                             
@@ -358,6 +366,9 @@
                     <button id="search-down" type="button"><i class="ph ph-caret-down"></i></button>                 
                 </div>             
             </section>             
+            <button type="button" class="scroll-latest" id="scroll-latest" hidden aria-label="Jump to the latest message">
+                <i class="ph-bold ph-arrow-down" aria-hidden="true"></i>
+            </button>
             <section class="messages-viewport" id="viewport" aria-label="Messages">                 
                 <div class="empty-placeholder" id="empty-state">
                     <div class="illustration">

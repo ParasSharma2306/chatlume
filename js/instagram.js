@@ -1,5 +1,6 @@
 import { configure, BlobReader, ZipReader, BlobWriter, TextWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
+import { showProjectModal, showSponsorPrompt } from './promos.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const IG_SUPPORTS_STREAMING =
@@ -12,7 +13,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.3.2";
+const IG_APP_VERSION = "1.4.1";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -48,16 +49,48 @@ const igState = {
 const $ig = (id) => document.getElementById(id);
 const qig = (sel, root = document) => root.querySelector(sel);
 
+// Safari private mode / blocked cookies make localStorage throw on access. An
+// unguarded read during boot took out the rest of DOMContentLoaded and left the
+// splash loader up forever.
+function readIgStored(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function writeIgStored(key, value) {
+  try { localStorage.setItem(key, value); return true; } catch { return false; }
+}
+
 // ── Mojibake fix ──────────────────────────────────────────────────────────────
-// Instagram exports encode UTF-8 text as latin1 byte values. Re-decode as UTF-8.
+// Instagram exports encode UTF-8 text as latin1 byte values, so "café" arrives
+// as "cafÃ©" and every emoji as a run of Latin-1 characters. Re-decoding those
+// bytes as UTF-8 restores the original text.
+//
+// This must only run on strings that ARE mojibaked. Blindly masking every code
+// unit with & 0xff destroys real Unicode, and decoding bytes that aren't valid
+// UTF-8 replaces them with U+FFFD — so a correctly-encoded "café" would come
+// back as "caf<?>". Three guards keep that from happening:
+//   1. any code point above U+00FF means the string is already real Unicode
+//   2. pure ASCII is byte-identical either way, so there is nothing to fix
+//   3. fatal decoding throws on invalid UTF-8, which means it was never mojibaked
+const IG_UTF8_DECODER = typeof TextDecoder !== "undefined"
+  ? new TextDecoder("utf-8", { fatal: true })
+  : null;
+
 function fixMojibake(str) {
-  if (!str) return str;
+  if (!str || !IG_UTF8_DECODER) return str;
+
+  let hasHighByte = false;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code > 0xff) return str;
+    if (code >= 0x80) hasHighByte = true;
+  }
+  if (!hasHighByte) return str;
+
   try {
     const bytes = new Uint8Array(str.length);
-    for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i) & 0xff;
-    const decoded = new TextDecoder("utf-8").decode(bytes);
-    // If the decoded version has more printable chars, it was indeed mojibaked
-    return decoded;
+    for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+    return IG_UTF8_DECODER.decode(bytes);
   } catch {
     return str;
   }
@@ -71,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
   runIgLoader();
   checkIgBrowserCompatibility();
   if (window.innerWidth <= 800) setIgSidebarState(true);
+  showSponsorPrompt();
 });
 
 window.addEventListener("resize", () => {
@@ -85,7 +119,7 @@ window.addEventListener("beforeunload", () => {
 window.addEventListener("popstate", () => closeIgMediaModal());
 
 function applyIgTheme() {
-  const saved = localStorage.getItem("chatlume-theme");
+  const saved = readIgStored("chatlume-theme");
   if (saved === "light") { document.body.classList.add("light-theme"); igState.activeTheme = "light"; }
   syncIgThemeButton();
 }
@@ -129,7 +163,7 @@ function bindIgUI() {
   $ig("ig-theme-toggle")?.addEventListener("click", () => {
     document.body.classList.toggle("light-theme");
     igState.activeTheme = document.body.classList.contains("light-theme") ? "light" : "dark";
-    localStorage.setItem("chatlume-theme", igState.activeTheme);
+    writeIgStored("chatlume-theme", igState.activeTheme);
     syncIgThemeButton();
   });
 
@@ -173,6 +207,12 @@ function bindIgUI() {
   }
 
   $ig("ig-load-btn")?.addEventListener("click", initIgViewer);
+  // Typing a name and hitting Enter is the obvious next move.
+  $ig("ig-my-name")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    initIgViewer();
+  });
 
   setupIgGlobalDropZone();
 
@@ -187,6 +227,7 @@ function bindIgUI() {
 
   $ig("ig-menu-toggle")?.addEventListener("click", () => $ig("ig-header-menu")?.classList.toggle("show"));
   $ig("ig-jump-bottom")?.addEventListener("click", igJumpToBottom);
+  $ig("ig-scroll-latest")?.addEventListener("click", igJumpToBottom);
   document.addEventListener("click", e => {
     const menu = $ig("ig-header-menu");
     if (menu?.classList.contains("show") && !menu.contains(e.target) && !$ig("ig-menu-toggle")?.contains(e.target)) {
@@ -198,7 +239,9 @@ function bindIgUI() {
     closeIgMediaModal();
     if (history.state && history.state.overlay) history.back();
   });
-  $ig("ig-media-modal-backdrop")?.addEventListener("click", closeIgMediaModal);
+  // Route through the close button so the pushed history entry is popped too —
+  // closing directly left a dead entry that swallowed the next Back press.
+  $ig("ig-media-modal-backdrop")?.addEventListener("click", () => $ig("ig-media-modal-close")?.click());
 
   $ig("ig-chat-list-item")?.addEventListener("click", () => {
     if (window.innerWidth <= 800) setIgSidebarState(false);
@@ -211,9 +254,14 @@ function bindIgUI() {
   $ig("ig-message-list")?.addEventListener("click", handleIgMessageListClick);
 
   document.addEventListener("keydown", e => {
-    if (e.key !== "Escape") return;
-    if (igState.activeMediaId) { closeIgMediaModal(); return; }
-    document.querySelectorAll(".drawer.open").forEach(d => d.classList.remove("open"));
+    if (e.key === "Escape") {
+      if (igState.activeMediaId) { closeIgMediaModal(); return; }
+      if ($ig("ig-search-toolbar")?.classList.contains("active")) { toggleIgSearch(); return; }
+      $ig("ig-header-menu")?.classList.remove("show");
+      document.querySelectorAll(".drawer.open").forEach(d => d.classList.remove("open"));
+      return;
+    }
+    igHandleSearchShortcut(e);
   });
 }
 
@@ -529,7 +577,10 @@ async function loadIgThread(thread) {
     allRaw.sort((a, b) => a.timestamp_ms - b.timestamp_ms);
 
     const nameInput = $ig("ig-my-name")?.value.trim();
-    igState.myName = nameInput || participants[0] || "";
+    // Instagram lists the account owner LAST in `participants`, so falling back
+    // to participants[0] labelled the other person's messages as yours and
+    // flipped every bubble in the thread.
+    igState.myName = nameInput || participants[participants.length - 1] || "";
     igState.chatTitle = threadTitle;
 
     // Build media store from all non-JSON files in this thread's folder
@@ -722,6 +773,7 @@ function renderIgChatList() {
 
   igClampRange();
   disconnectIgMediaObserver();
+  releaseIgOffscreenMediaUrls();
 
   let lastSender = null;
   let html = "";
@@ -780,6 +832,7 @@ function renderIgChatList() {
   list.innerHTML = html;
   igSyncSearch();
   hydrateIgLazyMedia();
+  syncIgScrollLatest();
 }
 
 // Builds a normalised list of all parsed messages for the HTML export. Reads
@@ -922,6 +975,29 @@ function disconnectIgMediaObserver() {
   if (igState.mediaObserver) { igState.mediaObserver.disconnect(); igState.mediaObserver = null; }
 }
 
+/**
+ * Revokes blob URLs for media outside the current render window. Every decoded
+ * photo and video otherwise stayed resident for the life of the tab, so a long
+ * thread grew until the browser killed it. Re-entering the window re-decodes
+ * the entry from the ZIP, which is cheap next to holding it all in memory.
+ */
+function releaseIgOffscreenMediaUrls() {
+  const visible = new Set();
+  for (let i = igState.renderRange.start; i < igState.renderRange.end; i++) {
+    const item = igState.filteredMessages[i];
+    if (item?.type !== "msg") continue;
+    (item.mediaItems || []).forEach(m => { if (m.status === "available") visible.add(m.id); });
+  }
+
+  igState.mediaStore.forEach(media => {
+    if (!media.url || media.id === igState.activeMediaId || visible.has(media.id)) return;
+    URL.revokeObjectURL(media.url);
+    igState.mediaUrls.delete(media.url);
+    media.url = "";
+    media.hasLoaded = false;
+  });
+}
+
 async function handleIgMessageListClick(e) {
   const dl = e.target.closest("[data-download-media]");
   if (dl) { await downloadIgMedia(dl.dataset.downloadMedia); return; }
@@ -981,6 +1057,25 @@ async function downloadIgMedia(id) {
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
+
+/** Ctrl/Cmd+F and "/" jump straight to the in-thread search. */
+function igHandleSearchShortcut(e) {
+  if (!igState.filteredMessages.length) return;
+  const t = e.target;
+  if (t && (["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName) || t.isContentEditable)) return;
+
+  const isFindCombo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f";
+  if (!isFindCombo && e.key !== "/") return;
+  if (e.altKey) return;
+
+  e.preventDefault();
+  if ($ig("ig-search-toolbar")?.classList.contains("active")) {
+    $ig("ig-live-search")?.focus();
+  } else {
+    toggleIgSearch();
+  }
+}
+
 function toggleIgSearch() {
   const bar = $ig("ig-search-toolbar");
   const input = $ig("ig-live-search");
@@ -1064,6 +1159,7 @@ function igSyncSearch() {
 // ── Scroll helpers ────────────────────────────────────────────────────────────
 function handleIgViewportScroll(e) {
   const vp = e.currentTarget;
+  syncIgScrollLatest(vp);
   if (vp.scrollTop <= 0 && igState.renderRange.start > 0) {
     const anchor = getIgAnchor(vp);
     igState.renderRange.start = Math.max(0, igState.renderRange.start - IG_BATCH_SIZE);
@@ -1097,7 +1193,43 @@ function restoreIgAnchor(vp, anchor) {
   return true;
 }
 
-function igScrollToBottom() { const vp = $ig("ig-viewport"); if (vp) vp.scrollTop = vp.scrollHeight; }
+function igScrollToBottom() {
+  const vp = $ig("ig-viewport");
+  if (!vp) return;
+  vp.scrollTop = vp.scrollHeight;
+  syncIgScrollLatest(vp);
+}
+
+const IG_SCROLL_LATEST_THRESHOLD = 320;
+
+/**
+ * Shows the floating jump-to-latest pill once the thread is scrolled away from
+ * the newest message. An unrendered tail counts as "scrolled up" too, since
+ * the bottom of a mid-thread window is still far from the latest message.
+ */
+function syncIgScrollLatest(viewport) {
+  const button = $ig("ig-scroll-latest");
+  if (!button) return;
+
+  const vp = viewport || $ig("ig-viewport");
+  if (!vp || !igState.filteredMessages.length) {
+    button.hidden = true;
+    button.classList.remove("show");
+    return;
+  }
+
+  const distance = vp.scrollHeight - vp.scrollTop - vp.clientHeight;
+  const hasUnrenderedTail = igState.renderRange.end < igState.filteredMessages.length;
+
+  if (hasUnrenderedTail || distance > IG_SCROLL_LATEST_THRESHOLD) {
+    button.hidden = false;
+    requestAnimationFrame(() => button.classList.add("show"));
+    return;
+  }
+
+  button.classList.remove("show");
+  setTimeout(() => { if (!button.classList.contains("show")) button.hidden = true; }, 200);
+}
 
 function igJumpToBottom() {
   $ig("ig-header-menu")?.classList.remove("show");
@@ -1249,12 +1381,32 @@ function escAttrIg(v) { return escIg(v).replace(/`/g, "&#96;"); }
 function igLinkify(text) {
   const query = $ig("ig-live-search")?.value.trim();
   let s = escIg(text || "");
-  s = s.replace(/(https?:\/\/[^\s<]+)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-  if (query) {
-    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
-    s = s.replace(re, '<span class="hl">$1</span>');
-  }
+  s = igLinkifyUrls(s);
+  if (query) s = igHighlightOutsideTags(s, query);
   return s;
+}
+
+/**
+ * Wraps bare URLs in anchors. The href is taken verbatim from the escaped
+ * source so nothing downstream can rewrite the inside of the tag.
+ */
+function igLinkifyUrls(escaped) {
+  return escaped.replace(
+    /(https?:\/\/[^\s<]+)/gi,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+}
+
+/**
+ * Highlights matches in text nodes only. Running the query over the whole
+ * string would inject <span> into href/class attributes for common queries
+ * like "a", "http" or "class", producing broken markup.
+ */
+function igHighlightOutsideTags(html, query) {
+  const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  return html.replace(/(<[^>]+>)|([^<]+)/g, (_, tag, text) =>
+    tag ? tag : text.replace(re, '<span class="hl">$1</span>')
+  );
 }
 
 function getIgColor(name) {
@@ -1297,100 +1449,4 @@ function detectIgMediaType(fileName) {
 
 function yieldIg() {
   return new Promise(r => { requestAnimationFrame(() => setTimeout(r, 30)); });
-}
-
-
-const PROJECT_MODAL_KEY = 'chatlume-projects-modal-seen';
-
-function showProjectModal() {
-    if (document.getElementById('project-modal-backdrop')) return;
-
-    // Loading a second chat in the same session shouldn't re-prompt.
-    try {
-        if (sessionStorage.getItem(PROJECT_MODAL_KEY)) return;
-    } catch (e) {}
-
-    const modalHtml = `
-    <div class="project-modal-backdrop" id="project-modal-backdrop" role="dialog" aria-modal="true" aria-label="More from the developer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
-        <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
-            <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <i class="ph ph-x"></i>
-            </button>
-            <div class="project-modal-content">
-                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
-                <a href="https://github.com/sponsors/ParasSharma2306" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-decoration: none;">
-                    <div>
-                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0;">Support ChatLume 💖</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
-                    </div>
-                    <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
-                </a>
-                <a href="https://zarya.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(139, 122, 232, 0.06); border: 1px solid rgba(139, 122, 232, 0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Zarya <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A private space for understanding yourself and getting through difficult days.</p>
-                </a>
-                <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Play Backdoor. A free game that runs in your browser.</p>
-                </a>
-                <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Know me better <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">at parassharma.com</p>
-                </a>
-            </div>
-            <div class="project-modal-actions" style="margin-top: 20px; text-align: center;">
-                <button class="btn-secondary" id="project-dismiss" type="button" style="width: 100%;">Dismiss</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const backdrop = document.getElementById('project-modal-backdrop');
-    const modal = backdrop.querySelector('.project-modal');
-    const closeBtn = document.getElementById('project-modal-close');
-    const dismissBtn = document.getElementById('project-dismiss');
-    const previouslyFocused = document.activeElement;
-
-    // The backdrop is inserted transparent but full-screen. Without
-    // pointer-events:none it silently swallowed every click for the 1.5s
-    // before the reveal — the app looked frozen right after a chat loaded.
-    const revealTimer = setTimeout(() => {
-        backdrop.style.opacity = '1';
-        backdrop.style.pointerEvents = 'auto';
-        modal.style.transform = 'translateY(0)';
-        dismissBtn.focus({ preventScroll: true });
-    }, 1500);
-
-    let closed = false;
-    const closeModal = () => {
-        if (closed) return;
-        closed = true;
-        clearTimeout(revealTimer);
-        backdrop.style.opacity = '0';
-        backdrop.style.pointerEvents = 'none';
-        modal.style.transform = 'translateY(20px)';
-        document.removeEventListener('keydown', onKeydown, true);
-        setTimeout(() => backdrop.remove(), 300);
-        try { sessionStorage.setItem(PROJECT_MODAL_KEY, '1'); } catch (e) {}
-        if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-            previouslyFocused.focus({ preventScroll: true });
-        }
-    };
-
-    function onKeydown(event) {
-        if (event.key !== 'Escape') return;
-        // Only claim Escape once the dialog is actually interactive.
-        if (backdrop.style.pointerEvents !== 'auto') return;
-        event.stopPropagation();
-        closeModal();
-    }
-    document.addEventListener('keydown', onKeydown, true);
-
-    closeBtn.onclick = closeModal;
-    dismissBtn.onclick = closeModal;
-    backdrop.onclick = (e) => {
-        if (e.target === backdrop) closeModal();
-    };
 }

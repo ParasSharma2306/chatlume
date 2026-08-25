@@ -17,15 +17,24 @@
     <meta property="og:description" content="View Instagram DM exports locally in your browser. 100% private, no uploads.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chatlume.parassharma.in/instagram-viewer">
-    <meta property="og:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:image" content="https://chatlume.parassharma.in/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
+    <meta name="twitter:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ChatLume – Private Instagram DM Viewer">
-    <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/icon-512.png">
+    <meta name="twitter:description" content="View Instagram DM exports locally in your browser. 100% private, no uploads.">
+    <meta name="twitter:image" content="https://chatlume.parassharma.in/assets/og-image.png">
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script type="module" src="../js/instagram.js"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
@@ -240,7 +249,7 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.3.2</div>
+                    <div class="app-version-label" data-app-version>v1.4.1</div>
                 </section>
 
                 <!-- Thread selector -->
@@ -317,7 +326,7 @@
                     </div>
                 </div>
                 <div class="header-tools">
-                    <button id="ig-search-toggle" type="button" aria-label="Search messages"><i class="ph ph-magnifying-glass"></i></button>
+                    <button id="ig-search-toggle" type="button" aria-label="Search messages" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>
                     <div class="menu-container">
                         <button id="ig-menu-toggle" type="button" aria-label="Open menu"><i class="ph ph-dots-three-vertical"></i></button>
                         <div class="dropdown-menu" id="ig-header-menu">
@@ -339,6 +348,9 @@
                 </div>
             </section>
 
+            <button type="button" class="scroll-latest" id="ig-scroll-latest" hidden aria-label="Jump to the latest message">
+                <i class="ph-bold ph-arrow-down" aria-hidden="true"></i>
+            </button>
             <section class="messages-viewport" id="ig-viewport" aria-label="Messages">
                 <div class="empty-placeholder" id="ig-empty-state">
                     <div class="illustration">

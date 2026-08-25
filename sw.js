@@ -1,4 +1,5 @@
-const CACHE_NAME = 'chatlume-v1.3.2';
+const CACHE_NAME = 'chatlume-v1.4.1';
+const OFFLINE_FALLBACK = 'index.html';
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -15,6 +16,7 @@ const ASSETS_TO_CACHE = [
     'js/script.js',
     'js/instagram.js',
     'js/export.js',
+    'js/promos.js',
     'js/site.js',
     'js/sponsors.js',
     'manifest.json',
@@ -26,6 +28,7 @@ const ASSETS_TO_CACHE = [
     'assets/logo-64.png',
     'assets/logo-32.png',
     'assets/apple-touch-icon.png',
+    'assets/avatar-placeholder.svg',
     'assets/maskable-192.png',
     'assets/maskable-512.png',
     'assets/icon-192.png',
@@ -50,43 +53,87 @@ self.addEventListener('install', (event) => {
 
 // Activate: Cleanup old caches
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
+        caches.keys()
+            .then((cacheNames) => Promise.all(
+                cacheNames
+                    .filter((cacheName) => cacheName !== CACHE_NAME)
+                    .map((cacheName) => caches.delete(cacheName))
+            ))
+            .then(() => self.clients.claim())
     );
 });
 
-// Fetch: Network First for HTML, Stale-While-Revalidate for CSS/JS/Assets
+// Fetch: Network First for page navigations, Stale-While-Revalidate for assets
 self.addEventListener('fetch', (event) => {
     const request = event.request;
-    
-    // Use Network First for all HTML pages so updates propagate
-    if (request.headers.get('Accept') && request.headers.get('Accept').includes('text/html')) {
-        event.respondWith(
-            fetch(request).catch(() => caches.match(request).then(cached => cached || caches.match('public/viewer.html')))
-        );
+
+    // Only GET is cacheable; anything else goes straight to the network.
+    if (request.method !== 'GET') return;
+
+    if (isNavigation(request)) {
+        event.respondWith(handleNavigation(request));
         return;
     }
 
-    // Use Stale-While-Revalidate for everything else
-    event.respondWith(
-        caches.match(request).then((cachedResponse) => {
-            const fetchPromise = fetch(request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse.clone()));
-                }
-                return networkResponse;
-            }).catch(() => {}); // Ignore if offline
-            
-            return cachedResponse || fetchPromise;
-        })
-    );
+    event.respondWith(handleAsset(request));
 });
+
+/**
+ * Page loads. Requests routed by `Accept: text/html` also caught things like
+ * prefetches, so this keys off the navigation mode instead (with the Accept
+ * header as a fallback for browsers that don't set `mode`).
+ */
+function isNavigation(request) {
+    if (request.mode === 'navigate') return true;
+    const accept = request.headers.get('Accept') || '';
+    return request.destination === 'document' && accept.includes('text/html');
+}
+
+/**
+ * Network first, so a deployed change shows up immediately. Successful pages
+ * are written back to the cache — previously only the install-time copies were
+ * ever available offline, so an updated page still served its original markup.
+ * Offline, the page itself is served from cache; a page that was never visited
+ * falls back to the landing page rather than to the WhatsApp viewer, which used
+ * to appear in place of every unreachable URL.
+ */
+async function handleNavigation(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+    } catch (error) {
+        const cached = await caches.match(request, { ignoreSearch: true });
+        if (cached) return cached;
+
+        const fallback = await caches.match(OFFLINE_FALLBACK);
+        if (fallback) return fallback;
+
+        return new Response(
+            '<!DOCTYPE html><meta charset="utf-8"><title>Offline</title>' +
+            '<body style="font-family:system-ui,sans-serif;background:#0b141a;color:#e9edef;' +
+            'display:grid;place-items:center;height:100vh;margin:0;text-align:center">' +
+            '<div><h1>You\'re offline</h1><p>Reconnect and reload to open ChatLume.</p></div>',
+            { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+    }
+}
+
+/** Stale-while-revalidate for CSS/JS/images: instant paint, refreshed in the background. */
+async function handleAsset(request) {
+    const cached = await caches.match(request);
+
+    const network = fetch(request).then((response) => {
+        if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+    }).catch(() => cached);
+
+    return cached || network;
+}

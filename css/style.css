@@ -3761,3 +3761,152 @@ body.light-theme .ph-badge-wrap a {
 
 /* The back-to-top button must not sit under the install card. */
 .install-prompt.show ~ .to-top { bottom: 96px; }
+
+/* ── Jump-to-latest ──
+   A chat that has been scrolled back needs a one-tap way home. "Jump to
+   Bottom" existed only inside the header's overflow menu, which is two taps
+   and easy to miss; this pill fades in over the message list as soon as the
+   conversation is scrolled away from the newest message. */
+.scroll-latest {
+    position: absolute;
+    right: 22px;
+    bottom: 24px;
+    z-index: 40;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 19px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+    transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.scroll-latest[hidden] { display: none; }
+.scroll-latest.show { opacity: 1; transform: translateY(0) scale(1); }
+.scroll-latest:hover { border-color: var(--primary); color: var(--primary); }
+.scroll-latest:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12); }
+
+@media (max-width: 800px) {
+    .scroll-latest { right: 16px; bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-latest { transition: opacity 0.18s ease; transform: none; }
+    .scroll-latest.show { transform: none; }
+}
+
+/* ── Sponsor prompt ──
+   Shown a few seconds after the app becomes usable. Deliberately a card and
+   not a modal: nothing has been done yet at that point, so the ask must never
+   stand between the user and loading a chat. Shares the geometry of
+   .install-prompt so the two read as the same kind of object. */
+.sponsor-prompt {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(460px, calc(100vw - 32px));
+    padding: 14px 16px;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+    transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.sponsor-prompt.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.sponsor-prompt-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255, 69, 0, 0.12);
+    color: #ff7a45;
+    font-size: 21px;
+}
+.sponsor-prompt-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sponsor-prompt-text strong {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.sponsor-prompt-text span {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+.sponsor-prompt-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.sponsor-prompt-no,
+.sponsor-prompt-yes {
+    border: 0;
+    border-radius: 999px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.sponsor-prompt-no {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 9px 10px;
+}
+.sponsor-prompt-no:hover { color: var(--text-primary); }
+.sponsor-prompt-yes {
+    background: #ff4500;
+    color: #fff;
+}
+.sponsor-prompt-yes:hover { background: #ff5c1f; transform: translateY(-1px); }
+.sponsor-prompt-no:focus-visible,
+.sponsor-prompt-yes:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+    .sponsor-prompt {
+        flex-wrap: wrap;
+        gap: 10px 12px;
+        bottom: 12px;
+    }
+    .sponsor-prompt-actions { width: 100%; justify-content: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sponsor-prompt { transition: opacity 0.3s ease; transform: translateX(-50%); }
+    .sponsor-prompt.show { transform: translateX(-50%); }
+    .sponsor-prompt-yes:hover { transform: none; }
+}

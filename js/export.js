@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.3.2)
+ * ChatLume HTML Export (v1.4.1)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Media files are intentionally NOT embedded — each attachment is shown
@@ -178,20 +178,37 @@ function renderReactions(reactions) {
   return pills ? `<div class="ce-reactions">${pills}</div>` : '';
 }
 
+const URL_PATTERN = /(https?:\/\/[^\s<]+)/gi;
+
 // Escape, linkify, and apply WhatsApp-style formatting. Newlines → <br>.
+//
+// Linkifying and formatting are interleaved rather than chained: formatting an
+// already-linkified string rewrote the inside of the links, so .../Foo_bar_baz
+// lost its underscores to an <em> in the href as well as the visible text.
 function renderText(text, theme) {
-  let s = escapeHtml(text || '');
-  s = s.replace(
-    /(https?:\/\/[^\s<]+)/gi,
-    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
-  if (theme !== 'instagram') {
-    s = s.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
-    s = s.replace(/_([^_\n]+)_/g, '<em>$1</em>');
-    s = s.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  const escaped = escapeHtml(text || '');
+  const format = theme === 'instagram' ? (segment) => segment : applyTextFormatting;
+
+  let out = '';
+  let cursor = 0;
+  let match;
+
+  URL_PATTERN.lastIndex = 0;
+  while ((match = URL_PATTERN.exec(escaped)) !== null) {
+    out += format(escaped.slice(cursor, match.index));
+    out += `<a href="${match[0]}" target="_blank" rel="noopener noreferrer">${match[0]}</a>`;
+    cursor = match.index + match[0].length;
   }
-  s = s.replace(/\n/g, '<br>');
-  return s;
+  out += format(escaped.slice(cursor));
+
+  return out.replace(/\n/g, '<br>');
+}
+
+function applyTextFormatting(segment) {
+  return segment
+    .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
+    .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+    .replace(/~([^~\n]+)~/g, '<s>$1</s>');
 }
 
 // ── Theme styles ─────────────────────────────────────────────────────────────

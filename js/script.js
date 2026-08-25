@@ -11,6 +11,7 @@
  */
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
+import { showProjectModal, showSponsorPrompt } from './promos.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -27,7 +28,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.4.1";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -79,6 +80,26 @@ let deferredPrompt;
 const $ = (id) => document.getElementById(id);
 const q = (selector, root = document) => root.querySelector(selector);
 
+// Safari's private mode and "block all cookies" make every localStorage access
+// throw. An unguarded read during boot took out the rest of DOMContentLoaded,
+// which left the splash loader on screen forever — the app looked hung.
+function readStored(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeStored(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     loadSavedSettings();
     bindUI();
@@ -92,6 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     registerServiceWorker();
     setupPWAInstall();
+    showSponsorPrompt();
 });
 
 window.addEventListener("resize", () => {
@@ -111,6 +133,13 @@ function bindUI() {
     $("sidebar-backdrop")?.addEventListener("click", toggleSidebar);
     $("chat-list-item")?.addEventListener("click", handleChatSelect);
     $("load-chat")?.addEventListener("click", initViewer);
+    // Typing a name and hitting Enter is the obvious next move; without this it
+    // did nothing and the Load button had to be hunted down.
+    $("display-name")?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        initViewer();
+    });
     $("copy-upi")?.addEventListener("click", copyUPI);
     $("open-pfp-upload")?.addEventListener("click", () => $("pfp-upload")?.click());
     
@@ -131,6 +160,7 @@ function bindUI() {
     $("menu-toggle")?.addEventListener("click", toggleMenu);
     $("date-jump-action")?.addEventListener("click", handleDateJumpAction);
     $("jump-bottom-action")?.addEventListener("click", jumpToBottom);
+    $("scroll-latest")?.addEventListener("click", jumpToBottom);
     $("date-sheet-cancel")?.addEventListener("click", () => {
         closeDateSheet();
         if (history.state && history.state.overlay) history.back();
@@ -324,7 +354,7 @@ function runLoader() {
 }
 
 function applySavedTheme() {
-    const saved = localStorage.getItem(STORAGE_KEYS.theme);
+    const saved = readStored(STORAGE_KEYS.theme);
     if (saved === "light") {
         document.body.classList.add("light-theme");
         state.activeTheme = "light";
@@ -338,7 +368,7 @@ function applySavedTheme() {
 function toggleTheme() {
     document.body.classList.toggle("light-theme");
     state.activeTheme = document.body.classList.contains("light-theme") ? "light" : "dark";
-    localStorage.setItem(STORAGE_KEYS.theme, state.activeTheme);
+    writeStored(STORAGE_KEYS.theme, state.activeTheme);
     syncThemeButton();
 }
 
@@ -355,7 +385,7 @@ function syncThemeButton() {
 
 function loadSavedSettings() {
     try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || "{}");
+        const saved = JSON.parse(readStored(STORAGE_KEYS.settings) || "{}");
         state.settings = sanitizeSettings(saved);
     } catch (error) {
         console.warn("Unable to load settings:", error);
@@ -387,7 +417,7 @@ function sanitizeSettings(value) {
 }
 
 function saveSettings() {
-    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
+    writeStored(STORAGE_KEYS.settings, JSON.stringify(state.settings));
 }
 
 function syncSettingsControls() {
@@ -1254,6 +1284,7 @@ function renderChatList() {
     list.innerHTML = html;
     syncFocusedSearchResult();
     hydrateLazyMedia();
+    syncScrollLatest();
 }
 
 // Builds a normalised, theme-agnostic list of all parsed messages for the HTML
@@ -1409,6 +1440,7 @@ function renderMediaItem(item) {
 
 function handleViewportScroll(event) {
     const viewport = event.currentTarget;
+    syncScrollLatest(viewport);
 
     if (viewport.scrollTop <= 0 && state.renderRange.start > 0) {
         const anchor = getScrollAnchor(viewport);
@@ -1574,23 +1606,46 @@ function renderMessageText(text) {
     return escaped;
 }
 
+const URL_PATTERN = /(https?:\/\/[^\s<]+)/gi;
+
 function linkifyAndHighlight(text) {
     const query = $("live-search")?.value.trim();
-    let escaped = escapeHtml(text || "");
-
-    escaped = escaped.replace(
-        /(https?:\/\/[^\s<]+)/gi,
-        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-    );
-    escaped = escaped.replace(/\*([^*\n]+)\*/g, "<strong>$1</strong>");
-    escaped = escaped.replace(/_([^_\n]+)_/g, "<em>$1</em>");
-    escaped = escaped.replace(/~([^~\n]+)~/g, "<s>$1</s>");
+    let html = buildRichText(escapeHtml(text || ""));
 
     if (query) {
-        escaped = highlightOutsideTags(escaped, query);
+        html = highlightOutsideTags(html, query);
     }
 
-    return escaped;
+    return html;
+}
+
+/**
+ * Linkifies URLs and applies WhatsApp's *bold* _italic_ ~strike~ markers.
+ * The two passes are interleaved rather than chained: running the formatting
+ * pass over an already-linkified string rewrote the inside of the links, so
+ * .../Foo_bar_baz lost its underscores to an <em> — in the href as well as in
+ * the visible text, leaving a dead link.
+ */
+function buildRichText(escaped) {
+    let out = "";
+    let cursor = 0;
+    let match;
+
+    URL_PATTERN.lastIndex = 0;
+    while ((match = URL_PATTERN.exec(escaped)) !== null) {
+        out += applyTextFormatting(escaped.slice(cursor, match.index));
+        out += `<a href="${match[0]}" target="_blank" rel="noopener noreferrer">${match[0]}</a>`;
+        cursor = match.index + match[0].length;
+    }
+
+    return out + applyTextFormatting(escaped.slice(cursor));
+}
+
+function applyTextFormatting(segment) {
+    return segment
+        .replace(/\*([^*\n]+)\*/g, "<strong>$1</strong>")
+        .replace(/_([^_\n]+)_/g, "<em>$1</em>")
+        .replace(/~([^~\n]+)~/g, "<s>$1</s>");
 }
 
 function formatMessageTime(rawTime) {
@@ -1848,21 +1903,62 @@ function handleDocumentClick(event) {
 
 function handleGlobalKeydown(event) {
     if (event.key === "Escape") {
-        if (state.activeMediaId) {
-            closeMediaModal();
-            return;
-        }
-        if (!$("wrapped-modal")?.hidden) {
-            $("close-wrapped")?.click();
-            return;
-        }
-        if (!$("date-sheet")?.hidden) {
-            closeDateSheet();
-            return;
-        }
-        closeMenu();
-        document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
+        handleEscape();
+        return;
     }
+    handleSearchShortcut(event);
+}
+
+/**
+ * Closes the topmost overlay. Each check requires the element to exist and be
+ * visible — `!$("wrapped-modal")?.hidden` was true when the element was simply
+ * absent, so Escape returned early and never reached the open drawers.
+ */
+function handleEscape() {
+    if (state.activeMediaId) {
+        closeMediaModal();
+        return;
+    }
+    if (isVisible($("wrapped-modal"))) {
+        $("close-wrapped")?.click();
+        return;
+    }
+    if (isVisible($("date-sheet"))) {
+        closeDateSheet();
+        return;
+    }
+    if (state.isSearchOpen) {
+        toggleSearch();
+        return;
+    }
+    closeMenu();
+    document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
+}
+
+function isVisible(element) {
+    return Boolean(element) && !element.hidden;
+}
+
+/** Ctrl/Cmd+F and "/" jump straight to the in-chat search. */
+function handleSearchShortcut(event) {
+    if (!state.filteredMessages.length) return;
+    if (isTypingTarget(event.target)) return;
+
+    const isFindCombo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f";
+    if (!isFindCombo && event.key !== "/") return;
+    if (event.altKey) return;
+
+    event.preventDefault();
+    if (!state.isSearchOpen) {
+        toggleSearch();
+    } else {
+        $("live-search")?.focus();
+    }
+}
+
+function isTypingTarget(target) {
+    if (!target || !target.tagName) return false;
+    return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
 }
 
 function handleDateJumpAction(event) {
@@ -1982,7 +2078,44 @@ function scrollToBottom() {
     const viewport = $("viewport");
     if (viewport) {
         viewport.scrollTop = viewport.scrollHeight;
+        syncScrollLatest(viewport);
     }
+}
+
+const SCROLL_LATEST_THRESHOLD = 320;
+
+/**
+ * Shows the floating jump-to-latest pill once the conversation is scrolled
+ * away from the newest message. The virtual window matters as much as the
+ * pixel offset: sitting at the bottom of a mid-chat window is still far from
+ * the latest message, so an unrendered tail also counts as "scrolled up".
+ */
+function syncScrollLatest(viewport) {
+    const button = $("scroll-latest");
+    if (!button) return;
+
+    const view = viewport || $("viewport");
+    if (!view || !state.filteredMessages.length) {
+        button.hidden = true;
+        button.classList.remove("show");
+        return;
+    }
+
+    const distance = view.scrollHeight - view.scrollTop - view.clientHeight;
+    const hasUnrenderedTail = state.renderRange.end < state.filteredMessages.length;
+    const shouldShow = hasUnrenderedTail || distance > SCROLL_LATEST_THRESHOLD;
+
+    if (shouldShow) {
+        button.hidden = false;
+        // Unhide first so the fade actually has a frame to run in.
+        requestAnimationFrame(() => button.classList.add("show"));
+        return;
+    }
+
+    button.classList.remove("show");
+    window.setTimeout(() => {
+        if (!button.classList.contains("show")) button.hidden = true;
+    }, 200);
 }
 
 function jumpToBottom() {
@@ -2731,100 +2864,4 @@ function escapeAttribute(value) {
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-
-const PROJECT_MODAL_KEY = 'chatlume-projects-modal-seen';
-
-function showProjectModal() {
-    if (document.getElementById('project-modal-backdrop')) return;
-
-    // Loading a second chat in the same session shouldn't re-prompt.
-    try {
-        if (sessionStorage.getItem(PROJECT_MODAL_KEY)) return;
-    } catch (e) {}
-
-    const modalHtml = `
-    <div class="project-modal-backdrop" id="project-modal-backdrop" role="dialog" aria-modal="true" aria-label="More from the developer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
-        <div class="project-modal" style="background: var(--bg-sidebar, #111b21); border: 1px solid var(--border, #2a3942); border-radius: 20px; width: 90%; max-width: 400px; padding: 24px; position: relative; transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
-            <button class="project-modal-close" id="project-modal-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary, #8696a0); cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <i class="ph ph-x"></i>
-            </button>
-            <div class="project-modal-content">
-                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary, #00a884); margin-bottom: 16px; margin-top: 0; text-align: center;">Try my other projects</h2>
-                <a href="https://github.com/sponsors/ParasSharma2306" target="_blank" rel="noopener noreferrer" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255, 69, 0, 0.05); border: 1px solid rgba(255, 69, 0, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-decoration: none;">
-                    <div>
-                        <h3 style="font-size: 15px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0;">Support ChatLume 💖</h3>
-                        <p style="font-size: 12px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">If you find this tool helpful, consider sponsoring!</p>
-                    </div>
-                    <span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: rgba(255, 69, 0, 0.12); color: #ff7a45; font-size: 12.5px; font-weight: 700;"><i class="ph-fill ph-heart"></i> Sponsor</span>
-                </a>
-                <a href="https://zarya.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(139, 122, 232, 0.06); border: 1px solid rgba(139, 122, 232, 0.2); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Zarya <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">A private space for understanding yourself and getting through difficult days.</p>
-                </a>
-                <a href="https://backdoor.parassharma.in" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Backdoor <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">Play Backdoor. A free game that runs in your browser.</p>
-                </a>
-                <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="display: block; background: rgba(0, 168, 132, 0.05); border: 1px solid rgba(0, 168, 132, 0.15); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; text-decoration: none;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary, #e9edef); margin: 0 0 4px 0; display: flex; align-items: center; gap: 6px;">Know me better <i class="ph-bold ph-arrow-up-right" style="font-size:12px"></i></h3>
-                    <p style="font-size: 13px; color: var(--text-secondary, #8696a0); margin: 0; line-height: 1.4;">at parassharma.com</p>
-                </a>
-            </div>
-            <div class="project-modal-actions" style="margin-top: 20px; text-align: center;">
-                <button class="btn-secondary" id="project-dismiss" type="button" style="width: 100%;">Dismiss</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const backdrop = document.getElementById('project-modal-backdrop');
-    const modal = backdrop.querySelector('.project-modal');
-    const closeBtn = document.getElementById('project-modal-close');
-    const dismissBtn = document.getElementById('project-dismiss');
-    const previouslyFocused = document.activeElement;
-
-    // The backdrop is inserted transparent but full-screen. Without
-    // pointer-events:none it silently swallowed every click for the 1.5s
-    // before the reveal — the app looked frozen right after a chat loaded.
-    const revealTimer = setTimeout(() => {
-        backdrop.style.opacity = '1';
-        backdrop.style.pointerEvents = 'auto';
-        modal.style.transform = 'translateY(0)';
-        dismissBtn.focus({ preventScroll: true });
-    }, 1500);
-
-    let closed = false;
-    const closeModal = () => {
-        if (closed) return;
-        closed = true;
-        clearTimeout(revealTimer);
-        backdrop.style.opacity = '0';
-        backdrop.style.pointerEvents = 'none';
-        modal.style.transform = 'translateY(20px)';
-        document.removeEventListener('keydown', onKeydown, true);
-        setTimeout(() => backdrop.remove(), 300);
-        try { sessionStorage.setItem(PROJECT_MODAL_KEY, '1'); } catch (e) {}
-        if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-            previouslyFocused.focus({ preventScroll: true });
-        }
-    };
-
-    function onKeydown(event) {
-        if (event.key !== 'Escape') return;
-        // Only claim Escape once the dialog is actually interactive.
-        if (backdrop.style.pointerEvents !== 'auto') return;
-        event.stopPropagation();
-        closeModal();
-    }
-    document.addEventListener('keydown', onKeydown, true);
-
-    closeBtn.onclick = closeModal;
-    dismissBtn.onclick = closeModal;
-    backdrop.onclick = (e) => {
-        if (e.target === backdrop) closeModal();
-    };
 }

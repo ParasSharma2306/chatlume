@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.3.2-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.4.1-blue?style=flat-square)
 
 ---
 
@@ -37,6 +37,8 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 | 100% private | Files processed in your browser. Nothing is uploaded, ever. |
 | No account needed | Open the page, drop a file, done. |
 | Open source | MIT licensed, self-hostable, forkable |
+| Keyboard driven | `Ctrl+F` or `/` to search, `Esc` to close overlays, `Enter` to load |
+| Installable | PWA with an offline cache — works with no connection at all |
 
 ---
 
