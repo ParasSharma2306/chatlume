@@ -11,7 +11,7 @@
  */
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
-import { showProjectModal, showSponsorPrompt } from './promos.js';
+import { showSponsorPrompt } from './support.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -28,7 +28,7 @@ const STORAGE_KEYS = {
     settings: "chatlume-settings"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.4.1";
+const APP_VERSION = "1.5.0";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -111,9 +111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (window.innerWidth <= 800) {
         setSidebarState(true);
     }
-    registerServiceWorker();
     setupPWAInstall();
-    showSponsorPrompt();
 });
 
 window.addEventListener("resize", () => {
@@ -140,7 +138,6 @@ function bindUI() {
         event.preventDefault();
         initViewer();
     });
-    $("copy-upi")?.addEventListener("click", copyUPI);
     $("open-pfp-upload")?.addEventListener("click", () => $("pfp-upload")?.click());
     
     const fileInput = $("file-input");
@@ -239,15 +236,6 @@ window.addEventListener("popstate", () => {
     closeMenu();
     document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
 });
-
-function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            const swPath = window.location.pathname.includes('/public/') ? '../sw.js' : 'sw.js';
-            navigator.serviceWorker.register(swPath).catch(err => {/* Silent fail */});
-        });
-    }
-}
 
 function setupPWAInstall() {
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -708,7 +696,7 @@ async function initViewer() {
         renderChatList();
         requestAnimationFrame(scrollToBottom);
         showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
-        showProjectModal();
+        showSponsorPrompt();
     } catch (error) {
         console.error(error);
         const shown = showEmptyState({
@@ -2258,16 +2246,6 @@ function showToast(message, tone = "success") {
 
 
 
-async function copyUPI() {
-    try {
-        await navigator.clipboard.writeText("parassharma2306@okaxis");
-        showToast("UPI ID copied");
-    } catch (error) {
-        console.error(error);
-        showToast("Could not copy UPI ID", "error");
-    }
-}
-
 function handleProfilePictureChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -2530,7 +2508,7 @@ async function parseChatData(text) {
         const lineIndex = getLineIndex();
 
         if (lineIndex >= nextYieldAt) {
-            const pct = Math.round((end / text.length) * 100);
+            const pct = text.length ? Math.round((end / text.length) * 100) : 100;
             updateLoadingCopy(`Parsing messages... ${pct}% (${lineIndex.toLocaleString()} lines)`);
             nextYieldAt = lineIndex + 2000;
             await new Promise(resolve => setTimeout(resolve, 5));

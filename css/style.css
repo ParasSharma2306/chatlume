@@ -3804,20 +3804,26 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     .scroll-latest.show { transform: none; }
 }
 
-/* ── Sponsor prompt ──
-   Shown a few seconds after the app becomes usable. Deliberately a card and
-   not a modal: nothing has been done yet at that point, so the ask must never
-   stand between the user and loading a chat. Shares the geometry of
-   .install-prompt so the two read as the same kind of object. */
+/* ── Sponsorship appeal ──
+   The app's only promotional surface. It replaces a pair of asks: a sponsor
+   card four seconds after boot plus a full-screen modal listing the developer's
+   other projects once a chat opened. Now there is one card, shown only after a
+   chat has actually rendered.
+
+   Deliberately a card and never a modal — it must not stand between the user
+   and the conversation they just opened. Shares .install-prompt's geometry so
+   the two read as the same kind of object, with a pink accent that belongs to
+   neither viewer's palette (WhatsApp green / Instagram gradient) so it reads as
+   the app speaking rather than part of the chat. */
 .sponsor-prompt {
     position: fixed;
     left: 50%;
-    bottom: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom, 0px));
     z-index: 3000;
     display: flex;
     align-items: center;
     gap: 14px;
-    width: min(460px, calc(100vw - 32px));
+    width: min(480px, calc(100vw - 32px));
     padding: 14px 16px;
     background: var(--bg-sidebar);
     border: 1px solid var(--border);
@@ -3826,6 +3832,9 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     opacity: 0;
     transform: translateX(-50%) translateY(16px);
     transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+body.light-theme .sponsor-prompt {
+    box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 }
 .sponsor-prompt.show {
     opacity: 1;
@@ -3839,8 +3848,8 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    background: rgba(255, 69, 0, 0.12);
-    color: #ff7a45;
+    background: rgba(219, 97, 162, 0.14);
+    color: #db61a2;
     font-size: 21px;
 }
 .sponsor-prompt-text {
@@ -3874,6 +3883,7 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     font-size: 13px;
     font-weight: 600;
     font-family: inherit;
+    line-height: 1;
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
@@ -3886,10 +3896,14 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
 }
 .sponsor-prompt-no:hover { color: var(--text-primary); }
 .sponsor-prompt-yes {
-    background: #ff4500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #db61a2;
     color: #fff;
 }
-.sponsor-prompt-yes:hover { background: #ff5c1f; transform: translateY(-1px); }
+.sponsor-prompt-yes i { font-size: 14px; }
+.sponsor-prompt-yes:hover { background: #e77ab5; transform: translateY(-1px); }
 .sponsor-prompt-no:focus-visible,
 .sponsor-prompt-yes:focus-visible {
     outline: 2px solid var(--primary);
@@ -3900,7 +3914,7 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     .sponsor-prompt {
         flex-wrap: wrap;
         gap: 10px 12px;
-        bottom: 12px;
+        bottom: max(12px, env(safe-area-inset-bottom, 0px));
     }
     .sponsor-prompt-actions { width: 100%; justify-content: flex-end; }
 }

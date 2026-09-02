@@ -139,6 +139,12 @@
         if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return;
         if (navigator.standalone) return;
 
+        // The viewer pages carry their own install button in the sidebar and
+        // wire up the same event. Showing this card there meant two competing
+        // offers for one prompt, and whichever was tapped second silently
+        // failed because the prompt had already been consumed.
+        if (document.getElementById("install-pwa")) return;
+
         window.addEventListener("beforeinstallprompt", function (event) {
             // Chrome's mini-infobar is replaced by our own card.
             event.preventDefault();

@@ -50,14 +50,31 @@
         #ig-drag-overlay .drag-overlay-inner { border-color: #C13584; background: rgba(193,53,132,0.08); }
         #ig-drag-overlay .drag-overlay-inner i { color: #C13584; }
 
-        /* ── Instagram DM visual redesign ── */
+        /* ── Instagram DM visual redesign ──
+           These used to be unconditional (`#000 !important`, hard-coded #1e1e1e
+           bubbles), so the theme toggle only ever repainted the sidebar and the
+           conversation stayed black — light theme was effectively broken on this
+           page. Every surface colour is now a token, swapped by .light-theme. */
+        :root {
+            --ig-canvas: #000;
+            --ig-recv-bg: #1e1e1e;
+            --ig-recv-border: rgba(255, 255, 255, 0.06);
+            --ig-chip-bg: rgba(30, 30, 30, 0.85);
+            --ig-chip-border: rgba(255, 255, 255, 0.06);
+        }
+        body.light-theme {
+            --ig-canvas: #fafafa;
+            --ig-recv-bg: #ffffff;
+            --ig-recv-border: #e4e4e4;
+            --ig-chip-bg: rgba(255, 255, 255, 0.9);
+            --ig-chip-border: #e4e4e4;
+        }
 
-        /* Dark black background like real Instagram */
-        .chat-interface { background: #000 !important; }
-        .messages-viewport { background: #000 !important; }
+        .chat-interface { background: var(--ig-canvas) !important; }
+        .messages-viewport { background: var(--ig-canvas) !important; }
         .chat-bg { display: none !important; }
 
-        /* Sent bubbles: Instagram blue/purple gradient */
+        /* Sent bubbles: Instagram blue/purple gradient (identical in both themes) */
         #ig-message-list .msg-row.sent .bubble {
             background: linear-gradient(135deg, #405DE6 0%, #833AB4 50%, #C13584 100%);
             border: none;
@@ -66,21 +83,22 @@
         #ig-message-list .msg-row.sent .meta { color: rgba(255,255,255,0.65); }
         #ig-message-list .tail-out .bubble::after { background: #C13584; }
 
-        /* Received bubbles: dark gray */
         #ig-message-list .msg-row.received .bubble {
-            background: #1e1e1e;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: var(--ig-recv-bg);
+            border: 1px solid var(--ig-recv-border);
+            color: var(--text-primary);
         }
-        #ig-message-list .tail-in .bubble::before { background: #1e1e1e; }
+        #ig-message-list .tail-in .bubble::before { background: var(--ig-recv-bg); }
 
         /* Wider max-width for IG style */
         #ig-message-list .msg-row { max-width: min(70%, 560px); }
 
-        /* Date separator on dark bg */
         #ig-viewport .system-msg {
-            background: rgba(30,30,30,0.85);
-            border-color: rgba(255,255,255,0.06);
+            background: var(--ig-chip-bg);
+            border-color: var(--ig-chip-border);
         }
+        /* The story ring's inner cut-out has to match the canvas behind it. */
+        .ig-story-ring-inner { border-color: var(--ig-canvas) !important; }
 
         /* ── Story-style header avatar ── */
         .ig-story-ring {
@@ -130,8 +148,8 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            background: #1e1e1e;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--ig-recv-bg);
+            border: 1px solid var(--ig-recv-border);
             border-radius: 12px;
             padding: 2px 7px;
             font-size: 14px;
@@ -164,8 +182,31 @@
             line-height: 1.5;
         }
     </style>
+    <script>
+        // Apply the saved theme before first paint. Without this the viewer
+        // painted its dark palette and then swapped to light at
+        // DOMContentLoaded, so every load flashed for light-theme users.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head>
-<body class="dark-theme has-support-banner">
+<body class="has-support-banner">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <div class="support-banner" id="support-banner" role="note">
         <span><i class="ph ph-info"></i>ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
         <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
@@ -175,11 +216,13 @@
             var KEY = "chatlume-support-notice-dismissed";
             var banner = document.getElementById("support-banner");
             if (!banner) return;
-            if (localStorage.getItem(KEY)) {
-                banner.remove();
-                document.body.classList.remove("has-support-banner");
-                return;
-            }
+            try {
+                if (localStorage.getItem(KEY)) {
+                    banner.remove();
+                    document.body.classList.remove("has-support-banner");
+                    return;
+                }
+            } catch (e) {}
             document.getElementById("support-banner-close").addEventListener("click", function () {
                 banner.remove();
                 document.body.classList.remove("has-support-banner");
@@ -249,7 +292,7 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.4.1</div>
+                    <div class="app-version-label" data-app-version>v1.5.0</div>
                 </section>
 
                 <!-- Thread selector -->

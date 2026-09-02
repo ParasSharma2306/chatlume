@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.4.1';
+const CACHE_NAME = 'chatlume-v1.5.0';
 const OFFLINE_FALLBACK = 'index.html';
 const ASSETS_TO_CACHE = [
     './',
@@ -16,7 +16,7 @@ const ASSETS_TO_CACHE = [
     'js/script.js',
     'js/instagram.js',
     'js/export.js',
-    'js/promos.js',
+    'js/support.js',
     'js/site.js',
     'js/sponsors.js',
     'manifest.json',
@@ -135,5 +135,10 @@ async function handleAsset(request) {
         return response;
     }).catch(() => cached);
 
-    return cached || network;
+    const response = cached || await network;
+
+    // An uncached asset requested while offline resolved to `undefined`, and
+    // respondWith(undefined) rejects with a TypeError — which surfaces as a
+    // confusing script error instead of a plain failed request.
+    return response || new Response('', { status: 504, statusText: 'Offline' });
 }

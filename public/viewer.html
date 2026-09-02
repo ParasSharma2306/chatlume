@@ -36,11 +36,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script type="module" src="../js/script.js"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
+    <script>
+        // Apply the saved theme before first paint. Without this the viewer
+        // painted its dark palette and then swapped to light at
+        // DOMContentLoaded, so every load flashed for light-theme users.
+        (function () {
+            try {
+                if (localStorage.getItem("chatlume-theme") === "light") {
+                    document.documentElement.setAttribute("data-boot-theme", "light");
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <style>
+        html[data-boot-theme="light"] { background: #f8f9fa; }
+    </style>
 </head> 
-<body class="dark-theme has-support-banner">
+<body class="has-support-banner">
+    <script>
+        (function () {
+            if (document.documentElement.getAttribute("data-boot-theme") === "light") {
+                document.body.classList.add("light-theme");
+            }
+        })();
+    </script>
+
     <div class="support-banner" id="support-banner" role="note">
         <span><i class="ph ph-info"></i>ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
         <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
@@ -124,7 +146,7 @@
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.4.1</div>
+                    <div class="app-version-label" data-app-version>v1.5.0</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -302,7 +324,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.4.1 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.5.0 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">

@@ -1,6 +1,6 @@
 import { configure, BlobReader, ZipReader, BlobWriter, TextWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
-import { showProjectModal, showSponsorPrompt } from './promos.js';
+import { showSponsorPrompt } from './support.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const IG_SUPPORTS_STREAMING =
@@ -13,7 +13,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.4.1";
+const IG_APP_VERSION = "1.5.0";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {
@@ -43,7 +43,8 @@ const igState = {
   searchPointer: -1,
   searchTimer: null,
   zipReader: null,
-  loadGeneration: 0
+  loadGeneration: 0,
+  threadGeneration: 0
 };
 
 const $ig = (id) => document.getElementById(id);
@@ -104,7 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
   runIgLoader();
   checkIgBrowserCompatibility();
   if (window.innerWidth <= 800) setIgSidebarState(true);
-  showSponsorPrompt();
 });
 
 window.addEventListener("resize", () => {
@@ -116,7 +116,11 @@ window.addEventListener("beforeunload", () => {
   igState.zipReader?.close().catch(() => {});
 });
 
-window.addEventListener("popstate", () => closeIgMediaModal());
+window.addEventListener("popstate", () => {
+  closeIgMediaModal();
+  $ig("ig-header-menu")?.classList.remove("show");
+  document.querySelectorAll(".drawer.open").forEach(d => d.classList.remove("open"));
+});
 
 function applyIgTheme() {
   const saved = readIgStored("chatlume-theme");
@@ -248,7 +252,7 @@ function bindIgUI() {
   });
 
   $ig("ig-open-stats")?.addEventListener("click", () => openIgDrawer("ig-stats"));
-  $ig("ig-close-stats")?.addEventListener("click", () => closeIgDrawer("ig-stats"));
+  $ig("ig-close-stats")?.addEventListener("click", () => dismissIgDrawer("ig-stats"));
 
   $ig("ig-viewport")?.addEventListener("scroll", handleIgViewportScroll);
   $ig("ig-message-list")?.addEventListener("click", handleIgMessageListClick);
@@ -265,8 +269,14 @@ function bindIgUI() {
   });
 }
 
+function pushIgHistoryState(overlayId) {
+  if (history.state && history.state.overlay === overlayId) return;
+  history.pushState({ overlay: overlayId }, "");
+}
+
 function openIgDrawer(id) {
   $ig(`${id}-drawer`)?.classList.add("open");
+  pushIgHistoryState(`drawer-${id}`);
   if (id === "ig-stats") animateIgStatsIn();
 }
 
@@ -297,6 +307,12 @@ function animateIgStatsIn() {
   });
 }
 function closeIgDrawer(id) { $ig(`${id}-drawer`)?.classList.remove("open"); }
+
+/** Closes a drawer from a user gesture, popping the entry openIgDrawer pushed. */
+function dismissIgDrawer(id) {
+  closeIgDrawer(id);
+  if (history.state && history.state.overlay) history.back();
+}
 
 // ── File UI ───────────────────────────────────────────────────────────────────
 function reflectIgFile(file) {
@@ -398,7 +414,15 @@ async function initIgViewer() {
     return;
   }
 
+  // Picking a second ZIP while the first is still being scanned would otherwise
+  // let the older scan finish last and overwrite igState with its entries.
   const igGen = ++igState.loadGeneration;
+  const isStaleZip = () => igState.loadGeneration !== igGen;
+
+  // A second ZIP in the same session used to leave the previous reader open and
+  // every decoded attachment resident, so re-picking a file grew memory without
+  // bound and held a lock on the old blob.
+  cleanupIgZip();
 
   setIgLoading(true, "Opening ZIP", "Reading your Instagram export...");
   await yieldIg();
@@ -406,11 +430,16 @@ async function initIgViewer() {
   try {
     const reader = new ZipReader(new BlobReader(file));
     const entries = await reader.getEntries();
+    if (isStaleZip()) {
+      reader.close().catch(() => {});
+      return;
+    }
     igState.zipEntries = entries;
     igState.zipReader = reader;
 
     setIgLoading(true, "Scanning threads", "Finding message folders...");
     await yieldIg();
+    if (isStaleZip()) return;
 
     const threads = findIgThreads(entries);
     if (!threads.length) throw new Error("No Instagram message folders found. Make sure you selected JSON format when requesting the export.");
@@ -424,6 +453,7 @@ async function initIgViewer() {
       showIgThreadSelector(threads);
     }
   } catch (err) {
+    if (isStaleZip()) return;
     console.error(err);
     const emptyEl = $ig("ig-empty-state");
     if (emptyEl) {
@@ -527,8 +557,15 @@ function igFolderLabel(folder) {
 
 // ── Thread loading & parsing ──────────────────────────────────────────────────
 async function loadIgThread(thread) {
+  // Picking a second conversation before the first finished parsing appended
+  // both into igState.messages, interleaving two threads in one view. Every
+  // await below re-checks this token and bails if a newer load has started.
+  const gen = ++igState.threadGeneration;
+  const isStale = () => igState.threadGeneration !== gen;
+
   setIgLoading(true, "Loading thread", "Parsing messages...");
   await yieldIg();
+  if (isStale()) return;
 
   // Reset per-thread state
   igState.messages = [];
@@ -563,7 +600,9 @@ async function loadIgThread(thread) {
     for (let i = 0; i < sortedFiles.length; i++) {
       setIgLoading(true, "Loading thread", `Parsing file ${i + 1} of ${sortedFiles.length}...`);
       await yieldIg();
+      if (isStale()) return;
       const text = await sortedFiles[i].getData(new TextWriter("utf-8"));
+      if (isStale()) return;
       let data;
       try { data = JSON.parse(text); } catch { continue; }
       if (data.title) threadTitle = fixMojibake(data.title);
@@ -611,7 +650,7 @@ async function loadIgThread(thread) {
     requestAnimationFrame(igScrollToBottom);
     showIgToast(`Loaded ${igState.messageOnlyCount.toLocaleString()} messages`);
     if (window.innerWidth <= 800) setIgSidebarState(false);
-    showProjectModal();
+    showSponsorPrompt();
 
   } catch (err) {
     console.error(err);
@@ -629,7 +668,7 @@ async function loadIgThread(thread) {
       showIgToast(err.message || "Error parsing thread", "error");
     }
   } finally {
-    setIgLoading(false);
+    if (!isStale()) setIgLoading(false);
   }
 }
 
@@ -892,7 +931,7 @@ function renderIgMediaItem(item) {
     return `<div class="media-audio ig-voice-note"><div class="voice-note-row"><i class="ph-fill ph-microphone voice-mic-icon"></i><div class="voice-waveform">${waveHtml}</div><span class="voice-duration" data-media-id="${item.id}">–:––</span></div><audio controls preload="metadata" data-lazy-media="${item.id}" data-media-id="${item.id}"></audio></div>`;
   }
 
-  return `<div class="media-doc"><div class="media-doc-head"><i class="ph-fill ph-file"></i><div><strong>${escIg(item.name)}</strong></div></div><div class="media-doc-actions"><button type="button" class="media-doc-link" data-open-media="${item.id}">Preview</button></div></div>`;
+  return `<div class="media-doc"><div class="media-doc-head"><i class="ph-fill ph-file"></i><div><strong>${escIg(item.name)}</strong></div></div><div class="media-doc-actions"><button type="button" class="media-doc-link" data-open-media="${item.id}">Preview</button><button type="button" class="media-doc-link" data-download-media="${item.id}">Download</button></div></div>`;
 }
 
 function renderIgReactions(reactions) {
@@ -971,6 +1010,21 @@ async function loadIgLazyEl(el) {
   }
 }
 
+/** Closes the open ZIP and releases every blob decoded out of it. */
+function cleanupIgZip() {
+  igState.mediaUrls.forEach(url => URL.revokeObjectURL(url));
+  igState.mediaUrls.clear();
+  igState.mediaStore.clear();
+  igState.mediaLookup.clear();
+  igState.zipEntries = [];
+  if (igState.zipReader) {
+    igState.zipReader.close().catch(() => {});
+    igState.zipReader = null;
+  }
+  disconnectIgMediaObserver();
+  closeIgMediaModal();
+}
+
 function disconnectIgMediaObserver() {
   if (igState.mediaObserver) { igState.mediaObserver.disconnect(); igState.mediaObserver = null; }
 }
@@ -1034,6 +1088,21 @@ async function openIgMediaModal(mediaId) {
     body.innerHTML = `<video controls autoplay src="${escAttrIg(url)}"></video>`;
   } else if (media.kind === "audio") {
     body.innerHTML = `<audio controls autoplay src="${escAttrIg(url)}"></audio>`;
+  } else {
+    // Anything the browser can't render inline — a PDF, a .vcf, an unknown
+    // extension. Without this branch the modal sat on its loading spinner
+    // forever, which is what "Preview" on a document card used to do.
+    body.innerHTML = `
+      <div class="media-doc">
+        <div class="media-doc-head">
+          <i class="ph-fill ph-file"></i>
+          <div>
+            <strong>${escIg(media.name)}</strong>
+            <span>This file type can't be previewed in the browser.</span>
+          </div>
+        </div>
+        <a class="media-doc-link" href="${escAttrIg(url)}" download="${escAttrIg(media.name)}">Download file</a>
+      </div>`;
   }
 }
 
@@ -1053,7 +1122,24 @@ async function downloadIgMedia(id) {
   try {
     const url = await ensureIgMediaUrl(media);
     const a = document.createElement("a"); a.href = url; a.download = media.name; a.click();
+    // Downloading an off-screen attachment otherwise kept its blob resident
+    // for the rest of the session; the render window never claims it back.
+    setTimeout(() => releaseIgMediaUrlIfUnused(media), 1000);
   } catch { showIgToast("Unable to download media", "error"); }
+}
+
+/** Revokes a blob URL unless it is on screen or open in the lightbox. */
+function releaseIgMediaUrlIfUnused(media) {
+  if (!media?.url || media.id === igState.activeMediaId) return;
+  for (let i = igState.renderRange.start; i < igState.renderRange.end; i++) {
+    const item = igState.filteredMessages[i];
+    if (item?.type !== "msg") continue;
+    if ((item.mediaItems || []).some(m => m.id === media.id)) return;
+  }
+  URL.revokeObjectURL(media.url);
+  igState.mediaUrls.delete(media.url);
+  media.url = "";
+  media.hasLoaded = false;
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -1101,7 +1187,9 @@ function runIgSearch(query) {
     renderIgChatList();
     return;
   }
-  igState.searchResults = igState.messages.filter(m => m.type === "msg" && `${m.sender} ${m.text}`.toLowerCase().includes(query)).map(m => m.id);
+  igState.searchResults = igState.messages
+    .filter(m => m.type === "msg" && igSearchableText(m).includes(query))
+    .map(m => m.id);
   if (!igState.searchResults.length) {
     igState.searchPointer = -1;
     updateIgSearchCounter("No matches");
@@ -1114,6 +1202,12 @@ function runIgSearch(query) {
   updateIgSearchCounter();
   setIgSearchEmptyState(false);
   igJumpToMsg(igState.searchResults[0]);
+}
+
+/** Sender, body and attachment filenames — the same surface the WhatsApp viewer searches. */
+function igSearchableText(entry) {
+  const mediaNames = (entry.mediaItems || []).map(m => m.name).join(" ");
+  return `${entry.sender || ""} ${entry.text || ""} ${mediaNames} ${entry.shareText || ""}`.toLowerCase();
 }
 
 /** Shows the full-panel "nothing matched" state over the message list. */
