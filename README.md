@@ -215,12 +215,6 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ---
 
-## ⚠️ Support Notice
-
-ChatLume support is temporarily paused. The tool is fully stable and functional, so this just means bug reports and feature requests won't be actively addressed for a while. Support will resume, but there's no confirmed date yet.
-
----
-
 ## Tech Stack
 
 | Layer | Tech |

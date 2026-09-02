@@ -54,7 +54,7 @@
         html[data-boot-theme="light"] { background: #f8f9fa; }
     </style>
 </head> 
-<body class="has-support-banner">
+<body>
     <script>
         (function () {
             if (document.documentElement.getAttribute("data-boot-theme") === "light") {
@@ -63,29 +63,6 @@
         })();
     </script>
 
-    <div class="support-banner" id="support-banner" role="note">
-        <span><i class="ph ph-info"></i>ChatLume support is temporarily paused after this update. The tool will continue to work as-is. Support will resume — no confirmed date yet.</span>
-        <button type="button" class="support-banner-close" id="support-banner-close" aria-label="Dismiss notice"><i class="ph ph-x"></i></button>
-    </div>
-    <script>
-        (function () {
-            var KEY = "chatlume-support-notice-dismissed";
-            var banner = document.getElementById("support-banner");
-            if (!banner) return;
-            try {
-                if (localStorage.getItem(KEY)) {
-                    banner.remove();
-                    document.body.classList.remove("has-support-banner");
-                    return;
-                }
-            } catch (e) {}
-            document.getElementById("support-banner-close").addEventListener("click", function () {
-                banner.remove();
-                document.body.classList.remove("has-support-banner");
-                try { localStorage.setItem(KEY, "1"); } catch (e) {}
-            });
-        })();
-    </script>
     <nav class="app-nav">
         <a href="../index.html" class="back-home"><i class="ph ph-house"></i> Home</a>
         <div class="nav-links">
