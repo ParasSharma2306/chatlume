@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.5.0';
+const CACHE_NAME = 'chatlume-v1.5.0-parser-fix';
 const OFFLINE_FALLBACK = 'index.html';
 const ASSETS_TO_CACHE = [
     './',
@@ -14,6 +14,7 @@ const ASSETS_TO_CACHE = [
     'public/how-to-export-instagram.html',
     'css/style.css',
     'js/script.js',
+    'js/whatsapp-parser.js',
     'js/instagram.js',
     'js/export.js',
     'js/support.js',

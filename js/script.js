@@ -12,6 +12,13 @@
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
 import { showSponsorPrompt } from './support.js';
+import {
+    extractWhatsAppDatePart,
+    extractWhatsAppTimePart,
+    normalizeWhatsAppLine,
+    parseWhatsAppDateLabel,
+    parseWhatsAppLine
+} from './whatsapp-parser.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -2432,25 +2439,16 @@ function labelForMediaKind(kind) {
 }
 
 function createWAChatLineProcessor() {
-    const messageRegex = /^\[?(\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}[,.]?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APap][Mm])?)\]?\s*(?:-\s*)?(.*?):\s*(.*)$/;
-    const systemRegex = /^\[?(\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}[,.]?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APap][Mm])?)\]?\s*(?:-\s*)?(.*)$/;
     let lastDate = "";
     let lastMessage = null;
     let lineIndex = 0;
 
     function processLine(originalLine) {
-        const line = originalLine.replace(/[\u200E\u200F\u202A-\u202E\u200B\r]/g, "");
+        const parsedLine = parseWhatsAppLine(originalLine);
+        const line = parsedLine?.line ?? normalizeWhatsAppLine(originalLine);
 
-        // systemRegex checked first; messageRegex is preferred only when the captured
-        // sender is \u2264 4 words (contact name), preventing system events whose text
-        // contains a colon from being misparsed as messages.
-        const systemMatch = line.match(systemRegex);
-        const messageMatch = systemMatch ? line.match(messageRegex) : null;
-
-        if (messageMatch && messageMatch[2].trim().split(/\s+/).length <= 4) {
-            const rawTime = messageMatch[1].trim();
-            const sender = messageMatch[2].trim();
-            const rawContent = messageMatch[3] || "";
+        if (parsedLine?.type === "message") {
+            const { rawTime, sender, content: rawContent } = parsedLine;
             const dateStr = extractDatePart(rawTime);
             if (dateStr && dateStr !== lastDate) {
                 state.messages.push({ type: "date", content: dateStr, rawDate: dateStr, id: `date-${lineIndex}` });
@@ -2463,9 +2461,8 @@ function createWAChatLineProcessor() {
             return;
         }
 
-        if (systemMatch) {
-            const rawTime = systemMatch[1].trim();
-            const content = (systemMatch[2] || "").trim();
+        if (parsedLine?.type === "system") {
+            const { rawTime, content } = parsedLine;
             const dateStr = extractDatePart(rawTime);
             if (dateStr && dateStr !== lastDate) {
                 state.messages.push({ type: "date", content: dateStr, rawDate: dateStr, id: `date-${lineIndex}` });
@@ -2714,11 +2711,11 @@ function inferMimeType(ext) {
 }
 
 function extractDatePart(rawTime) {
-    return rawTime.match(/^\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}/)?.[0] || "";
+    return extractWhatsAppDatePart(rawTime);
 }
 
 function extractTimePart(rawTime) {
-    return rawTime.match(/\d{1,2}:\d{2}(?::\d{2})?\s?(?:[APap][Mm])?/)?.[0] || rawTime;
+    return extractWhatsAppTimePart(rawTime);
 }
 
 function isMeSender(sender) {
@@ -2741,41 +2738,7 @@ function parseExportDateLabel(label) {
 }
 
 function parseLabelWithOrder(label, order) {
-    const parts = (label || "").split(/[./-]/).map((part) => part.trim());
-    if (parts.length !== 3) return null;
-
-    const [aRaw, bRaw, cRaw] = parts;
-    const a = parseInt(aRaw, 10);
-    const b = parseInt(bRaw, 10);
-    const c = parseInt(cRaw, 10);
-
-    if ([a, b, c].some((value) => Number.isNaN(value))) {
-        return null;
-    }
-
-    if (order === "YMD") {
-        if (aRaw.length !== 4) return null;
-        return createDateStrict(normalizeYear(a), b, c);
-    }
-    if (order === "MDY") {
-        return createDateStrict(normalizeYear(c), a, b);
-    }
-    return createDateStrict(normalizeYear(c), b, a);
-}
-
-function normalizeYear(year) {
-    if (year >= 100) return year;
-    return year >= 70 ? year + 1900 : year + 2000;
-}
-
-function createDateStrict(year, month, day) {
-    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-    const date = new Date(year, month - 1, day);
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-        return null;
-    }
-    date.setHours(0, 0, 0, 0);
-    return date;
+    return parseWhatsAppDateLabel(label, order);
 }
 
 function inferDateOrder(dateLabels) {
