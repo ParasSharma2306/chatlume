@@ -13,8 +13,8 @@ const ASSETS_TO_CACHE = [
     'public/how-to-export.html',
     'public/how-to-export-instagram.html',
     'css/style.css',
-    'js/script.js',
-    'js/whatsapp-parser.js',
+    'js/script.js?v=locale-parser',
+    'js/whatsapp-parser.js?v=locale-parser',
     'js/instagram.js',
     'js/export.js',
     'js/support.js',
@@ -65,7 +65,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch: Network First for page navigations, Stale-While-Revalidate for assets
+// Fetch: Network First for pages and scripts, Stale-While-Revalidate for other assets
 self.addEventListener('fetch', (event) => {
     const request = event.request;
 
@@ -74,6 +74,13 @@ self.addEventListener('fetch', (event) => {
 
     if (isNavigation(request)) {
         event.respondWith(handleNavigation(request));
+        return;
+    }
+    // ES modules form a dependency graph and must update together. Serving one
+    // stale module beside one fresh module can fail at import time when exports
+    // change between releases.
+    if (request.destination === 'script') {
+        event.respondWith(handleNetworkFirstAsset(request));
         return;
     }
 
@@ -124,7 +131,21 @@ async function handleNavigation(request) {
     }
 }
 
-/** Stale-while-revalidate for CSS/JS/images: instant paint, refreshed in the background. */
+async function handleNetworkFirstAsset(request) {
+    try {
+        const response = await fetch(request);
+        if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+    } catch (error) {
+        const cached = await caches.match(request);
+        return cached || new Response('', { status: 504, statusText: 'Offline' });
+    }
+}
+
+/** Stale-while-revalidate for styles and images: instant paint, refreshed in the background. */
 async function handleAsset(request) {
     const cached = await caches.match(request);
 

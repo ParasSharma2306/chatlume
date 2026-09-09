@@ -19,7 +19,7 @@ import {
     parseWhatsAppDateLabel,
     parseWhatsAppLine,
     stripWhatsAppDirectionControls
-} from './whatsapp-parser.js';
+} from './whatsapp-parser.js?v=locale-parser';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
