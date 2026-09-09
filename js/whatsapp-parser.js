@@ -9,7 +9,7 @@ const DATE_PATTERN = String.raw`\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}`;
 // Recent iOS exports include a calendar-era marker (for example "AP" for the
 // Persian calendar) between the numeric date and the comma.
 const ERA_PATTERN = String.raw`(?:\s+[\p{L}\p{M}][\p{L}\p{M}.]{0,11})?`;
-const TIME_PATTERN = String.raw`\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APap][Mm])?`;
+const TIME_PATTERN = String.raw`\d{1,2}[:.]\d{2}(?:[:.]\d{2})?(?:\s?[APap][Mm])?`;
 const TIMESTAMP_PATTERN = `${DATE_PATTERN}${ERA_PATTERN}[,.]?\\s+${TIME_PATTERN}`;
 
 const MESSAGE_REGEX = new RegExp(
@@ -26,8 +26,12 @@ const DATE_LABEL_REGEX = new RegExp(
 );
 const DATE_PART_REGEX = new RegExp(`^${DATE_PATTERN}${ERA_PATTERN}`, "u");
 
+export function stripWhatsAppDirectionControls(value) {
+    return String(value || "").replace(/[\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\r]/g, "");
+}
+
 export function normalizeWhatsAppLine(line) {
-    return String(line || "").replace(/[\u200E\u200F\u202A-\u202E\u200B\r]/g, "");
+    return stripWhatsAppDirectionControls(line);
 }
 
 export function parseWhatsAppLine(originalLine) {
@@ -61,7 +65,7 @@ export function extractWhatsAppDatePart(rawTime) {
 }
 
 export function extractWhatsAppTimePart(rawTime) {
-    return String(rawTime || "").match(/\d{1,2}:\d{2}(?::\d{2})?\s?(?:[APap][Mm])?/)?.[0] || String(rawTime || "");
+    return String(rawTime || "").match(/\d{1,2}[:.]\d{2}(?:[:.]\d{2})?\s?(?:[APap][Mm])?/)?.[0] || String(rawTime || "");
 }
 
 export function parseWhatsAppDateLabel(label, order) {

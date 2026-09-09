@@ -17,7 +17,8 @@ import {
     extractWhatsAppTimePart,
     normalizeWhatsAppLine,
     parseWhatsAppDateLabel,
-    parseWhatsAppLine
+    parseWhatsAppLine,
+    stripWhatsAppDirectionControls
 } from './whatsapp-parser.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
@@ -933,7 +934,7 @@ function buildMediaStore(attachments) {
 // Analytics Extractor Functions
 function extractHour(rawTime) {
     const timeStr = extractTimePart(rawTime);
-    const match = timeStr.match(/(\d{1,2}):\d{2}(?::\d{2})?\s?([APap][Mm])?/);
+    const match = timeStr.match(/(\d{1,2})[:.]\d{2}(?:[:.]\d{2})?\s?([APap][Mm])?/);
     if (!match) return 0;
     let hour = parseInt(match[1], 10);
     const ampm = match[2] ? match[2].toLowerCase() : null;
@@ -1651,7 +1652,7 @@ function formatMessageTime(rawTime) {
     }
     if (state.settings.timeFormat === "auto") {
         const autoTime = (parsed.second !== "" && !state.settings.showSeconds)
-            ? original.replace(/:(\d{2})(\s?[APap][Mm])?$/, "$2")
+            ? original.replace(/[:.](\d{2})(\s?[APap][Mm])?$/, "$2")
             : original;
         return applyBrackets(autoTime.trim(), state.settings.timeBrackets);
     }
@@ -1676,7 +1677,7 @@ function formatMessageTime(rawTime) {
 }
 
 function parseTimeParts(value) {
-    const match = String(value || "").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s?([APap][Mm])?/);
+    const match = String(value || "").match(/(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s?([APap][Mm])?/);
     if (!match) return null;
 
     return {
@@ -2614,12 +2615,12 @@ function parseMessageContent(content, isContinuation = false) {
 }
 
 function cleanupMessageText(text, isContinuation = false) {
-    const clean = text.replace(/[\u200E\u200F\u202A-\u202E\u200B]/g, "");
+    const clean = stripWhatsAppDirectionControls(text);
     return isContinuation ? clean : clean.trim();
 }
 
 function normalizeLookupKey(value) {
-    return String(value || "")
+    return stripWhatsAppDirectionControls(String(value || "").normalize("NFC"))
         .trim()
         .replace(/^<attached:\s*/i, "")
         .replace(/>$/g, "")

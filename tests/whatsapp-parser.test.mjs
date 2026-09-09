@@ -5,7 +5,8 @@ import {
     extractWhatsAppDatePart,
     extractWhatsAppTimePart,
     parseWhatsAppDateLabel,
-    parseWhatsAppLine
+    parseWhatsAppLine,
+    stripWhatsAppDirectionControls
 } from "../js/whatsapp-parser.js";
 
 test("parses recent iOS exports containing a Persian calendar era", () => {
@@ -22,6 +23,9 @@ test("parses recent iOS exports containing a Persian calendar era", () => {
 test("continues to parse established Android and iOS timestamp formats", () => {
     assert.equal(parseWhatsAppLine("6/2/23, 14:00 - Alex: Hello").type, "message");
     assert.equal(parseWhatsAppLine("[6/2/23, 2:00:01 PM] Alex: Hello").type, "message");
+    const dotted = parseWhatsAppLine("[14/12/2022, 12.55.37] Alex: Hello");
+    assert.equal(dotted.type, "message");
+    assert.equal(extractWhatsAppTimePart(dotted.rawTime), "12.55.37");
     assert.equal(parseWhatsAppLine("continuation text"), null);
 });
 
@@ -39,4 +43,11 @@ test("converts AP date labels for date search and formatted displays", () => {
     assert.equal(parsed.getFullYear(), 2026);
     assert.equal(parsed.getMonth() + 1, 9);
     assert.equal(parsed.getDate(), 2);
+});
+
+test("removes directional controls that otherwise break attachment matching", () => {
+    assert.equal(
+        stripWhatsAppDirectionControls("00000611-\u200e\u2068ارزیابی زوزه\u2069.pdf"),
+        "00000611-ارزیابی زوزه.pdf"
+    );
 });
