@@ -122,7 +122,104 @@
         if (location.protocol !== "https:" && location.hostname !== "localhost") return;
         var depth = location.pathname.replace(/\/[^/]*$/, "").split("/").filter(Boolean).length;
         var path = new Array(depth + 1).join("../") + "sw.js";
-        navigator.serviceWorker.register(path).catch(function () { /* offline support is optional */ });
+        navigator.serviceWorker.register(path)
+            .then(watchForUpdates)
+            .catch(function () { /* offline support is optional */ });
+    }
+
+    /**
+     * Release handling. A new service worker installs in the background and
+     * then waits; the page offers a reload rather than letting the worker take
+     * over underneath an open viewer (which could pair this page's modules
+     * with the next release's files). If another tab already triggered the
+     * switch, this page is offered the same reload so it never silently keeps
+     * running on a module graph the cache no longer serves.
+     */
+    function watchForUpdates(registration) {
+        var hadController = Boolean(navigator.serviceWorker.controller);
+        var reloading = false;
+
+        function reloadNow() {
+            if (reloading) return;
+            reloading = true;
+            location.reload();
+        }
+
+        function activate(worker) {
+            if (worker && worker.state === "installed") {
+                worker.postMessage({ type: "SKIP_WAITING" });
+                // controllerchange normally lands within a few ms; if it doesn't
+                // (worker gone, message lost) still honour the user's click.
+                setTimeout(reloadNow, 3000);
+            } else {
+                reloadNow();
+            }
+        }
+
+        function trackInstalling(worker) {
+            if (!worker) return;
+            worker.addEventListener("statechange", function () {
+                if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                    showUpdatePrompt(function () { activate(worker); });
+                }
+            });
+        }
+
+        if (registration.waiting && hadController) {
+            showUpdatePrompt(function () { activate(registration.waiting); });
+        }
+        trackInstalling(registration.installing);
+        registration.addEventListener("updatefound", function () {
+            trackInstalling(registration.installing);
+        });
+
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+            // First install: the worker claims the page, nothing to reload.
+            if (!hadController) { hadController = true; return; }
+            if (reloading) return;
+            var prompt = document.querySelector(".update-prompt");
+            if (prompt && prompt.dataset.activating === "1") {
+                reloadNow();
+                return;
+            }
+            showUpdatePrompt(reloadNow);
+        });
+
+        function showUpdatePrompt(onReload) {
+            if (document.querySelector(".update-prompt")) return;
+
+            var card = document.createElement("div");
+            card.className = "install-prompt update-prompt";
+            card.setAttribute("role", "status");
+            card.innerHTML =
+                '<img src="' + logoPath() + '" alt="" class="install-prompt-icon">' +
+                '<div class="install-prompt-text">' +
+                    "<strong>ChatLume was updated</strong>" +
+                    "<span>Reload to use the latest version.</span>" +
+                "</div>" +
+                '<div class="install-prompt-actions">' +
+                    '<button type="button" class="install-prompt-no">Later</button>' +
+                    '<button type="button" class="install-prompt-yes">Reload</button>' +
+                "</div>";
+            document.body.appendChild(card);
+            requestAnimationFrame(function () { card.classList.add("show"); });
+
+            card.querySelector(".install-prompt-no").addEventListener("click", function () {
+                card.classList.remove("show");
+                setTimeout(function () { card.remove(); }, 300);
+            });
+            card.querySelector(".install-prompt-yes").addEventListener("click", function () {
+                card.dataset.activating = "1";
+                card.querySelector(".install-prompt-yes").disabled = true;
+                onReload();
+            });
+        }
+    }
+
+    function logoPath() {
+        return location.pathname.indexOf("/public/") !== -1
+            ? "../assets/logo-192.png"
+            : "assets/logo-192.png";
     }
 
     var DISMISS_KEY = "chatlume-install-dismissed";

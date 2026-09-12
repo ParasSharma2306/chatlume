@@ -1,0 +1,15 @@
+{
+  "name": "chatlume",
+  "version": "1.6.1",
+  "private": true,
+  "description": "Private WhatsApp chat viewer that runs entirely in the browser. No build step; this file exists for the Node test runner.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "check": "node --check js/script.js && node --check js/whatsapp-parser.js && node --check js/settings.js && node --check js/storage.js && node --check js/storage-worker.js && node --check js/site.js && node --check js/instagram.js && node --check js/export.js && node --check js/support.js && node --check js/sponsors.js && node --check sw.js",
+    "bump": "node scripts/bump-version.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

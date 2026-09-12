@@ -1,5 +1,12 @@
-const CACHE_NAME = 'chatlume-v1.6.0';
+const CACHE_NAME = 'chatlume-v1.6.1';
 const OFFLINE_FALLBACK = 'index.html';
+// Scripts, modules and styles are addressed with a release token (`?v=`).
+// A page from one release therefore only ever asks for that release's files,
+// and a token URL never changes content, so those entries are cache-first.
+// The token must match the one in the HTML/JS — tests/release-version.test.mjs
+// checks this, and scripts/bump-version.mjs updates it.
+const ASSET_VERSION = CACHE_NAME.replace(/^chatlume-v/, '');
+const versioned = (path) => `${path}?v=${ASSET_VERSION}`;
 const ASSETS_TO_CACHE = [
     './',
     'index.html',
@@ -12,15 +19,17 @@ const ASSETS_TO_CACHE = [
     'public/how-to-use.html',
     'public/how-to-export.html',
     'public/how-to-export-instagram.html',
-    'css/style.css',
-    'js/script.js',
-    'js/storage.js',
-    'js/storage-worker.js',
-    'js/instagram.js',
-    'js/export.js',
-    'js/support.js',
-    'js/site.js',
-    'js/sponsors.js',
+    versioned('css/style.css'),
+    versioned('js/script.js'),
+    versioned('js/whatsapp-parser.js'),
+    versioned('js/settings.js'),
+    versioned('js/storage.js'),
+    versioned('js/storage-worker.js'),
+    versioned('js/instagram.js'),
+    versioned('js/export.js'),
+    versioned('js/support.js'),
+    versioned('js/site.js'),
+    versioned('js/sponsors.js'),
     'manifest.json',
     'robots.txt',
     'sitemap.xml',
@@ -38,9 +47,12 @@ const ASSETS_TO_CACHE = [
     'assets/og-image.png'
 ];
 
-// Install: Cache core assets and immediately take control
+// Install: cache core assets. The new worker then *waits* until the page asks
+// it to take over (see the message handler) or every tab has closed. Taking
+// over immediately used to swap the cache underneath open pages, so a viewer
+// that lazily started the storage worker could get a newer worker than the
+// storage.js it was talking to.
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             // cache.addAll() rejects the whole install if a single entry 404s,
@@ -51,6 +63,14 @@ self.addEventListener('install', (event) => {
             );
         })
     );
+});
+
+// The page shows an "update available" prompt (js/site.js) and sends this
+// once the user chooses to reload, so the swap happens on a fresh page load.
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
 
 // Activate: Cleanup old caches
@@ -66,7 +86,8 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch: Network First for page navigations, Stale-While-Revalidate for assets
+// Fetch: Network First for page navigations, Cache First for release-tagged
+// assets, Stale-While-Revalidate for everything else (images, manifest, …)
 self.addEventListener('fetch', (event) => {
     const request = event.request;
 
@@ -78,8 +99,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    if (isVersionedAsset(request)) {
+        event.respondWith(handleVersionedAsset(request));
+        return;
+    }
+
     event.respondWith(handleAsset(request));
 });
+
+/** Same-origin script/style URLs carrying the release token. */
+function isVersionedAsset(request) {
+    const url = new URL(request.url);
+    return url.origin === self.location.origin && /^\d+\.\d+\.\d+$/.test(url.searchParams.get('v') || '');
+}
 
 /**
  * Page loads. Requests routed by `Accept: text/html` also caught things like
@@ -125,7 +157,30 @@ async function handleNavigation(request) {
     }
 }
 
-/** Stale-while-revalidate for CSS/JS/images: instant paint, refreshed in the background. */
+/**
+ * Cache first. The token in the URL changes with every release, so a cached
+ * copy can never be stale — and revalidating it would be actively harmful:
+ * the server ignores the query string, so a background refetch of
+ * `storage.js?v=1.6.1` after the 1.6.1 deploy would silently overwrite the
+ * 1.6.0 module with 1.6.1 code under the old key.
+ */
+async function handleVersionedAsset(request) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    try {
+        const response = await fetch(request);
+        if (response && response.status === 200 && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+    } catch (error) {
+        return new Response('', { status: 504, statusText: 'Offline' });
+    }
+}
+
+/** Stale-while-revalidate for images and other untagged assets: instant paint, refreshed in the background. */
 async function handleAsset(request) {
     const cached = await caches.match(request);
 

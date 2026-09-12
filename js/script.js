@@ -10,9 +10,25 @@
  * ============================================================================
  */
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from './export.js';
-import { showSponsorPrompt } from './support.js';
-import * as storage from './storage.js';
+import { exportChatAsHTML } from './export.js?v=1.6.1';
+import { showSponsorPrompt } from './support.js?v=1.6.1';
+import * as storage from './storage.js?v=1.6.1';
+import { DEFAULT_SETTINGS, sanitizeSettings } from './settings.js?v=1.6.1';
+import {
+    attachmentLookupKey,
+    extractAttachmentTokens as parserExtractAttachmentTokens,
+    extractDatePart as parserExtractDatePart,
+    extractTimePart as parserExtractTimePart,
+    hourOf,
+    inferDateOrder as parserInferDateOrder,
+    looksLikeTimestampLine,
+    normalizeLine,
+    parseDateLabel,
+    parseHeaderLine,
+    parseTimestamp,
+    resolveDateOrder,
+    stripInvisible
+} from './whatsapp-parser.js?v=1.6.1';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -33,21 +49,9 @@ const STORAGE_KEYS = {
     persistUsed: "chatlume-persist-used"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.6.0";
+const ISSUES_URL = "https://github.com/ParasSharma2306/chatlume/issues/new";
+const APP_VERSION = "1.6.1";
 const SEARCH_DEBOUNCE_MS = 120;
-const DEFAULT_SETTINGS = {
-    timeFormat: "auto",
-    showSeconds: false,
-    timeBrackets: "none",
-    dateFormat: "original",
-    dateSeparator: "/",
-    dateBrackets: "none",
-    showSenderNames: true,
-    showReadTicks: true,
-    richText: true,
-    persistentStorage: false
-};
-
 const state = {
     messages: [],
     filteredMessages: [],
@@ -69,6 +73,7 @@ const state = {
     searchPointer: -1,
     searchTimer: null,
     inferredDateOrder: "DMY",
+    parseDiagnostics: { unrecognizedHeaders: 0, unrecognizedSample: "" },
     profileObjectUrl: "",
     activeTheme: "dark",
     activeMediaId: "",
@@ -420,29 +425,6 @@ function loadSavedSettings() {
     }
 }
 
-function sanitizeSettings(value) {
-    const settings = { ...DEFAULT_SETTINGS, ...(value || {}) };
-    const allowed = {
-        timeFormat: ["auto", "12", "24"],
-        timeBrackets: ["none", "square", "round"],
-        dateFormat: ["original", "dmy", "mdy", "ymd", "long"],
-        dateSeparator: ["/", "-", "."],
-        dateBrackets: ["none", "square", "round"]
-    };
-
-    Object.entries(allowed).forEach(([key, values]) => {
-        if (!values.includes(settings[key])) {
-            settings[key] = DEFAULT_SETTINGS[key];
-        }
-    });
-
-    ["showSeconds", "showSenderNames", "showReadTicks", "richText", "persistentStorage"].forEach((key) => {
-        settings[key] = Boolean(settings[key]);
-    });
-
-    return settings;
-}
-
 function saveSettings() {
     writeStored(STORAGE_KEYS.settings, JSON.stringify(state.settings));
 }
@@ -487,6 +469,9 @@ function resetSettings() {
 
 function rerenderAfterSettingsChange() {
     if (state.filteredMessages.length) {
+        // The calendar setting changes which day/month orders are valid, so
+        // the inferred order is recomputed from the (cheap) date labels.
+        state.inferredDateOrder = inferDateOrder(state.messages.filter(e => e.type === "date").map(e => e.content));
         renderChatList();
         generateStats();
     }
@@ -748,6 +733,20 @@ async function loadChatFile(file, { displayName, fileLabel = file.name, persist 
         }
 
         if (state.messageOnlyCount === 0) {
+            const { unrecognizedHeaders, unrecognizedSample } = state.parseDiagnostics;
+            if (unrecognizedHeaders > 0) {
+                // The file is full of timestamp-shaped lines we couldn't read:
+                // a date/time format ChatLume doesn't know yet, not a wrong file.
+                showEmptyState({
+                    icon: "ph-duotone ph-calendar-x",
+                    iconColor: "#f5a623",
+                    title: "Unrecognised date format",
+                    body: `This looks like a WhatsApp export, but its timestamps use a format ChatLume can't read yet (${unrecognizedHeaders.toLocaleString()} lines such as "${unrecognizedSample}"). Please report this line so the format can be added.`,
+                    actions: `<a class="empty-cta" href="${ISSUES_URL}" target="_blank" rel="noopener noreferrer"><i class="ph ph-bug"></i> Report this format</a>`
+                });
+                showToast("Timestamps in this export use an unsupported format", "error");
+                return;
+            }
             showEmptyState({
                 icon: "ph-duotone ph-file-dashed",
                 iconColor: "#f5a623",
@@ -842,6 +841,7 @@ function resetChatState() {
     window.clearTimeout(state.searchTimer);
     state.searchTimer = null;
     state.inferredDateOrder = "DMY";
+    state.parseDiagnostics = { unrecognizedHeaders: 0, unrecognizedSample: "" };
     state.activeMediaId = "";
     disconnectMediaObserver();
     updateSearchCounter();
@@ -998,14 +998,7 @@ function buildMediaStore(attachments) {
 
 // Analytics Extractor Functions
 function extractHour(rawTime) {
-    const timeStr = extractTimePart(rawTime);
-    const match = timeStr.match(/(\d{1,2}):\d{2}(?::\d{2})?\s?([APap][Mm])?/);
-    if (!match) return 0;
-    let hour = parseInt(match[1], 10);
-    const ampm = match[2] ? match[2].toLowerCase() : null;
-    if (ampm === 'pm' && hour < 12) hour += 12;
-    if (ampm === 'am' && hour === 12) hour = 0;
-    return hour % 24;
+    return hourOf(parseTimestamp(rawTime)?.time);
 }
 
 function trackEmojis(text) {
@@ -1017,12 +1010,12 @@ function trackEmojis(text) {
     }
 }
 
-function createMessageEntry(index, rawTime, sender, rawContent) {
+function createMessageEntry(index, rawTime, sender, rawContent, timestamp = null) {
     const message = {
         type: "msg",
         id: `msg-${index}`,
         rawTime,
-        time: extractTimePart(rawTime),
+        time: timestamp ? timestamp.time.raw : extractTimePart(rawTime),
         sender,
         isMe: isMeSender(sender),
         text: "",
@@ -1035,7 +1028,7 @@ function createMessageEntry(index, rawTime, sender, rawContent) {
 
     // Track analytics
     state.senderStats[sender] = (state.senderStats[sender] || 0) + 1;
-    const hour = extractHour(rawTime);
+    const hour = timestamp ? hourOf(timestamp.time) : extractHour(rawTime);
     state.hourlyStats[hour] += 1;
     trackEmojis(rawContent);
 
@@ -1047,23 +1040,7 @@ function createMessageEntry(index, rawTime, sender, rawContent) {
 }
 
 function extractAttachmentTokens(text) {
-    const matches = [];
-    const patterns = [
-        /<attached:\s*([^>]+)>/gi,
-        /\u200e?([^()\n]+?\.[a-z0-9]{2,5})\s+\((?:file attached|datei angehängt)\)/gi
-    ];
-
-    patterns.forEach((pattern) => {
-        let match;
-        while ((match = pattern.exec(text)) !== null) {
-            matches.push({
-                raw: match[0],
-                fileName: match[1].trim()
-            });
-        }
-    });
-
-    return matches;
+    return parserExtractAttachmentTokens(text);
 }
 
 function looksLikeStandaloneAttachment(text) {
@@ -1710,47 +1687,33 @@ function applyTextFormatting(segment) {
 }
 
 function formatMessageTime(rawTime) {
-    const original = extractTimePart(rawTime || "");
-    const parsed = parseTimeParts(original);
-    if (!parsed) {
-        return applyBrackets(original, state.settings.timeBrackets);
+    const timestamp = parseTimestamp(rawTime || "");
+    if (!timestamp) {
+        return applyBrackets(extractTimePart(rawTime || ""), state.settings.timeBrackets);
     }
+    const parsed = timestamp.time;
+    const original = parsed.raw;
     if (state.settings.timeFormat === "auto") {
+        // Drop the seconds field only; the export's own digits, separator and
+        // day-period marker are kept exactly as written.
         const autoTime = (parsed.second !== "" && !state.settings.showSeconds)
-            ? original.replace(/:(\d{2})(\s?[APap][Mm])?$/, "$2")
+            ? original.replace(/^(\P{Nd}*\p{Nd}{1,2}[:.]\p{Nd}{2})[:.]\p{Nd}{2}/u, "$1")
             : original;
         return applyBrackets(autoTime.trim(), state.settings.timeBrackets);
     }
 
     const showSeconds = state.settings.showSeconds && parsed.second !== "";
-    let hour = parsed.hour;
+    let hour = hourOf(parsed);
     let suffix = "";
 
     if (state.settings.timeFormat === "12") {
-        if (parsed.ampm === "pm" && hour < 12) hour += 12;
-        if (parsed.ampm === "am" && hour === 12) hour = 0;
         suffix = hour >= 12 ? " PM" : " AM";
         hour = (hour % 12) || 12;
-    } else if (state.settings.timeFormat === "24") {
-        if (parsed.ampm === "pm" && hour < 12) hour += 12;
-        if (parsed.ampm === "am" && hour === 12) hour = 0;
     }
 
     const hourText = state.settings.timeFormat === "24" ? String(hour).padStart(2, "0") : String(hour);
     const secondText = showSeconds ? `:${String(parsed.second).padStart(2, "0")}` : "";
     return applyBrackets(`${hourText}:${String(parsed.minute).padStart(2, "0")}${secondText}${suffix}`, state.settings.timeBrackets);
-}
-
-function parseTimeParts(value) {
-    const match = String(value || "").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s?([APap][Mm])?/);
-    if (!match) return null;
-
-    return {
-        hour: parseInt(match[1], 10),
-        minute: parseInt(match[2], 10),
-        second: match[3] || "",
-        ampm: match[4] ? match[4].toLowerCase() : ""
-    };
 }
 
 function formatDateLabel(label) {
@@ -3056,61 +3019,61 @@ function labelForMediaKind(kind) {
 }
 
 function createWAChatLineProcessor() {
-    const messageRegex = /^\[?(\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}[,.]?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APap][Mm])?)\]?\s*(?:-\s*)?(.*?):\s*(.*)$/;
-    const systemRegex = /^\[?(\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}[,.]?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s?[APap][Mm])?)\]?\s*(?:-\s*)?(.*)$/;
     let lastDate = "";
     let lastMessage = null;
     let lineIndex = 0;
+    // Lines that started like a timestamp but were not recognised. Only read
+    // when nothing parsed, to tell "not an export" from "unknown date format".
+    let unrecognizedHeaders = 0;
+    let unrecognizedSample = "";
+
+    function pushDateMarker(dateStr) {
+        if (dateStr && dateStr !== lastDate) {
+            state.messages.push({ type: "date", content: dateStr, rawDate: dateStr, id: `date-${lineIndex}` });
+            lastDate = dateStr;
+        }
+    }
 
     function processLine(originalLine) {
-        const line = originalLine.replace(/[\u200E\u200F\u202A-\u202E\u200B\r]/g, "");
+        // Header recognition lives in js/whatsapp-parser.js. The sender split
+        // is unchanged: a message needs a colon and a sender of at most four
+        // words, otherwise the line is a system event.
+        const header = parseHeaderLine(originalLine);
 
-        // systemRegex checked first; messageRegex is preferred only when the captured
-        // sender is \u2264 4 words (contact name), preventing system events whose text
-        // contains a colon from being misparsed as messages.
-        const systemMatch = line.match(systemRegex);
-        const messageMatch = systemMatch ? line.match(messageRegex) : null;
-
-        if (messageMatch && messageMatch[2].trim().split(/\s+/).length <= 4) {
-            const rawTime = messageMatch[1].trim();
-            const sender = messageMatch[2].trim();
-            const rawContent = messageMatch[3] || "";
-            const dateStr = extractDatePart(rawTime);
-            if (dateStr && dateStr !== lastDate) {
-                state.messages.push({ type: "date", content: dateStr, rawDate: dateStr, id: `date-${lineIndex}` });
-                lastDate = dateStr;
-            }
-            const message = createMessageEntry(lineIndex, rawTime, sender, rawContent);
+        if (header?.kind === "message") {
+            const { rawTime, sender, content: rawContent, timestamp } = header;
+            pushDateMarker(timestamp.dateLabel);
+            const message = createMessageEntry(lineIndex, rawTime, sender, rawContent, timestamp);
             state.messages.push(message);
             lastMessage = message;
             lineIndex++;
             return;
         }
 
-        if (systemMatch) {
-            const rawTime = systemMatch[1].trim();
-            const content = (systemMatch[2] || "").trim();
-            const dateStr = extractDatePart(rawTime);
-            if (dateStr && dateStr !== lastDate) {
-                state.messages.push({ type: "date", content: dateStr, rawDate: dateStr, id: `date-${lineIndex}` });
-                lastDate = dateStr;
-            }
+        if (header?.kind === "system") {
+            const { rawTime, content, timestamp } = header;
+            pushDateMarker(timestamp.dateLabel);
             if (content) {
-                state.messages.push({ type: "system", id: `sys-${lineIndex}`, rawTime, time: extractTimePart(rawTime), content });
+                state.messages.push({ type: "system", id: `sys-${lineIndex}`, rawTime, time: timestamp.time.raw, content });
                 lastMessage = null;
             }
             lineIndex++;
             return;
         }
 
+        const line = normalizeLine(originalLine);
         if (lastMessage && lastMessage.type === "msg") {
             appendContinuation(lastMessage, line);
+        } else if (!state.messageOnlyCount && looksLikeTimestampLine(line)) {
+            unrecognizedHeaders += 1;
+            if (!unrecognizedSample) unrecognizedSample = line.trim().slice(0, 80);
         }
         lineIndex++;
     }
 
     function finalize() {
         state.filteredMessages = state.messages;
+        state.parseDiagnostics = { unrecognizedHeaders, unrecognizedSample };
         state.inferredDateOrder = inferDateOrder(state.messages.filter(e => e.type === "date").map(e => e.content));
         state.renderRange = { start: Math.max(0, state.filteredMessages.length - MAX_RENDERED_ITEMS), end: state.filteredMessages.length };
         generateStats();
@@ -3241,20 +3204,14 @@ function parseMessageContent(content, isContinuation = false) {
 }
 
 function cleanupMessageText(text, isContinuation = false) {
-    const clean = text.replace(/[\u200E\u200F\u202A-\u202E\u200B]/g, "");
+    const clean = stripInvisible(text);
     return isContinuation ? clean : clean.trim();
 }
 
+// Applied to both the ZIP entry names and the names referenced in the chat,
+// so the two sides always meet on equal terms (see attachmentLookupKey).
 function normalizeLookupKey(value) {
-    return String(value || "")
-        .trim()
-        .replace(/^<attached:\s*/i, "")
-        .replace(/>$/g, "")
-        .replace(/\(file attached\)$/i, "")
-        .replace(/\\/g, "/")
-        .split("/")
-        .pop()
-        .toLowerCase();
+    return attachmentLookupKey(value);
 }
 
 function stripAttachmentPrefix(value) {
@@ -3338,11 +3295,11 @@ function inferMimeType(ext) {
 }
 
 function extractDatePart(rawTime) {
-    return rawTime.match(/^\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}/)?.[0] || "";
+    return parserExtractDatePart(rawTime);
 }
 
 function extractTimePart(rawTime) {
-    return rawTime.match(/\d{1,2}:\d{2}(?::\d{2})?\s?(?:[APap][Mm])?/)?.[0] || rawTime;
+    return parserExtractTimePart(rawTime);
 }
 
 function isMeSender(sender) {
@@ -3360,90 +3317,24 @@ function getColor(name) {
     return state.colorMap[name];
 }
 
+/**
+ * The Date a date label stands for, read with the user's Export Date Order and
+ * Calendar settings; "auto" falls back to the order inferred from the export
+ * and to era markers / year ranges (see parseDateLabel). Returns null when the
+ * label is not a valid date, in which case callers keep the original text.
+ */
 function parseExportDateLabel(label) {
-    return parseLabelWithOrder(label, state.inferredDateOrder);
-}
-
-function parseLabelWithOrder(label, order) {
-    const parts = (label || "").split(/[./-]/).map((part) => part.trim());
-    if (parts.length !== 3) return null;
-
-    const [aRaw, bRaw, cRaw] = parts;
-    const a = parseInt(aRaw, 10);
-    const b = parseInt(bRaw, 10);
-    const c = parseInt(cRaw, 10);
-
-    if ([a, b, c].some((value) => Number.isNaN(value))) {
-        return null;
-    }
-
-    if (order === "YMD") {
-        if (aRaw.length !== 4) return null;
-        return createDateStrict(normalizeYear(a), b, c);
-    }
-    if (order === "MDY") {
-        return createDateStrict(normalizeYear(c), a, b);
-    }
-    return createDateStrict(normalizeYear(c), b, a);
-}
-
-function normalizeYear(year) {
-    if (year >= 100) return year;
-    return year >= 70 ? year + 1900 : year + 2000;
-}
-
-function createDateStrict(year, month, day) {
-    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-    const date = new Date(year, month - 1, day);
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-        return null;
-    }
-    date.setHours(0, 0, 0, 0);
-    return date;
+    return parseDateLabel(label, {
+        order: resolveDateOrder(state.settings.dateOrder, state.inferredDateOrder),
+        calendar: state.settings.calendar
+    });
 }
 
 function inferDateOrder(dateLabels) {
-    const labels = (dateLabels || []).filter(Boolean);
-    if (!labels.length) {
-        return getTieBreakDateOrder();
-    }
-
-    const candidates = ["DMY", "MDY", "YMD"];
-    let bestOrder = getTieBreakDateOrder();
-    let bestScore = -Infinity;
-
-    candidates.forEach((order) => {
-        const score = scoreDateOrder(labels, order);
-        if (score > bestScore) {
-            bestScore = score;
-            bestOrder = order;
-        }
+    return parserInferDateOrder(dateLabels, {
+        calendar: state.settings.calendar,
+        tieBreak: getTieBreakDateOrder()
     });
-
-    return bestOrder;
-}
-
-function scoreDateOrder(labels, order) {
-    let valid = 0;
-    let invalid = 0;
-    let monotonic = 0;
-    let previousTime = null;
-
-    labels.forEach((label) => {
-        const date = parseLabelWithOrder(label, order);
-        if (!date) {
-            invalid += 1;
-            return;
-        }
-
-        valid += 1;
-        if (previousTime !== null) {
-            monotonic += date.getTime() >= previousTime ? 1 : -1;
-        }
-        previousTime = date.getTime();
-    });
-
-    return (valid * 4) + (monotonic * 2) - (invalid * 6);
 }
 
 function getTieBreakDateOrder() {

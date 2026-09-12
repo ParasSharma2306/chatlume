@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.6.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.6.1-blue?style=flat-square)
 
 ---
 
@@ -119,6 +119,9 @@ Chrome 80+, Firefox 79+ and Safari 16.4+ get the full experience, including stre
 ### WhatsApp
 - `_chat.txt` (exported without media)
 - `.zip` archive (media read directly from inside the .zip via lazy decompression; referenced by filename if exported without media)
+- Android and iOS exports in any device language: `/`, `.` and `-` dates, `:` or `.` times, 12/24-hour clocks, day/month/year in any order, localized digits (Persian, Arabic-Indic, Devanagari, …), and calendar eras (`AP` Solar Hijri, `BE` Buddhist) — converted so date search and alternate date formats stay correct
+- If detection gets an export wrong, **Settings → Export Dates** lets you pin the date order and calendar
+- Not yet supported: fr-CA `07 h 05 min` times, Vietnamese time-first lines, Japanese-era years (`R6/1/1`); Islamic (AH) dates display but aren't converted; Thai two-digit years need Calendar → Buddhist
 
 ### Instagram
 - `messages_X.json` from Instagram's "Download Your Data" archive (JSON format, not HTML)
@@ -298,6 +301,28 @@ PRs are welcome. The codebase is plain HTML/CSS/JS: no build tools, no bundler, 
 - Issues: open on GitHub
 - PRs: open against `main`
 - If you're adding a feature, keep it consistent with the existing no-dependency, browser-only philosophy
+
+**Thanks** to [@namipsg](https://github.com/namipsg) for identifying the calendar-era timestamps, dotted-time locales and RTL attachment-name issues in [#7](https://github.com/ParasSharma2306/chatlume/pull/7); the fixes in v1.6.1 were reimplemented on the current codebase from that report.
+
+### Tests
+
+The parser and settings logic live in dependency-free modules (`js/whatsapp-parser.js`, `js/settings.js`) and are covered by Node's built-in test runner — no install step:
+
+```bash
+npm test          # node --test tests/
+npm run check     # node --check on every script
+```
+
+### Releasing
+
+Every local script, module and stylesheet URL carries a `?v=<version>` token. It is the cache key: a page from one release can only load that release's files, so an update can never pair a new `script.js` with an old `storage.js`. One command stamps the version everywhere (HTML, `import` specifiers, the storage worker URL, the service worker's precache list, version labels):
+
+```bash
+npm run bump -- 1.6.2
+npm test          # tests/release-version.test.mjs fails if any token disagrees
+```
+
+The service worker installs the new release in the background and *waits*; open pages show a "ChatLume was updated — Reload" prompt instead of being switched underneath. Versioned assets never need a CDN purge — a new release uses new URLs.
 
 ---
 
