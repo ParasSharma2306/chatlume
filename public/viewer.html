@@ -116,14 +116,16 @@
                         <span class="btn-secondary">Browse</span>
                         <span class="mobile-tap-hint">Tap to select a file</span>
                     </button>
-                    <button class="btn-primary" id="load-chat" type="button">Load Chat</button>                     
-                    <div class="load-hint" id="load-hint">                         
-                        Your Data Never Leaves Your Device. Large ZIP exports can take a moment to parse.                     
-                    </div>                     
+                    <button class="btn-primary" id="load-chat" type="button">Load Chat</button>
+                    <button class="btn-secondary upload-back" id="upload-back" type="button" hidden><i class="ph ph-arrow-left"></i> Back to open chat</button>
+                    <div class="load-hint" id="load-hint">
+                        Your Data Never Leaves Your Device. Large ZIP exports can take a moment to parse.
+                    </div>
+                    <div class="stored-list" data-stored-list hidden></div>
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.5.0</div>
+                    <div class="app-version-label" data-app-version>v1.6.0</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -140,11 +142,13 @@
                     <button class="chat-item active" id="chat-list-item" type="button">                         
                         <div class="chat-item-avatar" aria-hidden="true"></div>                         
                         <div class="chat-item-info">                             
-                            <h4 id="sidebar-title">Chat History</h4>                             
-                            <span id="sidebar-sub">Active now</span>                         
-                        </div>                     
-                    </button>                 
-                </section>             
+                            <h4 id="sidebar-title">Chat History</h4>
+                            <span id="sidebar-sub">Active now</span>
+                        </div>
+                    </button>
+                    <div class="stored-list" data-stored-list hidden></div>
+                    <button class="btn-secondary import-another" id="import-another" type="button"><i class="ph ph-plus"></i> Import another chat</button>
+                </section>
             </div>             
             <section class="drawer" id="profile-drawer" aria-label="Profile drawer">                 
                 <div class="drawer-header">                     
@@ -286,9 +290,27 @@
                                 <strong>Rich Text</strong>                                 
                                 <small>Render WhatsApp-style bold, italic, strike, and links.</small>                             
                             </span>                             
-                            <input type="checkbox" id="setting-rich-formatting" data-setting="richText">                         
-                        </label>                     
-                    </div>                     
+                            <input type="checkbox" id="setting-rich-formatting" data-setting="richText">
+                        </label>
+                    </div>
+                    <div class="settings-group" id="storage-settings">
+                        <div class="section-label">PERSISTENT STORAGE <span class="beta-tag">Beta</span></div>
+                        <label class="setting-row" for="setting-persistent-storage">
+                            <span>
+                                <strong>Persistent Storage</strong>
+                                <small>Keep imported chats on this device so you don't need to upload them again after reopening ChatLume.</small>
+                            </span>
+                            <input type="checkbox" id="setting-persistent-storage" data-setting="persistentStorage">
+                        </label>
+                        <p class="storage-note"><i class="ph-fill ph-shield-check"></i> Stored locally on this device. Not uploaded to ChatLume.</p>
+                        <p class="storage-note storage-note-warn" id="storage-unsupported" hidden><i class="ph-fill ph-warning-circle"></i> Persistent storage isn't available here — it needs a current browser and an HTTPS connection. Chats can still be opened normally; they just won't be kept between visits.</p>
+                        <div id="storage-manage" hidden>
+                            <p class="storage-summary" id="storage-summary"></p>
+                            <p class="storage-note storage-note-warn" id="storage-off-note" hidden><i class="ph-fill ph-info"></i> Persistent storage is off. New imports aren't kept, but the chats below stay on this device until you delete them.</p>
+                            <div class="storage-list" id="storage-list"></div>
+                            <button class="btn-secondary storage-delete-all" id="storage-delete-all" type="button"><i class="ph ph-trash"></i> Delete all stored chats</button>
+                        </div>
+                    </div>
                     <button class="btn-secondary settings-reset" id="reset-settings" type="button">Reset Settings</button>
                 </div>             
             </section>             
@@ -301,7 +323,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.5.0 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.6.0 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
@@ -313,7 +335,7 @@
                         <h3>Capabilities</h3>                         
                         <ul class="feature-list">                             
                             <li><i class="ph-fill ph-shield-check"></i> <strong>Zero Data Transfer:</strong> No uploads, no servers, completely private.</li>                             
-                            <li><i class="ph-fill ph-file-text"></i> <strong>Client-side Parsing:</strong> Reads WhatsApp exports locally without storing chat data.</li>                             
+                            <li><i class="ph-fill ph-file-text"></i> <strong>Client-side Parsing:</strong> Reads WhatsApp exports locally. Nothing is kept between visits unless you turn on Persistent Storage (Beta) in Settings, which saves a copy on this device only.</li>                             
                             <li><i class="ph-fill ph-image"></i> <strong>Memory-aware Media:</strong> Keeps ZIP attachments local and loads media only when it is needed.</li>                             
                             <li><i class="ph-fill ph-arrows-out-line-horizontal"></i> <strong>Sliding Message Window:</strong> Adds nearby messages as you scroll and drops older rendered content from the opposite side.</li>                             
                             <li><i class="ph-fill ph-sparkle"></i> <strong>ChatLume Wrapped:</strong> Extract emojis and hourly patterns to generate a personalized, shareable graphic.</li>                             
@@ -409,6 +431,25 @@
                     <button class="btn-primary" id="date-sheet-apply" type="button">Jump</button>
                 </div>
             </div>
+        </div>
+        <div class="date-sheet-backdrop" id="confirm-sheet" hidden>
+            <div class="date-sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirm-sheet-title">
+                <h3 id="confirm-sheet-title">Delete stored chat?</h3>
+                <p id="confirm-sheet-body"></p>
+                <div class="date-sheet-actions">
+                    <button class="btn-secondary" id="confirm-sheet-cancel" type="button">Cancel</button>
+                    <button class="btn-primary btn-danger" id="confirm-sheet-apply" type="button">Delete</button>
+                </div>
+            </div>
+        </div>
+        <div class="persist-card" id="persist-card" hidden role="status" aria-live="polite">
+            <div class="persist-card-icon"><i class="ph-fill ph-hard-drives"></i></div>
+            <div class="persist-card-text">
+                <strong>Saving chat to this device…</strong>
+                <span id="persist-card-progress">Preparing…</span>
+                <div class="persist-bar" aria-hidden="true"><div class="persist-bar-fill" id="persist-card-bar"></div></div>
+            </div>
+            <button type="button" class="persist-card-cancel" id="persist-card-cancel">Cancel</button>
         </div>
 
         <div class="media-modal" id="wrapped-modal" hidden>             

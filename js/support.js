@@ -58,6 +58,8 @@ export function showSponsorPrompt({ delay = 2500 } = {}) {
         // Two asks stacked on top of each other is one ask too many; the
         // install card is the more useful of the pair, so yield to it.
         if (document.querySelector(".install-prompt")) return;
+        // Same goes for the "saving to this device" progress card.
+        if (document.querySelector(".persist-card:not([hidden])")) return;
         if (isSnoozed()) return;
 
         const card = document.createElement("div");

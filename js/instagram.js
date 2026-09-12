@@ -13,7 +13,7 @@ const IG_COMPAT_FILE_SIZE_LIMIT = 1 * 1024 * 1024 * 1024; // 1 GB cap for browse
 
 const IG_BATCH_SIZE = 60;
 const IG_MAX_RENDERED = 180;
-const IG_APP_VERSION = "1.5.0";
+const IG_APP_VERSION = "1.6.0";
 const IG_COLORS = ["#e542a3","#1f7aec","#d44638","#2ecc71","#f39c12","#9b59b6","#3498db","#1abc9c"];
 
 const igState = {

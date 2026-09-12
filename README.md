@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.5.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.6.0-blue?style=flat-square)
 
 ---
 
@@ -29,16 +29,57 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 
 ## Features
 
+### Viewing
 | Feature | Details |
 |---------|---------|
-| WhatsApp viewer | Renders `_chat.txt` or `.zip` exports as a real chat UI |
-| Instagram viewer | Renders Instagram JSON export archives |
-| HTML Export | Save any chat as a standalone `.html` file, text only, media referenced by filename |
-| 100% private | Files processed in your browser. Nothing is uploaded, ever. |
-| No account needed | Open the page, drop a file, done. |
-| Open source | MIT licensed, self-hostable, forkable |
+| WhatsApp viewer | Renders `_chat.txt` or `.zip` exports as a real WhatsApp-style chat UI, with sent/received bubbles, grouped messages, sticky date headers and system messages |
+| Instagram viewer | Reads Instagram "Download Your Data" JSON archives; pick a conversation from the thread list, filter threads by name, and see reactions, shares, unsent markers and media |
+| Media from ZIP | Images, stickers, videos, voice notes (with waveform and duration), documents, contacts and archives are read straight out of the ZIP — nothing is extracted to disk |
+| Lazy media | Attachments are decoded only when they scroll into view and released again off-screen, so multi-GB exports stay light on memory |
+| Media viewer | Tap any attachment for a full-screen viewer with download |
+| Missing attachment cards | Attachments referenced in the chat but absent from the export are shown as clear placeholders instead of broken images |
+| Large exports | ZIPs over 1 GB are streamed with the browser's native decompression, so the file is never loaded into memory in full |
+| Virtualised list | Only a sliding window of messages is rendered, so 100k-message chats scroll smoothly |
+| Rich text | WhatsApp-style **bold**, _italic_, ~strikethrough~, monospace and clickable links |
+| Call markers | Missed and completed voice/video calls render as call cards |
+
+### Finding things
+| Feature | Details |
+|---------|---------|
+| Search | Live search across senders, text and attachment names with a match counter and up/down navigation |
+| Go to Date | Jump to any day in the chat from the header menu |
+| Jump to bottom | One tap back to the latest message |
 | Keyboard driven | `Ctrl+F` or `/` to search, `Esc` to close overlays, `Enter` to load |
-| Installable | PWA with an offline cache — works with no connection at all |
+
+### Insights
+| Feature | Details |
+|---------|---------|
+| Analytics drawer | Total messages, media count, top emojis, and per-sender share of the conversation |
+| ChatLume Wrapped | A shareable summary graphic — messages, words, media, peak hour, top emojis and top contributors — downloadable as a PNG |
+
+### Personalisation
+| Feature | Details |
+|---------|---------|
+| Display name | Tell ChatLume which participant is you so your messages sit on the right |
+| Profile picture | Set a local avatar for the header and profile drawer |
+| Settings | Time format (original/12h/24h), seconds, time brackets, date format and separator, date brackets, sender names, read ticks, rich text |
+| Dark & light themes | Remembered between visits |
+
+### Keeping and sharing
+| Feature | Details |
+|---------|---------|
+| HTML export | Save any chat as a standalone `.html` file — text only, media referenced by filename, opens offline anywhere |
+| Persistent Storage (Beta) | Optional and **off by default**: keep imported exports on your device so you don't have to pick the file again after closing ChatLume. Copies the original export into the browser's private storage, chunked and off the main thread, with progress, cancel and quota checks. Manage or delete stored chats from Settings. WhatsApp viewer only for now. |
+| Drag & drop | Drop a file anywhere on the page, or use the file picker |
+| Installable PWA | Add to your home screen or dock; opens on the ChatLume homepage and works fully offline thanks to a service-worker cache |
+
+### Principles
+| Feature | Details |
+|---------|---------|
+| 100% private | Files are processed in your browser. Nothing is uploaded, ever. |
+| No account needed | Open the page, drop a file, done |
+| No dependencies | Vanilla HTML, CSS and JavaScript; zip.js is the only runtime library |
+| Open source | MIT licensed, self-hostable, forkable |
 
 ---
 
@@ -47,8 +88,29 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 - All parsing happens in the browser via JavaScript
 - Your chat files never leave your device
 - No server receives any chat content
-- No analytics on chat data, no logging, no storage
+- No analytics on chat data, no logging
+- Nothing is stored between visits unless you turn on **Persistent Storage (Beta)** in Settings, which keeps a copy of the export in the browser's private storage on your own device (deletable any time from Settings)
 - Even self-hosted: no backend, no database. It's all static files
+
+Full details: [Privacy Policy](https://chatlume.parassharma.in/privacy.html)
+
+---
+
+## Persistent Storage (Beta)
+
+Turn it on under **Settings → Persistent Storage**. From then on each export you open is copied into the browser's Origin Private File System (the original ZIP, byte for byte — media is never extracted), with a small metadata record in IndexedDB. On your next visit the chat is listed under **Saved on this device** and the last one you opened is restored automatically.
+
+- Off by default; turning it off never deletes stored chats — deletion is always explicit and confirmed
+- Large copies run in a Web Worker in 16 MB chunks with a progress card and a Cancel button
+- Space is checked before copying; interrupted copies are cleaned up on the next launch
+- Needs a current browser and HTTPS (Chrome/Edge 102+, Firefox 111+, Safari 15.2+); on other browsers the toggle is disabled and importing works as usual
+- On iOS, a Home Screen install and a Safari tab keep separate storage, and Safari may evict data from sites you haven't visited in a while — install ChatLume to the Home Screen for the most reliable experience
+
+---
+
+## Browser support
+
+Chrome 80+, Firefox 79+ and Safari 16.4+ get the full experience, including streaming of exports over 1 GB. Older browsers still work with a 1 GB file-size limit and a banner saying so.
 
 ---
 
@@ -99,6 +161,8 @@ python3 -m http.server 8080
 Open http://localhost:3000 (or :8080 for Python) in your browser. Done.
 
 No database. No environment variables. No build step.
+
+> Persistent Storage (Beta) needs a secure context. It works on `localhost` and over HTTPS; on a plain-HTTP server the toggle is disabled and everything else works as normal.
 
 ---
 
@@ -220,7 +284,8 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 | Layer | Tech |
 |-------|------|
 | Frontend | Vanilla HTML, CSS, JavaScript (no framework) |
-| Parsing | Browser-native JS (no libraries) |
+| Parsing | Browser-native JS; [zip.js](https://github.com/gildas-lormeau/zip.js) for ZIP reading |
+| Storage (optional) | Origin Private File System + IndexedDB, all on-device |
 | Hosting | Nginx on a VPS |
 | Deployment | git pull (no build step) |
 
@@ -242,8 +307,9 @@ MIT. Built by [Paras Sharma](https://parassharma.com)
 
 ## Sponsors
 
-A special thank you to everyone who supported ChatLume through GitHub Sponsors.
+A special thank you to everyone who supported ChatLume through [GitHub Sponsors](https://github.com/sponsors/ParasSharma2306). Sponsors also appear on the [sponsors page](https://chatlume.parassharma.in/sponsors.html), which reads from [`sponsors.json`](sponsors.json).
 
 | Sponsor | Amount |
 | --- | ---: |
-| DikshitaBiswas | $5 |
+| [nicolevdw](https://github.com/nicolevdw) | $30 |
+| [DikshitaBiswas](https://github.com/DikshitaBiswas) | $5 |

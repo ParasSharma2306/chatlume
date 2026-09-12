@@ -3,7 +3,7 @@
   "short_name": "ChatLume",
   "id": "https://chatlume.parassharma.in/",
   "description": "Private WhatsApp chat viewer, analyzer, and Wrapped generator that runs locally without uploading data.",
-  "start_url": "/public/viewer.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0b141a",

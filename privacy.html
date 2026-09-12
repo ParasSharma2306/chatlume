@@ -335,7 +335,7 @@
 
     <section>
       <h2>How ChatLume works</h2>
-      <p>ChatLume is a fully static website. When you upload a chat export file, it is read and processed entirely within your browser using JavaScript. The file is never sent to any server. No data is stored beyond your current browser session.</p>
+      <p>ChatLume is a fully static website. When you open a chat export file, it is read and processed entirely within your browser using JavaScript. The file is never sent to any server. By default nothing is kept beyond your current browser session; the optional <strong>Persistent Storage (Beta)</strong> setting described below keeps a copy on your own device only.</p>
     </section>
 
     <section>
@@ -345,17 +345,24 @@
 
     <section>
       <h2>Cookies and local storage</h2>
-      <p>ChatLume uses <code>sessionStorage</code> only to remember whether you've dismissed the project popup in the current browser session. This data is cleared automatically when you close the browser tab. We set no persistent cookies and use no tracking technologies.</p>
+      <p>ChatLume uses your browser's <code>localStorage</code> to remember small preferences: your theme, display settings, whether you've dismissed the install or sponsor prompts, and — if you use Persistent Storage — which stored chat you opened last. None of this contains chat content. We set no persistent cookies and use no tracking technologies.</p>
     </section>
 
     <section>
       <h2>Third-party services</h2>
-      <p>ChatLume uses <strong>JSZip</strong> (loaded from Cloudflare CDN) on the WhatsApp Viewer page to extract zip files in-browser. This is the only third-party resource loaded, and it does not receive your chat data.</p>
+      <p>ChatLume loads <strong>zip.js</strong> (from jsDelivr) to read ZIP exports in-browser, the <strong>Phosphor</strong> icon font (from unpkg), and a cookieless, self-hosted <strong>Umami</strong> page-view counter. None of these receive your chat data.</p>
     </section>
 
     <section>
       <h2>Your chat data</h2>
-      <p>Your chat files are processed locally in your browser's memory. They are not stored on disk, indexed, or transmitted anywhere. When you close the page or reload it, the data is gone.</p>
+      <p>Your chat files are processed locally in your browser's memory. They are not indexed or transmitted anywhere. Unless you turn on Persistent Storage, they are not written to disk either: when you close the page or reload it, the data is gone.</p>
+    </section>
+
+    <section>
+      <h2>Persistent Storage (Beta)</h2>
+      <p>Persistent Storage is <strong>off by default</strong>. If you turn it on in the viewer's Settings, each export you open afterwards is copied, unchanged, into your browser's private storage for chatlume.parassharma.in (the Origin Private File System), together with a small record of its name, size and message count. This lets ChatLume reopen the chat without you picking the file again.</p>
+      <p>Stored chats live only in that browser on that device. They are not uploaded, synced, or visible to any server. Anyone who can use that browser profile can open them, so treat the setting like leaving a document on the device. You can delete individual stored chats or all of them at any time from Settings, and clearing the site's data in your browser removes them too. Turning the setting off stops new copies but keeps existing ones until you delete them.</p>
+      <p>Stored chats are ordinary browser site data. Depending on your device and browser settings, that data may be included in your own device or browser backups, and it may be removed by the browser's storage-management features (for example when disk space runs low). ChatLume has no control over either.</p>
     </section>
 
     <section>

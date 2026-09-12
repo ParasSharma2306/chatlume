@@ -12,6 +12,7 @@
 import { configure, BlobReader, ZipReader, BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from './export.js';
 import { showSponsorPrompt } from './support.js';
+import * as storage from './storage.js';
 configure({ useDecompressionStream: typeof DecompressionStream !== 'undefined' });
 
 const SUPPORTS_STREAMING =
@@ -25,10 +26,14 @@ const MAX_RENDERED_ITEMS = 180;
 const COLORS = ["#e542a3", "#1f7aec", "#d44638", "#2ecc71", "#f39c12", "#9b59b6", "#3498db", "#1abc9c"];
 const STORAGE_KEYS = {
     theme: "chatlume-theme",
-    settings: "chatlume-settings"
+    settings: "chatlume-settings",
+    lastImport: "chatlume-last-import",
+    // Set the first time a chat is kept, so users who never turned the feature
+    // on don't pay for a storage lookup at boot.
+    persistUsed: "chatlume-persist-used"
 };
 const SITE_URL = "https://chatlume.parassharma.in";
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.6.0";
 const SEARCH_DEBOUNCE_MS = 120;
 const DEFAULT_SETTINGS = {
     timeFormat: "auto",
@@ -39,7 +44,8 @@ const DEFAULT_SETTINGS = {
     dateBrackets: "none",
     showSenderNames: true,
     showReadTicks: true,
-    richText: true
+    richText: true,
+    persistentStorage: false
 };
 
 const state = {
@@ -72,7 +78,13 @@ const state = {
     isLoading: false,
     loadGeneration: 0,
     zipReader: null,
-    mediaObserver: null
+    mediaObserver: null,
+    // Persistent Storage (Beta)
+    storageSupported: false,
+    storedImports: [],
+    storedImportsLoaded: false,
+    activeImportId: "",
+    persistJob: null
 };
 
 let deferredPrompt;
@@ -100,6 +112,14 @@ function writeStored(key, value) {
     }
 }
 
+function removeStored(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch (error) {
+        // Nothing to forget.
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     loadSavedSettings();
     bindUI();
@@ -112,13 +132,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         setSidebarState(true);
     }
     setupPWAInstall();
+    initPersistentStorage();
 });
 
 window.addEventListener("resize", () => {
     if (window.innerWidth > 800) { setSidebarState(false); }
 });
 
-window.addEventListener("beforeunload", cleanupObjectUrls);
+window.addEventListener("beforeunload", (event) => {
+    cleanupObjectUrls();
+    // Closing mid-copy leaves a .part file that the next start-up sweeps away,
+    // but the user probably wants to know the save didn't finish.
+    if (state.persistJob) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
+});
 
 function bindUI() {
     // SAFE BINDINGS: We use optional chaining (?.) so it doesn't break on non-app pages
@@ -163,6 +192,15 @@ function bindUI() {
         if (history.state && history.state.overlay) history.back();
     });
     $("date-sheet-apply")?.addEventListener("click", applyDateSheetSelection);
+    $("confirm-sheet-cancel")?.addEventListener("click", () => resolveConfirmSheet(false));
+    $("confirm-sheet-apply")?.addEventListener("click", () => resolveConfirmSheet(true));
+    $("persist-card-cancel")?.addEventListener("click", cancelPersistCopy);
+    $("import-another")?.addEventListener("click", () => setUploadPanelVisible(true));
+    $("upload-back")?.addEventListener("click", () => setUploadPanelVisible(false));
+    $("storage-delete-all")?.addEventListener("click", deleteAllStoredImports);
+    document.querySelectorAll("[data-stored-list], #storage-list").forEach((list) => {
+        list.addEventListener("click", handleStoredListClick);
+    });
     
     // UI BACK ARROWS FOR DRAWERS
     document.querySelectorAll("[data-drawer-close]").forEach((button) => {
@@ -233,6 +271,7 @@ window.addEventListener("popstate", () => {
     }
     
     closeDateSheet();
+    resolveConfirmSheet(false, { fromHistory: true });
     closeMenu();
     document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
 });
@@ -397,7 +436,7 @@ function sanitizeSettings(value) {
         }
     });
 
-    ["showSeconds", "showSenderNames", "showReadTicks", "richText"].forEach((key) => {
+    ["showSeconds", "showSenderNames", "showReadTicks", "richText", "persistentStorage"].forEach((key) => {
         settings[key] = Boolean(settings[key]);
     });
 
@@ -430,6 +469,10 @@ function handleSettingChange(event) {
     state.settings = sanitizeSettings(state.settings);
     saveSettings();
     syncSettingsControls();
+    if (key === "persistentStorage") {
+        handlePersistentStorageToggle();
+        return;
+    }
     rerenderAfterSettingsChange();
 }
 
@@ -437,6 +480,7 @@ function resetSettings() {
     state.settings = { ...DEFAULT_SETTINGS };
     saveSettings();
     syncSettingsControls();
+    refreshStorageSettingsUI();
     rerenderAfterSettingsChange();
     showToast("Settings reset");
 }
@@ -552,6 +596,7 @@ function handleDroppedFile(file) {
     // If a chat is already open, the upload panel is hidden — let the user know
     // how to reach the file they just dropped.
     if ($("upload-panel")?.classList.contains("hidden")) {
+        setUploadPanelVisible(true);
         if (window.innerWidth <= 800) setSidebarState(true);
         showToast("File ready — tap Load Chat to open it", "info");
     }
@@ -635,12 +680,34 @@ async function initViewer() {
         return;
     }
 
+    await loadChatFile(file, {
+        displayName,
+        persist: isPersistentStorageEnabled()
+    });
+}
+
+/**
+ * Opens an export through the normal pipeline. `file` is either the File the
+ * user just picked or the on-disk copy handed back by persistent storage — the
+ * parser and media layer can't tell the difference.
+ *
+ * @param {File}   file
+ * @param {Object} options
+ * @param {string} options.displayName  The user's name in the chat.
+ * @param {string} [options.fileLabel]  Original file name, when `file` is a stored copy.
+ * @param {boolean} [options.persist]   Copy the export to persistent storage after it opens.
+ * @param {string} [options.importId]   Stored import being reopened, if any.
+ */
+async function loadChatFile(file, { displayName, fileLabel = file.name, persist = false, importId = "" } = {}) {
+    if (state.isLoading) return;
+
     state.myName = displayName;
+    state.activeImportId = "";
 
     const isZip = file.name.toLowerCase().endsWith(".zip");
     const initText = isZip ? "Opening ZIP and scanning entries..." : "Reading text file...";
     
-    setLoadingState(true, `Loading ${file.name}`, initText);
+    setLoadingState(true, `Loading ${fileLabel}`, initText);
     
     await new Promise(resolve => requestAnimationFrame(resolve));
     await new Promise(resolve => setTimeout(resolve, 60));
@@ -692,11 +759,17 @@ async function initViewer() {
             return;
         }
 
-        updateUIState(file.name);
+        updateUIState(fileLabel);
         renderChatList();
         requestAnimationFrame(scrollToBottom);
         showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
         showSponsorPrompt();
+
+        if (importId) {
+            markStoredImportOpened(importId);
+        } else if (persist) {
+            persistCurrentImport(file, gen);
+        }
     } catch (error) {
         console.error(error);
         const shown = showEmptyState({
@@ -1915,6 +1988,10 @@ function handleEscape() {
         closeDateSheet();
         return;
     }
+    if (isVisible($("confirm-sheet"))) {
+        resolveConfirmSheet(false);
+        return;
+    }
     if (state.isSearchOpen) {
         toggleSearch();
         return;
@@ -2261,10 +2338,11 @@ function handleProfilePictureChange(event) {
 }
 
 function updateUIState(filename) {
-    $("upload-panel")?.classList.add("hidden");
-    $("chat-list-panel")?.classList.remove("hidden");
+    setUploadPanelVisible(false);
     $("empty-state")?.classList.add("hidden");
     playChatRevealOnce();
+    // A freshly picked file replaces whichever stored chat was highlighted.
+    renderStoredImports();
 
     state.chatTitle = filename.replace(/(_chat\.txt|WhatsApp Chat with |\.\w+$)/gi, "").trim() || "Chat History";
     const withMedia = state.mediaCount ? ` • ${state.mediaCount.toLocaleString()} media` : "";
@@ -2304,6 +2382,552 @@ function updateUIState(filename) {
         });
         menu.appendChild(btn);
     }
+}
+
+
+// ── Persistent Storage (Beta) ────────────────────────────────────────────────
+// Off by default. When on, a freshly opened export is copied to the device
+// (see js/storage.js) and offered again on the next visit. Turning it off
+// stops new copies but never deletes existing ones — that is always an
+// explicit, confirmed action.
+
+function isPersistentStorageEnabled() {
+    return state.storageSupported && Boolean(state.settings.persistentStorage);
+}
+
+async function initPersistentStorage() {
+    state.storageSupported = storage.isSupported();
+    refreshStorageSettingsUI();
+    if (!state.storageSupported) return;
+
+    // Nobody who never kept a chat should pay for a storage lookup at boot.
+    const everUsed = readStored(STORAGE_KEYS.persistUsed) === "1";
+    if (!state.settings.persistentStorage && !everUsed) return;
+
+    await loadStoredImports();
+
+    if (!state.settings.persistentStorage) return;
+    const lastId = readStored(STORAGE_KEYS.lastImport);
+    const record = lastId ? state.storedImports.find((item) => item.id === lastId) : null;
+    if (!record) return;
+
+    await openStoredImport(record);
+    // A stored chat that can't produce messages shouldn't greet the user with
+    // the same error on every launch. The import itself stays until they
+    // delete it — only the automatic reopen is dropped.
+    if (state.activeImportId !== record.id || state.messageOnlyCount === 0) {
+        removeStored(STORAGE_KEYS.lastImport);
+    }
+}
+
+async function loadStoredImports() {
+    let records = null;
+    try {
+        // Other viewers may keep their own kinds here one day; this sidebar only
+        // knows how to open WhatsApp exports.
+        records = (await storage.reconcileImports()).filter((record) => record.kind === "whatsapp");
+    } catch (error) {
+        // Storage misbehaved — show nothing this session, but forget nothing:
+        // the records and files are still there for the next launch.
+        console.warn("Persistent storage could not be read:", error);
+        showToast("Stored chats couldn't be read right now. They're still on this device.", "warn");
+    }
+    state.storedImports = records || [];
+    state.storedImportsLoaded = true;
+    if (records && !records.length) {
+        removeStored(STORAGE_KEYS.persistUsed);
+        removeStored(STORAGE_KEYS.lastImport);
+    }
+    renderStoredImports();
+    refreshStorageSettingsUI();
+}
+
+function handlePersistentStorageToggle() {
+    if (!state.storageSupported) {
+        state.settings.persistentStorage = false;
+        saveSettings();
+        syncSettingsControls();
+        refreshStorageSettingsUI();
+        showToast("Your browser doesn't support persistent storage", "warn");
+        return;
+    }
+    refreshStorageSettingsUI();
+    if (state.settings.persistentStorage) {
+        if (!state.storedImportsLoaded) loadStoredImports();
+        showToast("New imports will be kept on this device", "info");
+        return;
+    }
+    if (state.persistJob) {
+        // The user just said "don't keep chats" — that includes the one being
+        // written right now. The cancel path removes the partial file and
+        // reports back.
+        cancelPersistCopy("toggle");
+        return;
+    }
+    showToast(
+        state.storedImports.length
+            ? "Turned off. Stored chats stay on this device until you delete them."
+            : "Persistent storage turned off",
+        "info"
+    );
+}
+
+function refreshStorageSettingsUI() {
+    const checkbox = $("setting-persistent-storage");
+    const unsupported = $("storage-unsupported");
+    const manage = $("storage-manage");
+    if (checkbox) checkbox.disabled = !state.storageSupported;
+    if (unsupported) unsupported.hidden = state.storageSupported;
+    if (!manage) return;
+
+    const records = state.storedImports;
+    manage.hidden = !state.storageSupported || records.length === 0;
+    if (manage.hidden) return;
+
+    const total = records.reduce((sum, record) => sum + (record.size || 0), 0);
+    const summary = $("storage-summary");
+    if (summary) {
+        summary.textContent = `${records.length} stored chat${records.length === 1 ? "" : "s"} · ${formatBytes(total) || "0 B"} on this device`;
+    }
+    const offNote = $("storage-off-note");
+    if (offNote) offNote.hidden = Boolean(state.settings.persistentStorage);
+
+    const list = $("storage-list");
+    if (list) {
+        list.innerHTML = records.map((record) => {
+            const title = storedImportTitle(record);
+            return `
+                <div class="storage-item${record.id === state.activeImportId ? " active" : ""}">
+                    <div class="storage-item-info">
+                        <strong>${escapeHtml(title)}</strong>
+                        <span>${escapeHtml(storedImportMeta(record))}</span>
+                    </div>
+                    <button type="button" class="stored-delete" data-stored-delete="${escapeAttribute(record.id)}" title="Delete from this device" aria-label="Delete ${escapeAttribute(title)}"><i class="ph ph-trash"></i></button>
+                </div>`;
+        }).join("");
+    }
+}
+
+function renderStoredImports() {
+    const records = state.storedImports;
+    document.querySelectorAll("[data-stored-list]").forEach((list) => {
+        list.hidden = records.length === 0;
+        if (!records.length) {
+            list.innerHTML = "";
+            return;
+        }
+        list.innerHTML = `<div class="stored-list-head"><i class="ph-fill ph-hard-drives"></i> Saved on this device</div>` +
+            records.map((record) => {
+                const title = storedImportTitle(record);
+                return `
+                    <div class="stored-item${record.id === state.activeImportId ? " active" : ""}">
+                        <button type="button" class="chat-item" data-stored-open="${escapeAttribute(record.id)}">
+                            <div class="chat-item-avatar" aria-hidden="true">${escapeHtml(title.charAt(0).toUpperCase())}</div>
+                            <div class="chat-item-info">
+                                <h4>${escapeHtml(title)}</h4>
+                                <span>${escapeHtml(storedImportMeta(record))}</span>
+                            </div>
+                        </button>
+                        <button type="button" class="stored-delete" data-stored-delete="${escapeAttribute(record.id)}" title="Delete from this device" aria-label="Delete ${escapeAttribute(title)}"><i class="ph ph-trash"></i></button>
+                    </div>`;
+            }).join("");
+    });
+}
+
+function storedImportTitle(record) {
+    return record.chatTitle || record.fileName || "Chat";
+}
+
+function storedImportMeta(record) {
+    const parts = [];
+    if (record.messageCount) parts.push(`${record.messageCount.toLocaleString()} messages`);
+    parts.push(formatBytes(record.size) || "0 B");
+    parts.push(/\.zip$/i.test(record.storedName || "") ? "ZIP" : "TXT");
+    return parts.join(" · ");
+}
+
+function handleStoredListClick(event) {
+    const openButton = event.target.closest("[data-stored-open]");
+    if (openButton) {
+        const record = state.storedImports.find((item) => item.id === openButton.dataset.storedOpen);
+        if (record) openStoredImport(record);
+        return;
+    }
+    const deleteButton = event.target.closest("[data-stored-delete]");
+    if (deleteButton) {
+        deleteStoredImport(deleteButton.dataset.storedDelete);
+    }
+}
+
+async function openStoredImport(record) {
+    if (state.isLoading) return;
+    if (record.id && record.id === state.activeImportId) {
+        if (window.innerWidth <= 800) setSidebarState(false);
+        return;
+    }
+
+    let file;
+    try {
+        file = await storage.getImportFile(record);
+    } catch (error) {
+        if (storage.isUnrecoverable(error)) {
+            // Missing or truncated: the record points at nothing usable, so
+            // drop it rather than offering a chat that can't open.
+            await storage.deleteImport(record).catch(() => {});
+            dropStoredImport(record.id);
+            showToast(`"${storedImportTitle(record)}" was missing or damaged and has been removed from this device`, "error");
+        } else {
+            // Anything else is the storage layer having a moment. The data is
+            // intact; don't touch it.
+            console.warn("Stored chat could not be opened:", error);
+            showToast(`Couldn't open "${storedImportTitle(record)}" right now (${error.message || error.name}). It's still saved on this device.`, "error");
+        }
+        return;
+    }
+
+    const nameInput = $("display-name");
+    if (nameInput && !nameInput.value.trim()) nameInput.value = record.displayName || "";
+
+    await loadChatFile(file, {
+        displayName: record.displayName || "",
+        fileLabel: record.fileName,
+        importId: record.id
+    });
+}
+
+function markStoredImportOpened(id) {
+    state.activeImportId = id;
+    writeStored(STORAGE_KEYS.lastImport, id);
+
+    const record = state.storedImports.find((item) => item.id === id);
+    if (record) {
+        record.lastOpenedAt = Date.now();
+        record.chatTitle = state.chatTitle;
+        record.messageCount = state.messageOnlyCount;
+        record.mediaCount = state.mediaCount;
+        record.displayName = state.myName;
+        storage.putImport(record).catch(() => {});
+        state.storedImports = storage.sortByRecency(state.storedImports);
+    }
+    renderStoredImports();
+    refreshStorageSettingsUI();
+}
+
+function dropStoredImport(id) {
+    state.storedImports = state.storedImports.filter((item) => item.id !== id);
+    if (state.activeImportId === id) state.activeImportId = "";
+    if (readStored(STORAGE_KEYS.lastImport) === id) removeStored(STORAGE_KEYS.lastImport);
+    if (!state.storedImports.length) removeStored(STORAGE_KEYS.persistUsed);
+    renderStoredImports();
+    refreshStorageSettingsUI();
+}
+
+/**
+ * Copies the export that just opened to the device. Runs after the chat is on
+ * screen, so a multi-gigabyte copy never delays reading it. `gen` is the load
+ * generation the copy belongs to: if another chat opens meanwhile the copy still
+ * completes, it just doesn't become the active import.
+ */
+async function persistCurrentImport(file, gen) {
+    if (!state.storageSupported) return;
+    if (state.persistJob) {
+        showToast("Another chat is still being saved — import this one again once it finishes", "warn");
+        return;
+    }
+
+    // Reserve the slot before anything asynchronous: the permission prompt
+    // below can sit open for as long as the user likes, and a second import in
+    // that window must not start a second copy.
+    const reservation = {
+        cancelled: false,
+        reason: "",
+        cancel(reason = "user") { this.cancelled = true; this.reason = reason; }
+    };
+    state.persistJob = reservation;
+
+    // Describe the chat now, while `state` still belongs to this file — by the
+    // time the awaits below settle the user may have opened another one.
+    const snapshot = {
+        chatTitle: state.chatTitle,
+        messageCount: state.messageOnlyCount,
+        mediaCount: state.mediaCount,
+        displayName: state.myName
+    };
+
+    try {
+        if (!state.storedImportsLoaded) await loadStoredImports();
+
+        const duplicate = storage.findDuplicate(state.storedImports, file);
+        if (duplicate) {
+            if (state.loadGeneration === gen) markStoredImportOpened(duplicate.id);
+            showToast("This export is already saved on this device", "info");
+            return;
+        }
+
+        // Persistence first: until it is granted Firefox reports a small
+        // best-effort quota that would wrongly reject large exports.
+        await storage.requestPersistence();
+
+        const needed = storage.requiredSpace(file.size);
+        const estimate = await storage.estimateStorage();
+        if (estimate && estimate.quota > 0 && estimate.available < needed) {
+            showToast(`Not enough storage to keep this chat. It needs ${formatBytes(needed)} but only ${formatBytes(estimate.available) || "0 B"} is available.`, "error");
+            return;
+        }
+
+        if (reservation.cancelled) {
+            showToast(persistCancelMessage(reservation.reason), "info");
+            return;
+        }
+
+        const id = storage.generateId();
+        const job = storage.copyFileToStorage(file, id, { onProgress: updatePersistProgress });
+        job.reason = "";
+        state.persistJob = job;
+        showPersistCard(file.size);
+
+        let storedName;
+        try {
+            storedName = await job.promise;
+        } catch (error) {
+            hidePersistCard();
+            if (error.name === "AbortError") {
+                showToast(persistCancelMessage(job.reason), "info");
+            } else if (error.name === "QuotaExceededError") {
+                showToast("The browser ran out of storage before the chat could be saved", "error");
+            } else if (error.name === "NotSupportedError" || error.name === "TypeError") {
+                showToast("Your browser doesn't support saving chats to the device", "error");
+            } else if (error.name === "UnknownError" || error.name === "InvalidStateError") {
+                // Safari reports exactly this in Private Browsing, where the
+                // file system exists but refuses to open.
+                showToast("Persistent storage isn't available in this browsing mode (for example Private Browsing). The chat is open, but it wasn't kept.", "error");
+            } else {
+                showToast(`Couldn't save this chat: ${error.message}`, "error");
+            }
+            return;
+        }
+
+        const now = Date.now();
+        const record = {
+            id,
+            kind: "whatsapp",
+            schemaVersion: 1,
+            fileName: file.name,
+            size: file.size,
+            lastModified: file.lastModified,
+            storedName,
+            ...snapshot,
+            importedAt: now,
+            lastOpenedAt: now
+        };
+
+        try {
+            await storage.putImport(record);
+        } catch (error) {
+            // No record means no import — don't leave the copy behind.
+            await storage.removeStoredFile(storedName);
+            hidePersistCard();
+            showToast(`Couldn't save this chat: ${error.message}`, "error");
+            return;
+        }
+
+        writeStored(STORAGE_KEYS.persistUsed, "1");
+        state.storedImports = storage.sortByRecency([...state.storedImports, record]);
+        hidePersistCard();
+        if (state.loadGeneration === gen) {
+            markStoredImportOpened(id);
+        } else {
+            renderStoredImports();
+            refreshStorageSettingsUI();
+        }
+        showToast(`Saved "${storedImportTitle(record)}" on this device`);
+    } catch (error) {
+        // Nothing above should throw, but a surprise must not become an
+        // unhandled rejection with a stuck progress card.
+        console.warn("Persisting the import failed:", error);
+        hidePersistCard();
+        showToast(`Couldn't save this chat: ${error.message || error}`, "error");
+    } finally {
+        state.persistJob = null;
+    }
+}
+
+function persistCancelMessage(reason) {
+    return reason === "toggle"
+        ? "Persistent storage turned off — the save in progress was cancelled and the chat wasn't kept"
+        : "Save cancelled — this chat wasn't kept";
+}
+
+function cancelPersistCopy(reason = "user") {
+    if (!state.persistJob) return;
+    if ("reason" in state.persistJob) state.persistJob.reason = reason;
+    state.persistJob.cancel(reason);
+    const progress = $("persist-card-progress");
+    if (progress) progress.textContent = "Cancelling…";
+    const cancel = $("persist-card-cancel");
+    if (cancel) cancel.disabled = true;
+}
+
+function showPersistCard(total) {
+    const card = $("persist-card");
+    if (!card) return;
+    const cancel = $("persist-card-cancel");
+    if (cancel) cancel.disabled = false;
+    updatePersistProgress(0, total);
+    card.hidden = false;
+    // A small file can finish copying before this frame runs; don't reveal a
+    // card for a job that has already been cleared.
+    requestAnimationFrame(() => {
+        if (state.persistJob) card.classList.add("show");
+    });
+}
+
+function updatePersistProgress(copied, total) {
+    const progress = $("persist-card-progress");
+    const bar = $("persist-card-bar");
+    if (progress) progress.textContent = `${formatBytes(copied) || "0 B"} / ${formatBytes(total) || "0 B"}`;
+    if (bar) bar.style.width = `${total ? Math.min(100, (copied / total) * 100) : 0}%`;
+}
+
+function hidePersistCard() {
+    const card = $("persist-card");
+    if (!card) return;
+    card.classList.remove("show");
+    window.setTimeout(() => {
+        if (!card.classList.contains("show")) card.hidden = true;
+    }, 300);
+}
+
+async function deleteStoredImport(id) {
+    const record = state.storedImports.find((item) => item.id === id);
+    if (!record) return;
+
+    const title = storedImportTitle(record);
+    const openNote = state.activeImportId === id ? " It's open right now and will be closed." : "";
+    const confirmed = await askConfirm({
+        title: "Delete stored chat?",
+        body: `"${title}" (${formatBytes(record.size) || "0 B"}) will be removed from this device.${openNote} Your original export file is not affected.`,
+        confirmLabel: "Delete"
+    });
+    if (!confirmed) return;
+
+    try {
+        await storage.deleteImport(record);
+    } catch (error) {
+        showToast(`Couldn't delete this chat: ${error.message}`, "error");
+        return;
+    }
+    const wasOpen = state.activeImportId === id;
+    dropStoredImport(id);
+    if (wasOpen) closeActiveChat();
+    showToast(`Deleted "${title}" from this device`);
+}
+
+/**
+ * Puts the viewer back to its just-opened state. Used when the stored copy
+ * behind the open chat is deleted — its media can no longer be read, so
+ * keeping the conversation on screen would only half work.
+ */
+function closeActiveChat() {
+    state.loadGeneration += 1;
+    if (state.isSearchOpen) toggleSearch();
+    closeMediaModal();
+    cleanupMediaStore();
+    resetChatState();
+    state.activeImportId = "";
+    state.chatTitle = "Chat History";
+    restoreEmptyState();
+    $("empty-state")?.classList.remove("hidden");
+    if ($("header-name")) $("header-name").innerText = "Welcome";
+    if ($("header-meta")) $("header-meta").innerText = "ChatLume";
+    if ($("sidebar-title")) $("sidebar-title").innerText = "Chat History";
+    if ($("sidebar-sub")) $("sidebar-sub").innerText = "Active now";
+    // updateUIState() re-creates this on the next load.
+    $("export-chat-btn")?.remove();
+    generateStats();
+    setUploadPanelVisible(true);
+}
+
+async function deleteAllStoredImports() {
+    if (!state.storedImports.length) return;
+    const count = state.storedImports.length;
+    const total = state.storedImports.reduce((sum, record) => sum + (record.size || 0), 0);
+    const confirmed = await askConfirm({
+        title: "Delete all stored chats?",
+        body: `${count} stored chat${count === 1 ? "" : "s"} (${formatBytes(total) || "0 B"}) will be removed from this device${state.activeImportId ? ", and the open chat will be closed" : ""}. Your original export files are not affected.`,
+        confirmLabel: "Delete all"
+    });
+    if (!confirmed) return;
+
+    try {
+        await storage.deleteAllImports();
+    } catch (error) {
+        showToast(`Couldn't delete stored chats: ${error.message}`, "error");
+        await loadStoredImports();
+        return;
+    }
+    const wasOpen = Boolean(state.activeImportId);
+    state.storedImports = [];
+    state.activeImportId = "";
+    removeStored(STORAGE_KEYS.lastImport);
+    removeStored(STORAGE_KEYS.persistUsed);
+    renderStoredImports();
+    refreshStorageSettingsUI();
+    if (wasOpen) closeActiveChat();
+    showToast("All stored chats deleted from this device");
+}
+
+// Confirmation sheet. Native confirm() blocks the page and looks nothing like
+// the app, so this reuses the date-sheet styling instead.
+let confirmSheetResolver = null;
+
+function askConfirm({ title, body, confirmLabel = "Delete" }) {
+    const sheet = $("confirm-sheet");
+    if (!sheet) return Promise.resolve(false);
+
+    resolveConfirmSheet(false);
+    const titleEl = $("confirm-sheet-title");
+    const bodyEl = $("confirm-sheet-body");
+    const applyEl = $("confirm-sheet-apply");
+    if (titleEl) titleEl.textContent = title;
+    if (bodyEl) bodyEl.textContent = body;
+    if (applyEl) applyEl.textContent = confirmLabel;
+
+    sheet.hidden = false;
+    requestAnimationFrame(() => {
+        sheet.classList.add("open");
+        $("confirm-sheet-cancel")?.focus({ preventScroll: true });
+    });
+    pushHistoryState("confirm");
+
+    return new Promise((resolve) => {
+        confirmSheetResolver = resolve;
+    });
+}
+
+function resolveConfirmSheet(result, { fromHistory = false } = {}) {
+    const sheet = $("confirm-sheet");
+    if (!sheet || sheet.hidden || !sheet.classList.contains("open")) return;
+
+    sheet.classList.remove("open");
+    window.setTimeout(() => {
+        if (!sheet.classList.contains("open")) sheet.hidden = true;
+    }, 160);
+
+    const resolve = confirmSheetResolver;
+    confirmSheetResolver = null;
+    resolve?.(result);
+
+    if (!fromHistory && history.state && history.state.overlay === "confirm") history.back();
+}
+
+/** Swaps the sidebar between the import form and the open-chat list. */
+function setUploadPanelVisible(show) {
+    const hasChat = state.messageOnlyCount > 0;
+    $("upload-panel")?.classList.toggle("hidden", !show);
+    $("chat-list-panel")?.classList.toggle("hidden", show || !hasChat);
+    const back = $("upload-back");
+    if (back) back.hidden = !(show && hasChat);
 }
 
 function getSearchableText(entry) {
