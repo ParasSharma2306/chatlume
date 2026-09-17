@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.6.1)
+ * ChatLume HTML Export (v1.6.2)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Media files are intentionally NOT embedded — each attachment is shown
@@ -20,6 +20,8 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
+import { buildRichText } from './shared/text.js?v=1.6.2';
+
 export function exportChatAsHTML({
   filename,
   theme = 'whatsapp',
@@ -176,37 +178,12 @@ function renderReactions(reactions) {
   return pills ? `<div class="ce-reactions">${pills}</div>` : '';
 }
 
-const URL_PATTERN = /(https?:\/\/[^\s<]+)/gi;
-
 // Escape, linkify, and apply WhatsApp-style formatting. Newlines → <br>.
-//
-// Linkifying and formatting are interleaved rather than chained: formatting an
-// already-linkified string rewrote the inside of the links, so .../Foo_bar_baz
-// lost its underscores to an <em> in the href as well as the visible text.
+// The interleaved link/format pass lives in shared/text.js so the viewer and
+// the export can never drift apart on what a message looks like.
 function renderText(text, theme) {
-  const escaped = escapeHtml(text || '');
-  const format = theme === 'instagram' ? (segment) => segment : applyTextFormatting;
-
-  let out = '';
-  let cursor = 0;
-  let match;
-
-  URL_PATTERN.lastIndex = 0;
-  while ((match = URL_PATTERN.exec(escaped)) !== null) {
-    out += format(escaped.slice(cursor, match.index));
-    out += `<a href="${match[0]}" target="_blank" rel="noopener noreferrer">${match[0]}</a>`;
-    cursor = match.index + match[0].length;
-  }
-  out += format(escaped.slice(cursor));
-
-  return out.replace(/\n/g, '<br>');
-}
-
-function applyTextFormatting(segment) {
-  return segment
-    .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
-    .replace(/_([^_\n]+)_/g, '<em>$1</em>')
-    .replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  return buildRichText(escapeHtml(text || ''), { formatting: theme !== 'instagram' })
+    .replace(/\n/g, '<br>');
 }
 
 // ── Theme styles ─────────────────────────────────────────────────────────────

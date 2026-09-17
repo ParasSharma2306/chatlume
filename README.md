@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.6.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.6.2-blue?style=flat-square)
 
 ---
 
@@ -304,14 +304,65 @@ PRs are welcome. The codebase is plain HTML/CSS/JS: no build tools, no bundler, 
 
 **Thanks** to [@namipsg](https://github.com/namipsg) for identifying the calendar-era timestamps, dotted-time locales and RTL attachment-name issues in [#7](https://github.com/ParasSharma2306/chatlume/pull/7); the fixes in v1.6.1 were reimplemented on the current codebase from that report.
 
+### Code layout
+
+No bundler: every file under `js/` is served as-is as an ES module. The two viewers are entry points that wire DOM events to small, single-purpose modules:
+
+```
+js/
+├── script.js              WhatsApp viewer entry point (boot + event wiring)
+├── instagram.js           Instagram viewer entry point
+├── whatsapp/              WhatsApp viewer
+│   ├── state.js           shared mutable state + constants
+│   ├── session.js         open / parse / close a chat
+│   ├── parser.js          line-by-line parsing pipeline (drives whatsapp-parser.js)
+│   ├── media.js           attachment matching, lazy loading, media viewer
+│   ├── render.js          the virtualised message list + export data
+│   ├── search.js          in-chat search
+│   ├── date-jump.js       "Go to Date"
+│   ├── format.js          time / date display per Settings
+│   ├── settings-store.js  load / save settings, sync the controls
+│   ├── settings-ui.js     react to a setting change
+│   ├── persistence.js     Persistent Storage (Beta), viewer side
+│   ├── wrapped.js         ChatLume Wrapped graphic
+│   ├── stats.js           analytics drawer binding
+│   ├── file-picker.js     picker, drop target, window-wide drop overlay
+│   └── ui.js              drawers, sheets, toast, loading overlay
+├── instagram/             Instagram viewer (same shape: state, session, parser,
+│                          threads, media, render, search, ui, mojibake)
+├── shared/                utilities both viewers use
+│   ├── dom.js             $, escaping, small predicates
+│   ├── text.js            links, *bold* _italic_ ~strike~, search highlight
+│   ├── media-types.js     file name → kind / MIME, formatBytes
+│   ├── media-urls.js      blob-URL lifecycle for ZIP-backed media
+│   ├── lazy-media.js      IntersectionObserver hydration
+│   ├── media-modal.js     full-screen media viewer
+│   ├── virtual-list.js    render window, scroll anchoring, jump-to-latest pill
+│   ├── stats-panel.js     analytics drawer markup + animation
+│   ├── drop-zone.js       drag-and-drop intake
+│   ├── theme.js, toast.js, splash.js, compat.js, history.js,
+│   │   colors.js, emoji.js, safe-storage.js
+├── whatsapp-parser.js     timestamp / header / attachment parsing (pure, tested)
+├── settings.js            settings schema + validation (pure, tested)
+├── storage.js             OPFS + IndexedDB layer for Persistent Storage
+├── storage-worker.js      chunked copy off the main thread
+├── export.js              standalone HTML export
+├── support.js             sponsor card
+├── site.js, sponsors.js   static-page chrome (classic scripts, not modules)
+```
+
+Dependencies point one way: entry → viewer modules → `shared/` → nothing. The only place a lower layer needs to call up (persistent storage reopening a chat) is done by passing callbacks into `initPersistentStorage()` rather than by a circular import.
+
 ### Tests
 
-The parser and settings logic live in dependency-free modules (`js/whatsapp-parser.js`, `js/settings.js`) and are covered by Node's built-in test runner — no install step:
+The pure modules (`js/whatsapp-parser.js`, `js/settings.js`, `js/shared/*`, `js/whatsapp/format.js`, `js/instagram/parser.js`, `js/instagram/mojibake.js`) are covered by Node's built-in test runner — no install step:
 
 ```bash
 npm test          # node --test tests/
-npm run check     # node --check on every script
+npm run check     # node --check on every script under js/ and sw.js
 ```
+
+Tests import app modules through `tests/versioned.mjs`, which appends the current release token so they always load the same module instances the app does.
 
 ### Releasing
 

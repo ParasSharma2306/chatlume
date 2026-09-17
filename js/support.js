@@ -15,6 +15,8 @@
  * Nothing here is ever fed user data; the copy is authored below.
  */
 
+import { readStored, writeStored } from "./shared/safe-storage.js?v=1.6.2";
+
 const SNOOZE_KEY = "chatlume-sponsor-snooze-until";
 const SPONSOR_URL = "https://github.com/sponsors/ParasSharma2306";
 
@@ -23,16 +25,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SNOOZE_DISMISSED_DAYS = 30;
 /** Someone who opened the sponsor page shouldn't be asked again for a long while. */
 const SNOOZE_SPONSORED_DAYS = 365;
-
-// Safari private mode and "block all cookies" make plain localStorage access
-// throw rather than return null, so every read and write is guarded.
-function readStored(key) {
-    try { return localStorage.getItem(key); } catch { return null; }
-}
-
-function writeStored(key, value) {
-    try { localStorage.setItem(key, value); } catch { /* asking again later is an acceptable failure */ }
-}
 
 function isSnoozed() {
     const until = parseInt(readStored(SNOOZE_KEY) || "0", 10);

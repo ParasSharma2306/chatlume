@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "node:test";
@@ -22,7 +22,15 @@ const HTML_PAGES = [
     "public/how-to-export-instagram.html", "public/how-to-use.html",
     "public/instagram-viewer.html", "public/viewer.html"
 ];
-const JS_FILES = readdirSync(resolve(root, "js")).filter((name) => name.endsWith(".js")).map((name) => `js/${name}`);
+/** Every .js file under js/, recursively (js/shared, js/whatsapp, js/instagram, …). */
+function listJs(dir) {
+    return readdirSync(dir).flatMap((name) => {
+        const path = resolve(dir, name);
+        if (statSync(path).isDirectory()) return listJs(path);
+        return name.endsWith(".js") ? [path.slice(root.length + 1).split("\\").join("/")] : [];
+    }).sort();
+}
+const JS_FILES = listJs(resolve(root, "js"));
 
 describe(`release token v${VERSION}`, () => {
     test("service worker declares a semantic version", () => {
@@ -88,6 +96,22 @@ describe(`release token v${VERSION}`, () => {
         const script = read("scripts/bump-version.mjs");
         for (const page of [...HTML_PAGES, "js/script.js", "js/instagram.js", "js/storage.js", "sw.js", "package.json"]) {
             assert.ok(script.includes(`"${page}"`), `${page} not listed in bump-version.mjs`);
+        }
+        // Any module with a versioned import would be left on the old token by
+        // `npm run bump` if it were missing from the list.
+        for (const file of JS_FILES) {
+            if (!read(file).includes(`?v=${VERSION}`)) continue;
+            assert.ok(script.includes(`"${file}"`), `${file} carries the token but is not listed in bump-version.mjs`);
+        }
+    });
+
+    test("the module tree is split by viewer and every module documents itself", () => {
+        for (const dir of ["js/shared", "js/whatsapp", "js/instagram"]) {
+            assert.ok(JS_FILES.some((file) => file.startsWith(`${dir}/`)), `${dir} should contain modules`);
+        }
+        for (const file of JS_FILES) {
+            assert.ok(read(file).trimStart().startsWith("/**") || read(file).trimStart().startsWith("//"),
+                `${file} should open with a header comment describing the module`);
         }
     });
 });
