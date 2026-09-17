@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://chatlume.parassharma.in/sitemap.xml
+Sitemap: https://chatlume.app/sitemap.xml

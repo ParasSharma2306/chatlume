@@ -48,7 +48,7 @@ const STORAGE_KEYS = {
     // on don't pay for a storage lookup at boot.
     persistUsed: "chatlume-persist-used"
 };
-const SITE_URL = "https://chatlume.parassharma.in";
+const SITE_URL = "https://chatlume.app";
 const ISSUES_URL = "https://github.com/ParasSharma2306/chatlume/issues/new";
 const APP_VERSION = "1.6.1";
 const SEARCH_DEBOUNCE_MS = 120;

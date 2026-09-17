@@ -23,7 +23,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 
 ## Live
 
-🔗 [chatlume.parassharma.in](https://chatlume.parassharma.in)
+🔗 [chatlume.app](https://chatlume.app)
 
 ---
 
@@ -92,7 +92,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 - Nothing is stored between visits unless you turn on **Persistent Storage (Beta)** in Settings, which keeps a copy of the export in the browser's private storage on your own device (deletable any time from Settings)
 - Even self-hosted: no backend, no database. It's all static files
 
-Full details: [Privacy Policy](https://chatlume.parassharma.in/privacy.html)
+Full details: [Privacy Policy](https://chatlume.app/privacy.html)
 
 ---
 
@@ -332,7 +332,7 @@ MIT. Built by [Paras Sharma](https://parassharma.com)
 
 ## Sponsors
 
-A special thank you to everyone who supported ChatLume through [GitHub Sponsors](https://github.com/sponsors/ParasSharma2306). Sponsors also appear on the [sponsors page](https://chatlume.parassharma.in/sponsors.html), which reads from [`sponsors.json`](sponsors.json).
+A special thank you to everyone who supported ChatLume through [GitHub Sponsors](https://github.com/sponsors/ParasSharma2306). Sponsors also appear on the [sponsors page](https://chatlume.app/sponsors.html), which reads from [`sponsors.json`](sponsors.json).
 
 | Sponsor | Amount |
 | --- | ---: |

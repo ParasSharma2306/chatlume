@@ -1,7 +1,7 @@
 {
   "name": "ChatLume - Private WhatsApp Chat Viewer",
   "short_name": "ChatLume",
-  "id": "https://chatlume.parassharma.in/",
+  "id": "https://chatlume.app/",
   "description": "Private WhatsApp chat viewer, analyzer, and Wrapped generator that runs locally without uploading data.",
   "start_url": "/",
   "scope": "/",
