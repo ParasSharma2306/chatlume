@@ -7,7 +7,7 @@
  * session.js returns the per-chat fields to their defaults before each load.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS } from "../settings.js?v=1.6.2";
+import { DEFAULT_SETTINGS } from "../settings.js?v=1.7.0";
 
 /** Rows added to the virtual window per scroll step. */
 export const BATCH_SIZE = 60;
@@ -31,8 +31,9 @@ export const ISSUES_URL = "https://github.com/ParasSharma2306/chatlume/issues/ne
 export const state = {
     // ── Parsed chat ──────────────────────────────────────────────────────
     messages: [],            // every entry: { type: "date" | "system" | "msg", ... }
-    filteredMessages: [],    // what the list renders from (currently always === messages)
+    filteredMessages: [],    // what the list renders from (all messages or filtered by senders)
     messageOnlyCount: 0,     // entries of type "msg"
+    selectedSenders: [],     // active sender filter (array of sender names, empty for all participants)
     myName: "",              // the participant whose messages sit on the right
     chatTitle: "Chat History",
     inferredDateOrder: "DMY",
@@ -40,7 +41,7 @@ export const state = {
 
     // ── Analytics ────────────────────────────────────────────────────────
     colorMap: {},
-    senderStats: {},
+    senderStats: Object.create(null),
     emojiStats: {},
     hourlyStats: Array(24).fill(0),
     mediaCount: 0,

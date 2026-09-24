@@ -9,23 +9,24 @@
  * ============================================================================
  */
 import { BlobReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.6.2";
-import { showSponsorPrompt } from "../support.js?v=1.6.2";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.6.2";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.6.2";
-import { baseName } from "../shared/media-types.js?v=1.6.2";
-import { ISSUES_URL, state } from "./state.js?v=1.6.2";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.6.2";
-import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.6.2";
+import { exportChatAsHTML } from "../export.js?v=1.7.0";
+import { showSponsorPrompt } from "../support.js?v=1.7.0";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.7.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.0";
+import { baseName } from "../shared/media-types.js?v=1.7.0";
+import { ISSUES_URL, state } from "./state.js?v=1.7.0";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.7.0";
+import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.7.0";
+import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.7.0";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.6.2";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.6.2";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.6.2";
-import { generateStats } from "./stats.js?v=1.6.2";
+} from "./persistence.js?v=1.7.0";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.7.0";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.7.0";
+import { generateStats } from "./stats.js?v=1.7.0";
 import {
     closeMenu,
     isMobileLayout,
@@ -37,7 +38,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.6.2";
+} from "./ui.js?v=1.7.0";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
@@ -94,6 +95,7 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
 
     cleanupMediaStore();
     resetChatState();
+    resetSenderFilterUI();
     restoreEmptyState();
 
     if (isMobileLayout()) {
@@ -234,8 +236,9 @@ export function resetChatState() {
     state.messages = [];
     state.filteredMessages = [];
     state.messageOnlyCount = 0;
+    state.selectedSenders = [];
     state.colorMap = {};
-    state.senderStats = {};
+    state.senderStats = Object.create(null);
     state.emojiStats = {};
     state.hourlyStats = Array(24).fill(0);
     state.mediaCount = 0;
@@ -274,6 +277,7 @@ function updateUIState(filename) {
     if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
 
     ensureExportButton();
+    populateSenderFilter();
 }
 
 /** Adds "Export HTML" to the header menu the first time a chat opens. */
@@ -291,11 +295,17 @@ function ensureExportButton() {
     btn.addEventListener("click", () => {
         closeMenu();
         try {
+            const exportedMessages = collectExportMessages();
+            const exportedCount = exportedMessages.filter((m) => m.type === "msg").length;
+            const isFiltered = Boolean(state.selectedSenders && state.selectedSenders.length > 0);
+            const filterSuffix = isFiltered
+                ? ` (${state.selectedSenders.length === 1 ? state.selectedSenders[0] : `${state.selectedSenders.length} participants`})`
+                : "";
             exportChatAsHTML({
                 theme: "whatsapp",
-                title: state.chatTitle || "WhatsApp Chat",
-                messageCount: state.messageOnlyCount,
-                messages: collectExportMessages()
+                title: `${state.chatTitle || "WhatsApp Chat"}${filterSuffix}`,
+                messageCount: exportedCount,
+                messages: exportedMessages
             });
             showToast("Chat exported as HTML");
         } catch (err) {
@@ -317,6 +327,7 @@ export function closeActiveChat() {
     closeMediaModal();
     cleanupMediaStore();
     resetChatState();
+    resetSenderFilterUI();
     state.activeImportId = "";
     state.chatTitle = "Chat History";
     restoreEmptyState();

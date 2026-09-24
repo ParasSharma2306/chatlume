@@ -19,17 +19,17 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.6.2";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.6.2";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.6.2";
-import { popOverlayState } from "./shared/history.js?v=1.6.2";
-import { runSplashLoader } from "./shared/splash.js?v=1.6.2";
-import { createThemeController } from "./shared/theme.js?v=1.6.2";
-import { igState } from "./instagram/state.js?v=1.6.2";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.6.2";
-import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.6.2";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.6.2";
-import { initViewer } from "./instagram/session.js?v=1.6.2";
+import { $, q, escapeHtml } from "./shared/dom.js?v=1.7.0";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.0";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.7.0";
+import { popOverlayState } from "./shared/history.js?v=1.7.0";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.0";
+import { createThemeController } from "./shared/theme.js?v=1.7.0";
+import { igState } from "./instagram/state.js?v=1.7.0";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.7.0";
+import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.7.0";
+import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.7.0";
+import { initViewer } from "./instagram/session.js?v=1.7.0";
 import {
     closeAllDrawers,
     closeMenu,
@@ -41,11 +41,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.6.2";
+} from "./instagram/ui.js?v=1.7.0";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const IG_APP_VERSION = "1.6.2";
+const IG_APP_VERSION = "1.7.0";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 

@@ -8,9 +8,9 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.6.2";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.6.2";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.6.2";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.7.0";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.7.0";
+import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.0";
 
 /** The text a message is matched against. */
 function getSearchableText(entry) {
@@ -50,6 +50,9 @@ export function handleSearchInput(event) {
 }
 
 export function handleSearch(query) {
+    // Direct searches (including sender-filter changes) must cancel a pending
+    // debounced input, or its older query can overwrite these results later.
+    window.clearTimeout(state.searchTimer);
     state.searchTimer = null;
     const normalized = query.trim().toLowerCase();
 
@@ -62,7 +65,7 @@ export function handleSearch(query) {
         return;
     }
 
-    state.searchResults = state.messages
+    state.searchResults = state.filteredMessages
         .filter((entry) => entry.type === "msg" && getSearchableText(entry).includes(normalized))
         .map((entry) => entry.id);
 

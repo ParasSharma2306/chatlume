@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.6.2';
+const CACHE_NAME = 'chatlume-v1.7.0';
 const OFFLINE_FALLBACK = 'index.html';
 // Scripts, modules and styles are addressed with a release token (`?v=`).
 // A page from one release therefore only ever asks for that release's files,
@@ -58,6 +58,7 @@ const ASSETS_TO_CACHE = [
     versioned('js/whatsapp-parser.js'),
     versioned('js/whatsapp/date-jump.js'),
     versioned('js/whatsapp/file-picker.js'),
+    versioned('js/whatsapp/filter.js'),
     versioned('js/whatsapp/format.js'),
     versioned('js/whatsapp/media.js'),
     versioned('js/whatsapp/parser.js'),
@@ -202,7 +203,7 @@ async function handleNavigation(request) {
  * Cache first. The token in the URL changes with every release, so a cached
  * copy can never be stale — and revalidating it would be actively harmful:
  * the server ignores the query string, so a background refetch of
- * `storage.js?v=1.6.2` after the 1.6.1 deploy would silently overwrite the
+ * a release-tagged `storage.js` after the 1.6.1 deploy would silently overwrite the
  * 1.6.0 module with 1.6.1 code under the old key.
  */
 async function handleVersionedAsset(request) {
