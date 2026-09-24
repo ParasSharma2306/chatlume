@@ -8,7 +8,7 @@
  * restores the scroll position against an anchor element so nothing jumps.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.7.2";
+import { $ } from "./dom.js?v=1.7.3";
 
 /** The window that shows the newest messages. */
 export function tailRange(total, maxRendered) {

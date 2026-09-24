@@ -146,6 +146,8 @@ body.light-theme {
 button { cursor: pointer; }
 
 @media (max-width: 800px) {
+    :root { --chat-composer-height: 58px; }
+
     .landing-nav { flex-direction: column; gap: 16px; justify-content: center; padding: 20px 15px; }
     .landing-nav .nav-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
     .landing-nav .nav-links a { margin-left: 0; font-size: 14px; }
@@ -4175,14 +4177,23 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
         top: auto;
         right: max(8px, env(safe-area-inset-right, 0px));
         left: max(8px, env(safe-area-inset-left, 0px));
-        bottom: max(8px, env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--chat-composer-height) + env(safe-area-inset-bottom, 0px) + 8px);
         width: auto;
         min-width: 0;
         max-width: none;
-        max-height: min(70dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px));
+        max-height: min(70dvh, max(0px, calc(var(--participant-sheet-viewport-height, 100dvh) - max(8px, env(safe-area-inset-top, 0px)) - var(--chat-composer-height) - env(safe-area-inset-bottom, 0px) - 16px)));
         transform-origin: bottom center;
     }
-    .sender-filter-list { max-height: min(42dvh, 300px); }
+    .sender-filter-dropdown-header,
+    .sender-filter-search-wrap { flex: 0 0 auto; }
+    .sender-filter-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        padding-bottom: 12px;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
 
     .dropdown-menu {
         position: fixed;
@@ -4203,7 +4214,7 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     .search-nav button:first-of-type { margin-left: 2px; }
 
     .chat-footer {
-        height: calc(58px + env(safe-area-inset-bottom, 0px));
+        height: calc(var(--chat-composer-height) + env(safe-area-inset-bottom, 0px));
         flex: 0 0 auto;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
     }

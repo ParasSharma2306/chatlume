@@ -8,11 +8,11 @@
  * of the drop target.
  * ============================================================================
  */
-import { $, q, escapeHtml } from "../shared/dom.js?v=1.7.2";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit } from "../shared/compat.js?v=1.7.2";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "../shared/drop-zone.js?v=1.7.2";
-import { state } from "./state.js?v=1.7.2";
-import { isMobileLayout, setSidebarState, setUploadPanelVisible, showToast } from "./ui.js?v=1.7.2";
+import { $, q, escapeHtml } from "../shared/dom.js?v=1.7.3";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit } from "../shared/compat.js?v=1.7.3";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "../shared/drop-zone.js?v=1.7.3";
+import { state } from "./state.js?v=1.7.3";
+import { isMobileLayout, setSidebarState, setUploadPanelVisible, showToast } from "./ui.js?v=1.7.3";
 
 /** Wires the picker, drop target and window-wide drop overlay. */
 export function setupFileIntake() {

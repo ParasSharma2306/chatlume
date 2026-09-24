@@ -15,7 +15,7 @@
  * Nothing here is ever fed user data; the copy is authored below.
  */
 
-import { readStored, writeStored } from "./shared/safe-storage.js?v=1.7.2";
+import { readStored, writeStored } from "./shared/safe-storage.js?v=1.7.3";
 
 const SNOOZE_KEY = "chatlume-sponsor-snooze-until";
 const SPONSOR_URL = "https://github.com/sponsors/ParasSharma2306";

@@ -9,8 +9,8 @@
  * controller takes its icon selector.
  * ============================================================================
  */
-import { q } from "./dom.js?v=1.7.2";
-import { readStored, writeStored } from "./safe-storage.js?v=1.7.2";
+import { q } from "./dom.js?v=1.7.3";
+import { readStored, writeStored } from "./safe-storage.js?v=1.7.3";
 
 export const THEME_STORAGE_KEY = "chatlume-theme";
 

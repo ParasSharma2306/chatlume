@@ -6,9 +6,9 @@
  * captions — the same surface the WhatsApp viewer searches.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.7.2";
-import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.7.2";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.2";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.7.3";
+import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.7.3";
+import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.3";
 
 function getSearchableText(entry) {
     const mediaNames = (entry.mediaItems || []).map((m) => m.name).join(" ");

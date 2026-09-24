@@ -23,15 +23,15 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.7.2";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.2";
-import { popOverlayState } from "./shared/history.js?v=1.7.2";
-import { runSplashLoader } from "./shared/splash.js?v=1.7.2";
-import { createThemeController } from "./shared/theme.js?v=1.7.2";
-import { state } from "./whatsapp/state.js?v=1.7.2";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.2";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.2";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.2";
+import { $, isVisible } from "./shared/dom.js?v=1.7.3";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.3";
+import { popOverlayState } from "./shared/history.js?v=1.7.3";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.3";
+import { createThemeController } from "./shared/theme.js?v=1.7.3";
+import { state } from "./whatsapp/state.js?v=1.7.3";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.3";
+import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.3";
+import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.3";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -40,24 +40,24 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.7.2";
+} from "./whatsapp/filter.js?v=1.7.3";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.7.2";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.2";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.2";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.2";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.2";
+} from "./whatsapp/date-jump.js?v=1.7.3";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.3";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.3";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.3";
+import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.3";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.7.2";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.2";
+} from "./whatsapp/persistence.js?v=1.7.3";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.3";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -73,13 +73,27 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.7.2";
+} from "./whatsapp/ui.js?v=1.7.3";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const APP_VERSION = "1.7.2";
+const APP_VERSION = "1.7.3";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
+
+// Keep the mobile participant sheet sized to the visible viewport when the
+// on-screen keyboard opens. CSS viewport units remain the fallback.
+const visualViewport = window.visualViewport;
+if (visualViewport) {
+    const syncParticipantSheetViewport = () => {
+        document.documentElement.style.setProperty(
+            "--participant-sheet-viewport-height",
+            `${Math.round(visualViewport.height)}px`
+        );
+    };
+    syncParticipantSheetViewport();
+    visualViewport.addEventListener("resize", syncParticipantSheetViewport);
+}
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 

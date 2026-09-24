@@ -9,8 +9,8 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.2";
-import { state } from "./state.js?v=1.7.2";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.3";
+import { state } from "./state.js?v=1.7.3";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).
