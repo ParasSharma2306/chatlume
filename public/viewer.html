@@ -29,14 +29,14 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">     
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.7.1">
+    <link rel="stylesheet" href="../css/style.css?v=1.7.2">
     <link rel="manifest" href="../manifest.json">     
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">     
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script type="module" src="../js/script.js?v=1.7.1"></script>
+    <script type="module" src="../js/script.js?v=1.7.2"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <script>
         // Apply the saved theme before first paint. Without this the viewer
@@ -125,7 +125,7 @@
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.7.1</div>
+                    <div class="app-version-label" data-app-version>v1.7.2</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -350,7 +350,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.7.1 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.7.2 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
@@ -399,16 +399,17 @@
                                 <i class="ph ph-funnel" aria-hidden="true"></i>
                                 <span class="sender-filter-prefix">Messages from:</span>
                                 <span class="sender-filter-text" id="sender-filter-summary">All participants</span>
+                                <span class="sender-filter-badge" id="sender-filter-badge" aria-hidden="true" hidden></span>
                                 <i class="ph ph-caret-down sender-filter-caret" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" id="sender-filter-clear" class="sender-filter-clear" title="Clear sender filter" aria-label="Clear sender filter" hidden>
-                                <i class="ph ph-x" aria-hidden="true"></i>
                             </button>
                         </div>
                         <div class="sender-filter-dropdown" id="sender-filter-dropdown" role="dialog" aria-labelledby="sender-filter-heading" hidden>
                             <div class="sender-filter-dropdown-header" id="sender-filter-heading">
                                 <span>Filter by sender</span>
-                                <button type="button" class="sender-filter-reset-btn" id="sender-filter-reset-btn">Reset</button>
+                                <div class="sender-filter-dropdown-actions">
+                                    <button type="button" class="sender-filter-reset-btn" id="sender-filter-reset-btn">Reset</button>
+                                    <button type="button" class="sender-filter-close" id="sender-filter-close" aria-label="Close participant filter"><i class="ph ph-x" aria-hidden="true"></i></button>
+                                </div>
                             </div>
                             <label class="sender-filter-search-wrap">
                                 <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
@@ -425,7 +426,6 @@
                         <button id="menu-toggle" type="button" aria-label="Open chat actions" aria-controls="header-menu" aria-expanded="false"><i class="ph ph-dots-three-vertical"></i></button>
                         <div class="dropdown-menu" id="header-menu">                             
                             <button type="button" class="menu-item" id="date-jump-action"><i class="ph ph-calendar-blank"></i> Go to Date</button>                             
-                            <button type="button" class="menu-item" id="jump-bottom-action"><i class="ph ph-arrow-down"></i> Jump to Bottom</button>                         
                         </div>                     
                     </div>                 
                 </div>             
@@ -584,6 +584,6 @@
         <div id="toast" aria-live="polite">Copied to Clipboard</div>
 
     </div>
-    <script src="../js/site.js?v=1.7.1" defer></script>
+    <script src="../js/site.js?v=1.7.2" defer></script>
 </body>
 </html>

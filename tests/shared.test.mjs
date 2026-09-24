@@ -7,7 +7,7 @@ const { applyTextFormatting, buildRichText, highlightOutsideTags } = await versi
 const { baseName, detectMediaType, formatBytes, inferMimeType, labelForMediaKind } = await versioned("../js/shared/media-types.js");
 const { SENDER_COLORS, colorForName } = await versioned("../js/shared/colors.js");
 const { countEmojis } = await versioned("../js/shared/emoji.js");
-const { clampRenderRange, tailRange } = await versioned("../js/shared/virtual-list.js");
+const { clampRenderRange, syncScrollLatestButton, tailRange } = await versioned("../js/shared/virtual-list.js");
 
 /**
  * The utilities both viewers share. These used to be duplicated (with small
@@ -139,5 +139,39 @@ describe("shared/virtual-list", () => {
         state.renderRange = { start: 90, end: 20 };
         clampRenderRange(state, 30);
         assert.deepEqual(state.renderRange, { start: 90, end: 90 });
+    });
+
+    test("does not show jump-to-latest from a stale animation frame", () => {
+        const originalRaf = globalThis.requestAnimationFrame;
+        const originalWindow = globalThis.window;
+        const frames = [];
+        globalThis.requestAnimationFrame = (callback) => frames.push(callback);
+        globalThis.window = { setTimeout: () => 0 };
+        const classes = new Set();
+        const button = {
+            hidden: true,
+            classList: {
+                add: (name) => classes.add(name),
+                remove: (name) => classes.delete(name),
+                contains: (name) => classes.has(name)
+            }
+        };
+        const viewport = { scrollHeight: 1000, scrollTop: 300, clientHeight: 300 };
+        const state = { filteredMessages: new Array(10), renderRange: { start: 0, end: 10 } };
+
+        try {
+            syncScrollLatestButton(button, viewport, state);
+            syncScrollLatestButton(button, viewport, state);
+            assert.equal(frames.length, 1);
+            viewport.scrollTop = 700;
+            syncScrollLatestButton(button, viewport, state);
+            frames.forEach((callback) => callback());
+            assert.equal(classes.has("show"), false);
+        } finally {
+            if (originalRaf) globalThis.requestAnimationFrame = originalRaf;
+            else delete globalThis.requestAnimationFrame;
+            if (originalWindow) globalThis.window = originalWindow;
+            else delete globalThis.window;
+        }
     });
 });

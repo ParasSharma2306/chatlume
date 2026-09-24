@@ -258,7 +258,7 @@ export function copyFileToStorage(file, id, { onProgress } = {}) {
         // A blocked or missing worker script must surface as a normal failure,
         // not as an exception thrown out of the caller's await chain.
         try {
-            worker = new Worker(new URL("./storage-worker.js?v=1.7.1", import.meta.url));
+            worker = new Worker(new URL("./storage-worker.js?v=1.7.2", import.meta.url));
         } catch (error) {
             fail(error?.name || "Error", error?.message || "The storage worker could not be started");
             return;

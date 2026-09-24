@@ -23,15 +23,15 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.7.1";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.1";
-import { popOverlayState } from "./shared/history.js?v=1.7.1";
-import { runSplashLoader } from "./shared/splash.js?v=1.7.1";
-import { createThemeController } from "./shared/theme.js?v=1.7.1";
-import { state } from "./whatsapp/state.js?v=1.7.1";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.1";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.1";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.1";
+import { $, isVisible } from "./shared/dom.js?v=1.7.2";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.2";
+import { popOverlayState } from "./shared/history.js?v=1.7.2";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.2";
+import { createThemeController } from "./shared/theme.js?v=1.7.2";
+import { state } from "./whatsapp/state.js?v=1.7.2";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.2";
+import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.2";
+import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.2";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -40,24 +40,24 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.7.1";
+} from "./whatsapp/filter.js?v=1.7.2";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.7.1";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.1";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.1";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.1";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.1";
+} from "./whatsapp/date-jump.js?v=1.7.2";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.2";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.2";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.2";
+import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.2";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.7.1";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.1";
+} from "./whatsapp/persistence.js?v=1.7.2";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.2";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -73,11 +73,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.7.1";
+} from "./whatsapp/ui.js?v=1.7.2";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.7.2";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -174,9 +174,9 @@ function bindUI() {
         event.preventDefault();
         toggleSenderFilterDropdown(true);
     });
-    $("sender-filter-clear")?.addEventListener("click", (event) => {
-        event.stopPropagation();
-        clearSenderFilter(filterOptions);
+    $("sender-filter-close")?.addEventListener("click", () => {
+        closeSenderFilterDropdown();
+        $("sender-filter-btn")?.focus({ preventScroll: true });
     });
     $("sender-filter-reset-btn")?.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -229,7 +229,6 @@ function bindUI() {
         }
     });
     $("date-jump-action")?.addEventListener("click", handleDateJumpAction);
-    $("jump-bottom-action")?.addEventListener("click", jumpToBottom);
     $("scroll-latest")?.addEventListener("click", jumpToBottom);
 
     // Sheets

@@ -28,6 +28,12 @@
     --control-radius: 9px;
     --popover-radius: 12px;
     --focus-ring: 0 0 0 3px rgba(0, 168, 132, 0.24);
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --icon-size-control: 18px;
+    --motion-fast: 120ms;
 }
 
 body.light-theme {
@@ -1096,10 +1102,11 @@ body.light-theme .chat-bg {
     display: flex;
     align-items: center;
     gap: 12px;
-    overflow: hidden;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
 }
+
+.header-info { flex: 1 1 auto; min-width: 0; }
 
 .header-pfp {
     width: 40px;
@@ -1147,7 +1154,7 @@ body.light-theme .chat-bg {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    height: 36px;
+    min-height: var(--control-height);
     padding: 0 5px 0 8px;
     border-radius: 8px;
     background: var(--bg-input);
@@ -1173,11 +1180,10 @@ body.light-theme .chat-bg {
     cursor: pointer;
     padding: 0;
     outline: none;
-    min-height: 36px;
+    min-height: var(--control-height);
 }
 
 .sender-filter-btn:focus-visible,
-.sender-filter-clear:focus-visible,
 .sender-filter-reset-btn:focus-visible,
 .sender-filter-checkbox:focus-visible {
     outline: 2px solid var(--primary);
@@ -1216,34 +1222,24 @@ body.light-theme .chat-bg {
     transition: transform 0.2s ease;
 }
 
-.sender-filter-btn[aria-expanded="true"] .sender-filter-caret {
-    transform: rotate(180deg);
-}
-
-.sender-filter-clear {
+.sender-filter-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 13px;
-    padding: 0;
-    transition: background 0.15s ease, color 0.15s ease;
-    flex-shrink: 0;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 9px;
+    color: #fff;
+    background: var(--primary);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
 }
+.sender-filter-badge[hidden] { display: none !important; }
 
-.sender-filter-clear:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-}
-
-body.light-theme .sender-filter-clear:hover {
-    background: rgba(0, 0, 0, 0.08);
+.sender-filter-btn[aria-expanded="true"] .sender-filter-caret {
+    transform: rotate(180deg);
 }
 
 /* ── Sender filter dropdown popover ── */
@@ -1282,6 +1278,20 @@ body.light-theme .sender-filter-clear:hover {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+.sender-filter-dropdown-actions { display: flex; align-items: center; gap: var(--space-1); }
+.sender-filter-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: var(--control-radius);
+    color: var(--text-secondary);
+    background: transparent;
+}
+.sender-filter-close:hover { color: var(--text-primary); background: var(--bg-input); }
 
 .sender-filter-reset-btn {
     border: none;
@@ -2221,26 +2231,6 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
 
     .header-tools {
         gap: 2px;
-    }
-
-    .sender-filter-wrapper {
-        height: 32px;
-        padding: 0 4px 0 8px;
-        gap: 3px;
-    }
-
-    .sender-filter-prefix {
-        display: none;
-    }
-
-    .sender-filter-text {
-        max-width: 95px;
-        font-size: 12px;
-    }
-
-    .sender-filter-btn {
-        font-size: 12px;
-        gap: 4px;
     }
 
     .sender-filter-dropdown {
@@ -3815,12 +3805,6 @@ body.light-theme .ph-badge-wrap a {
     .empty-hints { gap: 6px; }
     .empty-hint { font-size: 11px; padding: 5px 10px; }
     .sponsors-grid { grid-template-columns: 1fr; }
-    .sender-filter-text { max-width: 76px; }
-}
-
-@media (max-width: 360px) {
-    .sender-filter-text { display: none; }
-    .sender-filter-wrapper { padding-left: 7px; }
 }
 
 /* ── Brand mark ──
@@ -4008,6 +3992,9 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
+.chat-header .header-tools > button i,
+.chat-header .menu-container > button i { font-size: var(--icon-size-control); }
+
 .chat-header .header-tools > button:hover,
 .chat-header .menu-container > button:hover,
 .chat-header .header-tools > button[aria-expanded="true"],
@@ -4040,7 +4027,7 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     font-size: 14px;
     line-height: 1.35;
     cursor: pointer;
-    transition: background-color 120ms ease, color 120ms ease;
+    transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
 }
 
 .menu-item i { width: 18px; flex: 0 0 18px; text-align: center; font-size: 17px; color: var(--text-secondary); }
@@ -4050,7 +4037,6 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
 
 .sender-filter-wrapper { min-height: var(--control-height); border-radius: var(--control-radius); }
 .sender-filter-btn { min-height: var(--control-height); }
-.sender-filter-clear { width: 32px; height: 32px; }
 .sender-filter-container.has-filter .sender-filter-wrapper {
     border-color: color-mix(in srgb, var(--primary) 56%, var(--border));
     background: color-mix(in srgb, var(--primary) 8%, var(--bg-input));
@@ -4113,9 +4099,9 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 32px;
-    width: 32px;
-    height: 32px;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
     border: 0;
     border-radius: 50%;
     background: transparent;
@@ -4184,22 +4170,17 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     .chat-header .header-tools > button,
     .chat-header .menu-container > button { flex-basis: 40px; width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
 
-    .sender-filter-wrapper { min-height: 40px; max-width: 142px; padding: 0 3px 0 7px; gap: 2px; }
-    .sender-filter-btn { min-height: 40px; max-width: 100%; gap: 4px; font-size: 12px; }
-    .sender-filter-btn .ph-funnel { font-size: 14px; }
-    .sender-filter-text { max-width: 94px; font-size: 12px; }
-    .sender-filter-clear { width: 28px; height: 32px; }
-
     .sender-filter-dropdown {
         position: fixed;
-        top: calc(env(safe-area-inset-top, 0px) + 68px);
+        top: auto;
         right: max(8px, env(safe-area-inset-right, 0px));
         left: max(8px, env(safe-area-inset-left, 0px));
+        bottom: max(8px, env(safe-area-inset-bottom, 0px));
         width: auto;
         min-width: 0;
         max-width: none;
-        max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 84px);
-        transform-origin: top center;
+        max-height: min(70dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px));
+        transform-origin: bottom center;
     }
     .sender-filter-list { max-height: min(42dvh, 300px); }
 
@@ -4230,18 +4211,6 @@ body.light-theme .scroll-latest { box-shadow: 0 6px 20px rgba(17, 27, 33, 0.12);
     .messages-viewport { scroll-padding-bottom: 16px; }
     .date-sheet-backdrop { align-items: flex-end; padding: 12px 12px max(12px, env(safe-area-inset-bottom, 0px)); }
     .date-sheet { border-radius: 14px; }
-}
-
-@media (max-width: 380px) {
-    .chat-header { padding-left: 6px; padding-right: 6px; gap: 2px; }
-    .mobile-menu { flex-basis: 36px; width: 36px; min-width: 36px; }
-    .header-profile { gap: 5px; }
-    .header-pfp { width: 30px; height: 30px; }
-    .header-info p { display: none; }
-    .sender-filter-wrapper { max-width: 120px; }
-    .sender-filter-text { max-width: 76px; }
-    .chat-header .header-tools > button,
-    .chat-header .menu-container > button { flex-basis: 36px; width: 36px; min-width: 36px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4620,17 +4589,17 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 
 /* Keep the contextual latest-message button clear of the composer. */
 .scroll-latest { bottom: 76px; }
-.sender-filter-search-clear[hidden],
-.sender-filter-clear[hidden] { display: none !important; }
+.sender-filter-search-clear[hidden] { display: none !important; }
 
 @media (max-width: 800px) {
     .scroll-latest { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
 
-/* Header participant control: a quiet filter chip with a clear selected state. */
+/* Header participant control yields space to the chat identity. */
 .sender-filter-wrapper {
     gap: 2px;
-    max-width: min(260px, 25vw);
+    width: fit-content;
+    max-width: 100%;
     padding: 0;
     border: 0;
     background: transparent;
@@ -4638,7 +4607,7 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 }
 .sender-filter-wrapper:focus-within { border-color: transparent; box-shadow: none; }
 .sender-filter-btn {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     max-width: 100%;
     gap: 7px;
@@ -4658,9 +4627,9 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 .sender-filter-btn i.ph-funnel { color: var(--text-secondary); font-size: 14px; }
 .sender-filter-btn[aria-expanded="true"] i.ph-funnel { color: var(--primary); }
 .sender-filter-text {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
-    max-width: clamp(88px, 14vw, 156px);
+    max-width: min(156px, 18vw);
     font-size: 12.5px;
     font-weight: 550;
 }
@@ -4673,13 +4642,9 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 }
 .sender-filter-container.has-filter .sender-filter-btn i.ph-funnel,
 .sender-filter-container.has-filter .sender-filter-caret { color: var(--primary); }
-.sender-filter-clear {
-    flex: 0 0 30px;
-    width: 30px;
-    height: 32px;
-    border-radius: 8px;
-}
-.sender-filter-clear:hover { background: rgba(134, 150, 160, 0.12); }
+
+.sender-filter-wrapper { border: 0; background: transparent; box-shadow: none; }
+.sender-filter-btn { flex: 0 1 auto; }
 
 /* Preserve the full frame: the supplied demo has useful UI near all four edges. */
 .hero-demo {
@@ -4707,18 +4672,27 @@ body.light-theme .hero-demo {
 
 @media (max-width: 800px) {
     .hero-demo { width: 100%; margin-top: 26px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18); }
-    .sender-filter-wrapper { max-width: 142px; }
-    .sender-filter-text { max-width: 94px; font-size: 12px; }
 }
 
-@media (max-width: 380px) {
-    .sender-filter-wrapper { max-width: 120px; }
-    .sender-filter-btn { gap: 4px; padding: 0 6px; }
-    .sender-filter-text { display: block; max-width: 76px; font-size: 11.5px; }
-    .sender-filter-clear { flex-basis: 24px; width: 24px; }
+@media (min-width: 521px) and (max-width: 800px) {
+    .sender-filter-wrapper { max-width: 220px; }
+    .sender-filter-text { max-width: 116px; font-size: 12px; }
     .hero-demo { margin-top: 22px; border-radius: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .hero-demo.cl-enter { animation: none; }
+}
+
+/* On narrow phones, the filter takes one fixed icon slot; the title keeps the remaining flex space. */
+@media (max-width: 520px) {
+    .chat-header { gap: var(--space-1); }
+    .header-profile { flex: 1 1 0; }
+    .header-info { flex: 1 1 0; }
+    .sender-filter-wrapper { flex: 0 0 var(--control-height); width: var(--control-height); min-width: var(--control-height); max-width: var(--control-height); padding: 0; }
+    .sender-filter-btn { position: relative; justify-content: center; flex: 0 0 100%; width: 100%; min-width: 100%; padding: 0; }
+    .sender-filter-prefix,
+    .sender-filter-text,
+    .sender-filter-caret { display: none; }
+    .sender-filter-badge { position: absolute; top: -3px; right: -3px; border: 2px solid var(--bg-header); }
 }

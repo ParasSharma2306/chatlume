@@ -19,17 +19,17 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.7.1";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.1";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.7.1";
-import { popOverlayState } from "./shared/history.js?v=1.7.1";
-import { runSplashLoader } from "./shared/splash.js?v=1.7.1";
-import { createThemeController } from "./shared/theme.js?v=1.7.1";
-import { igState } from "./instagram/state.js?v=1.7.1";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.7.1";
-import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.7.1";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.7.1";
-import { initViewer } from "./instagram/session.js?v=1.7.1";
+import { $, q, escapeHtml } from "./shared/dom.js?v=1.7.2";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.2";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.7.2";
+import { popOverlayState } from "./shared/history.js?v=1.7.2";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.2";
+import { createThemeController } from "./shared/theme.js?v=1.7.2";
+import { igState } from "./instagram/state.js?v=1.7.2";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.7.2";
+import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.7.2";
+import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.7.2";
+import { initViewer } from "./instagram/session.js?v=1.7.2";
 import {
     closeAllDrawers,
     closeMenu,
@@ -41,11 +41,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.7.1";
+} from "./instagram/ui.js?v=1.7.2";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const IG_APP_VERSION = "1.7.1";
+const IG_APP_VERSION = "1.7.2";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
@@ -100,7 +100,7 @@ function bindUI() {
     $("ig-search-up")?.addEventListener("click", () => navSearch("up"));
     $("ig-search-down")?.addEventListener("click", () => navSearch("down"));
 
-    // Header menu
+    // Header menu (the thread session adds its export action here).
     $("ig-menu-toggle")?.addEventListener("click", toggleMenu);
     $("ig-menu-toggle")?.addEventListener("keydown", (event) => {
         if (event.key !== "ArrowDown" || $("ig-header-menu")?.classList.contains("show")) return;
@@ -125,7 +125,6 @@ function bindUI() {
             items[event.key === "Home" ? 0 : items.length - 1].focus();
         }
     });
-    $("ig-jump-bottom")?.addEventListener("click", jumpToBottom);
     $("ig-scroll-latest")?.addEventListener("click", jumpToBottom);
     document.addEventListener("click", handleDocumentClick);
 

@@ -8,7 +8,7 @@
  * restores the scroll position against an anchor element so nothing jumps.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.7.1";
+import { $ } from "./dom.js?v=1.7.2";
 
 /** The window that shows the newest messages. */
 export function tailRange(total, maxRendered) {
@@ -95,6 +95,7 @@ export function paginateOnScroll(viewport, state, { batchSize, maxRendered, rend
 
 /** How far from the bottom (px) before the jump-to-latest pill appears. */
 export const SCROLL_LATEST_THRESHOLD = 320;
+const pendingLatestButtonFrames = new WeakSet();
 
 /**
  * Shows the floating jump-to-latest pill once the conversation is scrolled
@@ -117,8 +118,17 @@ export function syncScrollLatestButton(button, viewport, state) {
 
     if (shouldShow) {
         button.hidden = false;
-        // Unhide first so the fade actually has a frame to run in.
-        requestAnimationFrame(() => button.classList.add("show"));
+        // Scroll events can arrive many times before a frame. Queue one reveal
+        // and recheck state so a stale frame cannot resurrect the pill.
+        if (!button.classList.contains("show") && !pendingLatestButtonFrames.has(button)) {
+            pendingLatestButtonFrames.add(button);
+            requestAnimationFrame(() => {
+                pendingLatestButtonFrames.delete(button);
+                const currentDistance = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+                const stillAway = state.renderRange.end < state.filteredMessages.length || currentDistance > SCROLL_LATEST_THRESHOLD;
+                if (!button.hidden && stillAway) button.classList.add("show");
+            });
+        }
         return;
     }
 

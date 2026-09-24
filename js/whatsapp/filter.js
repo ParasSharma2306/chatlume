@@ -9,8 +9,8 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.1";
-import { state } from "./state.js?v=1.7.1";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.2";
+import { state } from "./state.js?v=1.7.2";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).
@@ -174,7 +174,7 @@ export function populateSenderFilter() {
     if (summaryEl) {
         setSenderFilterSummary(summaryEl, getSenderFilterSummary(state.selectedSenders));
     }
-    syncSenderFilterClearButton();
+    syncSenderFilterBadge();
     container.hidden = false;
 }
 
@@ -198,13 +198,14 @@ export function filterSenderList(query) {
 }
 
 /**
- * Syncs the visibility of the clear button next to the filter button.
+ * Syncs the selected participant count on the compact filter control.
  */
-export function syncSenderFilterClearButton() {
-    const clearBtn = $("sender-filter-clear");
-    if (clearBtn) {
-        const hasSelection = Boolean(state.selectedSenders && state.selectedSenders.length > 0);
-        clearBtn.hidden = !hasSelection;
+export function syncSenderFilterBadge() {
+    const badge = $("sender-filter-badge");
+    const count = state.selectedSenders?.length || 0;
+    if (badge) {
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.hidden = count === 0;
     }
 }
 
@@ -263,7 +264,7 @@ export function applySenderFilter(senders, { onRender, onSearch, onToast, silent
         setSenderFilterSummary(summaryEl, getSenderFilterSummary(state.selectedSenders));
     }
 
-    syncSenderFilterClearButton();
+    syncSenderFilterBadge();
 
     // Sync checkboxes in dropdown list
     const listEl = $("sender-filter-list");
@@ -379,7 +380,7 @@ export function resetSenderFilterUI() {
     if (searchEl) searchEl.value = "";
     if ($("sender-filter-no-results")) $("sender-filter-no-results").hidden = true;
     if (summaryEl) setSenderFilterSummary(summaryEl, "All participants");
-    syncSenderFilterClearButton();
+    syncSenderFilterBadge();
     if (container) container.hidden = true;
 }
 
