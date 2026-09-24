@@ -8,17 +8,17 @@
  * ============================================================================
  */
 import { BlobReader, TextWriter, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.7.0";
-import { showSponsorPrompt } from "../support.js?v=1.7.0";
-import { $, q, replayClass } from "../shared/dom.js?v=1.7.0";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.0";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.7.0";
-import { fixMojibake } from "./mojibake.js?v=1.7.0";
-import { igState } from "./state.js?v=1.7.0";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.7.0";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessages, sortMessageFiles } from "./parser.js?v=1.7.0";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.7.0";
-import { showThreadSelector } from "./threads.js?v=1.7.0";
+import { exportChatAsHTML } from "../export.js?v=1.7.1";
+import { showSponsorPrompt } from "../support.js?v=1.7.1";
+import { $, q, replayClass } from "../shared/dom.js?v=1.7.1";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.1";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.7.1";
+import { fixMojibake } from "./mojibake.js?v=1.7.1";
+import { igState } from "./state.js?v=1.7.1";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.7.1";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessages, sortMessageFiles } from "./parser.js?v=1.7.1";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.7.1";
+import { showThreadSelector } from "./threads.js?v=1.7.1";
 import {
     closeMenu,
     generateStats,
@@ -29,7 +29,7 @@ import {
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.7.0";
+} from "./ui.js?v=1.7.1";
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
 export async function initViewer() {

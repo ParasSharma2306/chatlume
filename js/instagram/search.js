@@ -6,9 +6,9 @@
  * captions — the same surface the WhatsApp viewer searches.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.7.0";
-import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.7.0";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.0";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.7.1";
+import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.7.1";
+import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.1";
 
 function getSearchableText(entry) {
     const mediaNames = (entry.mediaItems || []).map((m) => m.name).join(" ");
@@ -23,6 +23,7 @@ export function toggleSearch() {
     const input = $("ig-live-search");
     if (!bar || !input) return;
     const open = bar.classList.toggle("active");
+    $("ig-search-toggle")?.setAttribute("aria-expanded", String(open));
     if (open) { input.focus(); return; }
     input.value = "";
     clearTimeout(igState.searchTimer);
@@ -31,6 +32,7 @@ export function toggleSearch() {
     updateSearchCounter();
     setSearchEmptyState(false);
     resetRenderToBottom();
+    $("ig-search-toggle")?.focus({ preventScroll: true });
 }
 
 /** Debounced input handler for the search box. */

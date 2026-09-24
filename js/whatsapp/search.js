@@ -8,9 +8,9 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.7.0";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.7.0";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.0";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.7.1";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.7.1";
+import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.7.1";
 
 /** The text a message is matched against. */
 function getSearchableText(entry) {
@@ -28,6 +28,7 @@ export function toggleSearch() {
 
     state.isSearchOpen = !toolbar.classList.contains("active");
     toolbar.classList.toggle("active", state.isSearchOpen);
+    $("search-toggle")?.setAttribute("aria-expanded", String(state.isSearchOpen));
 
     if (state.isSearchOpen) {
         input.focus();
@@ -40,6 +41,7 @@ export function toggleSearch() {
     handleSearch("");
     setSearchEmptyState(false);
     resetRenderToBottom();
+    $("search-toggle")?.focus({ preventScroll: true });
 }
 
 /** Debounced input handler for the search box. */

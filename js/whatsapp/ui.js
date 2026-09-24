@@ -8,11 +8,11 @@
  * these read `state` only for counts and flags.
  * ============================================================================
  */
-import { $, q, escapeHtml, replayClass } from "../shared/dom.js?v=1.7.0";
-import { pushOverlayState } from "../shared/history.js?v=1.7.0";
-import { createToast } from "../shared/toast.js?v=1.7.0";
-import { animateStatsIn } from "../shared/stats-panel.js?v=1.7.0";
-import { state } from "./state.js?v=1.7.0";
+import { $, q, escapeHtml, replayClass } from "../shared/dom.js?v=1.7.1";
+import { pushOverlayState } from "../shared/history.js?v=1.7.1";
+import { createToast } from "../shared/toast.js?v=1.7.1";
+import { animateStatsIn } from "../shared/stats-panel.js?v=1.7.1";
+import { state } from "./state.js?v=1.7.1";
 
 export const showToast = createToast("toast");
 
@@ -72,12 +72,17 @@ export function setUploadPanelVisible(show) {
 
 // ── Header menu ─────────────────────────────────────────────────────────────
 
-export function toggleMenu() {
-    $("header-menu")?.classList.toggle("show");
+export function toggleMenu(forceOpen) {
+    const menu = $("header-menu");
+    if (!menu) return;
+    const willOpen = typeof forceOpen === "boolean" ? forceOpen : !menu.classList.contains("show");
+    menu.classList.toggle("show", willOpen);
+    $("menu-toggle")?.setAttribute("aria-expanded", String(willOpen));
 }
 
 export function closeMenu() {
     $("header-menu")?.classList.remove("show");
+    $("menu-toggle")?.setAttribute("aria-expanded", "false");
 }
 
 /** Clicking anywhere outside the open header menu closes it. */

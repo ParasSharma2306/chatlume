@@ -23,40 +23,41 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.7.0";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.0";
-import { popOverlayState } from "./shared/history.js?v=1.7.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.7.0";
-import { createThemeController } from "./shared/theme.js?v=1.7.0";
-import { state } from "./whatsapp/state.js?v=1.7.0";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.0";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.0";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.0";
+import { $, isVisible } from "./shared/dom.js?v=1.7.1";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.1";
+import { popOverlayState } from "./shared/history.js?v=1.7.1";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.1";
+import { createThemeController } from "./shared/theme.js?v=1.7.1";
+import { state } from "./whatsapp/state.js?v=1.7.1";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.7.1";
+import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.7.1";
+import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.7.1";
 import {
     applySenderFilter,
     clearSenderFilter,
+    filterSenderList,
     closeSenderFilterDropdown,
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.7.0";
+} from "./whatsapp/filter.js?v=1.7.1";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.7.0";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.0";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.0";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.0";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.0";
+} from "./whatsapp/date-jump.js?v=1.7.1";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.1";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.1";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.1";
+import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.1";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.7.0";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.0";
+} from "./whatsapp/persistence.js?v=1.7.1";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.7.1";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -72,11 +73,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.7.0";
+} from "./whatsapp/ui.js?v=1.7.1";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const APP_VERSION = "1.7.0";
+const APP_VERSION = "1.7.1";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -180,20 +181,53 @@ function bindUI() {
     $("sender-filter-reset-btn")?.addEventListener("click", (event) => {
         event.stopPropagation();
         clearSenderFilter(filterOptions);
+        const searchInput = $("sender-filter-search");
+        if (searchInput) {
+            searchInput.value = "";
+            filterSenderList("");
+        }
     });
     $("sender-filter-list")?.addEventListener("change", (event) => {
         const checkbox = event.target;
         if (!checkbox || checkbox.type !== "checkbox") return;
         toggleSender(checkbox.value, checkbox.checked, filterOptions);
     });
-    $("sender-filter-menu-action")?.addEventListener("click", (event) => {
-        event.stopPropagation();
-        closeMenu();
-        toggleSenderFilterDropdown(true);
+    $("sender-filter-search")?.addEventListener("input", (event) => {
+        filterSenderList(event.target.value);
+    });
+    $("sender-filter-search-clear")?.addEventListener("click", () => {
+        const input = $("sender-filter-search");
+        if (!input) return;
+        input.value = "";
+        filterSenderList("");
+        input.focus({ preventScroll: true });
     });
 
     // Header menu
     $("menu-toggle")?.addEventListener("click", toggleMenu);
+    $("menu-toggle")?.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowDown" || $("header-menu")?.classList.contains("show")) return;
+        event.preventDefault();
+        toggleMenu(true);
+        $("header-menu")?.querySelector(".menu-item")?.focus();
+    });
+    $("header-menu")?.addEventListener("keydown", (event) => {
+        const items = [...event.currentTarget.querySelectorAll(".menu-item:not(:disabled)")];
+        if (!items.length) return;
+        const index = items.indexOf(document.activeElement);
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeMenu();
+            $("menu-toggle")?.focus();
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const step = event.key === "ArrowDown" ? 1 : -1;
+            items[(index + step + items.length) % items.length].focus();
+        } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            items[event.key === "Home" ? 0 : items.length - 1].focus();
+        }
+    });
     $("date-jump-action")?.addEventListener("click", handleDateJumpAction);
     $("jump-bottom-action")?.addEventListener("click", jumpToBottom);
     $("scroll-latest")?.addEventListener("click", jumpToBottom);
@@ -248,8 +282,7 @@ function bindUI() {
         handleDocumentClick(event);
         if (isSenderFilterDropdownOpen()) {
             const container = $("sender-filter-container");
-            const menuAction = $("sender-filter-menu-action");
-            if (container && !container.contains(event.target) && (!menuAction || !menuAction.contains(event.target))) {
+            if (container && !container.contains(event.target)) {
                 closeSenderFilterDropdown();
             }
         }
@@ -304,7 +337,9 @@ function handleEscape() {
         toggleSearch();
         return;
     }
+    const wasMenuOpen = $("header-menu")?.classList.contains("show");
     closeMenu();
+    if (wasMenuOpen) $("menu-toggle")?.focus();
     closeAllDrawers();
 }
 

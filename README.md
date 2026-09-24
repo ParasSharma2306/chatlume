@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.7.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.7.1-blue?style=flat-square)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ChatLume started as a favor for my girlfriend. She wanted to look back through some old WhatsApp chats, but the export WhatsApp actually gives you is a raw `.txt` wall of text: readable if you squint, but nothing like what the conversation actually looked like. I wanted her to see it the way it happened, so I built a small viewer to do just that.
 
-It turned out better than I expected, so I cleaned it up and put it online. It now handles WhatsApp and Instagram exports, runs entirely in the browser, and can save any chat back out as a standalone HTML file. I built and keep improving it with help from Claude Code and Gemini's Antigravity CLI.
+It turned out better than I expected, so I cleaned it up and put it online. It now handles WhatsApp and Instagram exports, runs entirely in the browser, and can save any chat back out as a standalone HTML file. I built and keep improving it with help from Claude Code, Gemini's Antigravity CLI, and Codex.
 
 ---
 

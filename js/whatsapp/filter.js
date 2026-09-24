@@ -9,8 +9,8 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.0";
-import { state } from "./state.js?v=1.7.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.1";
+import { state } from "./state.js?v=1.7.1";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).
@@ -131,14 +131,18 @@ export function populateSenderFilter() {
     const listEl = $("sender-filter-list");
     const container = $("sender-filter-container");
     const summaryEl = $("sender-filter-summary");
+    const searchEl = $("sender-filter-search");
     if (!listEl || !container) return;
 
     const senders = getChatSenders(state.senderStats);
     if (!senders.length) {
         container.hidden = true;
         listEl.innerHTML = "";
+        if (searchEl) searchEl.value = "";
         return;
     }
+
+    if (searchEl) searchEl.value = "";
 
     const currentSelected = new Set(state.selectedSenders || []);
     const isAll = currentSelected.size === 0;
@@ -159,18 +163,38 @@ export function populateSenderFilter() {
         html += `
             <label class="sender-filter-item">
                 <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(sender)}" ${checked}>
-                <span class="sender-filter-name">${escapeHtml(label)}</span>
+                <span class="sender-filter-name" title="${escapeAttribute(label)}">${escapeHtml(label)}</span>
                 <span class="sender-filter-count">${count.toLocaleString()}</span>
             </label>
         `;
     }
 
     listEl.innerHTML = html;
+    filterSenderList("");
     if (summaryEl) {
         setSenderFilterSummary(summaryEl, getSenderFilterSummary(state.selectedSenders));
     }
     syncSenderFilterClearButton();
     container.hidden = false;
+}
+
+/** Narrows the visible participant rows without changing the active filter. */
+export function filterSenderList(query) {
+    const listEl = $("sender-filter-list");
+    const noResults = $("sender-filter-no-results");
+    const clearButton = $("sender-filter-search-clear");
+    if (!listEl) return;
+
+    const normalized = String(query || "").trim().toLowerCase();
+    let visibleCount = 0;
+    listEl.querySelectorAll(".sender-filter-item").forEach((item) => {
+        const name = item.querySelector(".sender-filter-name")?.textContent || "";
+        const visible = !normalized || name.toLowerCase().includes(normalized);
+        item.hidden = !visible;
+        if (visible) visibleCount += 1;
+    });
+    if (noResults) noResults.hidden = visibleCount > 0;
+    if (clearButton) clearButton.hidden = !String(query || "").length;
 }
 
 /**
@@ -326,7 +350,7 @@ export function toggleSenderFilterDropdown(forceOpen) {
     dropdown.hidden = !willOpen;
     btn.setAttribute("aria-expanded", String(willOpen));
     if (willOpen) {
-        dropdown.querySelector('input[type="checkbox"]')?.focus({ preventScroll: true });
+        $("sender-filter-search")?.focus({ preventScroll: true });
     }
 }
 
@@ -349,8 +373,11 @@ export function resetSenderFilterUI() {
     const listEl = $("sender-filter-list");
     const container = $("sender-filter-container");
     const summaryEl = $("sender-filter-summary");
+    const searchEl = $("sender-filter-search");
 
     if (listEl) listEl.innerHTML = "";
+    if (searchEl) searchEl.value = "";
+    if ($("sender-filter-no-results")) $("sender-filter-no-results").hidden = true;
     if (summaryEl) setSenderFilterSummary(summaryEl, "All participants");
     syncSenderFilterClearButton();
     if (container) container.hidden = true;
@@ -359,6 +386,8 @@ export function resetSenderFilterUI() {
 /** Keeps the visible short label and the accessible button name in sync. */
 function setSenderFilterSummary(summaryEl, summary) {
     summaryEl.textContent = summary;
+    const container = $("sender-filter-container");
+    container?.classList.toggle("has-filter", Boolean(state.selectedSenders?.length));
     const button = $("sender-filter-btn");
     if (button) {
         const label = `Filter by sender, ${summary}`;

@@ -19,17 +19,17 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.7.0";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.0";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.7.0";
-import { popOverlayState } from "./shared/history.js?v=1.7.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.7.0";
-import { createThemeController } from "./shared/theme.js?v=1.7.0";
-import { igState } from "./instagram/state.js?v=1.7.0";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.7.0";
-import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.7.0";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.7.0";
-import { initViewer } from "./instagram/session.js?v=1.7.0";
+import { $, q, escapeHtml } from "./shared/dom.js?v=1.7.1";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.1";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.7.1";
+import { popOverlayState } from "./shared/history.js?v=1.7.1";
+import { runSplashLoader } from "./shared/splash.js?v=1.7.1";
+import { createThemeController } from "./shared/theme.js?v=1.7.1";
+import { igState } from "./instagram/state.js?v=1.7.1";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.7.1";
+import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.7.1";
+import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.7.1";
+import { initViewer } from "./instagram/session.js?v=1.7.1";
 import {
     closeAllDrawers,
     closeMenu,
@@ -41,11 +41,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.7.0";
+} from "./instagram/ui.js?v=1.7.1";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const IG_APP_VERSION = "1.7.0";
+const IG_APP_VERSION = "1.7.1";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
@@ -102,6 +102,29 @@ function bindUI() {
 
     // Header menu
     $("ig-menu-toggle")?.addEventListener("click", toggleMenu);
+    $("ig-menu-toggle")?.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowDown" || $("ig-header-menu")?.classList.contains("show")) return;
+        event.preventDefault();
+        toggleMenu(true);
+        $("ig-header-menu")?.querySelector(".menu-item")?.focus();
+    });
+    $("ig-header-menu")?.addEventListener("keydown", (event) => {
+        const items = [...event.currentTarget.querySelectorAll(".menu-item:not(:disabled)")];
+        if (!items.length) return;
+        const index = items.indexOf(document.activeElement);
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeMenu();
+            $("ig-menu-toggle")?.focus();
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const step = event.key === "ArrowDown" ? 1 : -1;
+            items[(index + step + items.length) % items.length].focus();
+        } else if (event.key === "Home" || event.key === "End") {
+            event.preventDefault();
+            items[event.key === "Home" ? 0 : items.length - 1].focus();
+        }
+    });
     $("ig-jump-bottom")?.addEventListener("click", jumpToBottom);
     $("ig-scroll-latest")?.addEventListener("click", jumpToBottom);
     document.addEventListener("click", handleDocumentClick);
@@ -144,7 +167,9 @@ function handleGlobalKeydown(event) {
 function handleEscape() {
     if (igState.activeMediaId) { closeMediaModal(); return; }
     if (isSearchOpen()) { toggleSearch(); return; }
+    const wasMenuOpen = $("ig-header-menu")?.classList.contains("show");
     closeMenu();
+    if (wasMenuOpen) $("ig-menu-toggle")?.focus();
     closeAllDrawers();
 }
 

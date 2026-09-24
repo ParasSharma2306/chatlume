@@ -7,9 +7,9 @@
  * js/settings.js; this module has no opinion on what the values mean.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS, sanitizeSettings } from "../settings.js?v=1.7.0";
-import { readStored, writeStored } from "../shared/safe-storage.js?v=1.7.0";
-import { STORAGE_KEYS, state } from "./state.js?v=1.7.0";
+import { DEFAULT_SETTINGS, sanitizeSettings } from "../settings.js?v=1.7.1";
+import { readStored, writeStored } from "../shared/safe-storage.js?v=1.7.1";
+import { STORAGE_KEYS, state } from "./state.js?v=1.7.1";
 
 export function loadSavedSettings() {
     try {

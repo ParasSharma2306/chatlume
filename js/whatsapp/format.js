@@ -15,8 +15,8 @@ import {
     parseDateLabel,
     parseTimestamp,
     resolveDateOrder
-} from "../whatsapp-parser.js?v=1.7.0";
-import { state } from "./state.js?v=1.7.0";
+} from "../whatsapp-parser.js?v=1.7.1";
+import { state } from "./state.js?v=1.7.1";
 
 /** Wraps `value` in the bracket style chosen in Settings. */
 export function applyBrackets(value, bracketStyle) {

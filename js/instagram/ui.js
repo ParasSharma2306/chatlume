@@ -7,11 +7,11 @@
  * messages.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.7.0";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.7.0";
-import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.7.0";
-import { createToast } from "../shared/toast.js?v=1.7.0";
-import { igState } from "./state.js?v=1.7.0";
+import { $, escapeHtml } from "../shared/dom.js?v=1.7.1";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.7.1";
+import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.7.1";
+import { createToast } from "../shared/toast.js?v=1.7.1";
+import { igState } from "./state.js?v=1.7.1";
 
 export const showToast = createToast("ig-toast");
 
@@ -60,19 +60,24 @@ export function toggleSidebar() {
 
 // ── Header menu ─────────────────────────────────────────────────────────────
 
-export function toggleMenu() {
-    $("ig-header-menu")?.classList.toggle("show");
+export function toggleMenu(forceOpen) {
+    const menu = $("ig-header-menu");
+    if (!menu) return;
+    const willOpen = typeof forceOpen === "boolean" ? forceOpen : !menu.classList.contains("show");
+    menu.classList.toggle("show", willOpen);
+    $("ig-menu-toggle")?.setAttribute("aria-expanded", String(willOpen));
 }
 
 export function closeMenu() {
     $("ig-header-menu")?.classList.remove("show");
+    $("ig-menu-toggle")?.setAttribute("aria-expanded", "false");
 }
 
 /** Clicking anywhere outside the open header menu closes it. */
 export function handleDocumentClick(event) {
     const menu = $("ig-header-menu");
     if (menu?.classList.contains("show") && !menu.contains(event.target) && !$("ig-menu-toggle")?.contains(event.target)) {
-        menu.classList.remove("show");
+        closeMenu();
     }
 }
 

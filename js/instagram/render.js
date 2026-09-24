@@ -8,19 +8,19 @@
  * message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.0";
-import { colorForName } from "../shared/colors.js?v=1.7.0";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.7.0";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.7.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.7.1";
+import { colorForName } from "../shared/colors.js?v=1.7.1";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.7.1";
+import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.7.1";
 import {
     clampRenderRange,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.7.0";
-import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.7.0";
-import { lazyMedia } from "./media.js?v=1.7.0";
-import { closeMenu } from "./ui.js?v=1.7.0";
+} from "../shared/virtual-list.js?v=1.7.1";
+import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.7.1";
+import { lazyMedia } from "./media.js?v=1.7.1";
+import { closeMenu } from "./ui.js?v=1.7.1";
 
 export const getColor = (name) => colorForName(name, igState.colorMap);
 

@@ -100,6 +100,24 @@
         document.querySelectorAll(".dynamic-year").forEach(function (el) { el.textContent = year; });
     }
 
+    /** The homepage demo uses native autoplay; honor reduced-motion preferences. */
+    function setupHeroVideo() {
+        var video = document.querySelector("[data-hero-video]");
+        if (!video) return;
+
+        // Keep the live media properties explicit for mobile Safari autoplay.
+        video.autoplay = true;
+        video.muted = true;
+        video.defaultMuted = true;
+        video.loop = true;
+        video.playsInline = true;
+        if (reduceMotion) {
+            video.autoplay = false;
+            video.removeAttribute("autoplay");
+            video.pause();
+        }
+    }
+
     /** Marks the nav link matching the current page. */
     function setupActiveNav() {
         var here = window.location.pathname.replace(/\/index\.html$/, "/").replace(/\/+$/, "/") || "/";
@@ -308,6 +326,7 @@
         setupReveals();
         setupToTop();
         setupYear();
+        setupHeroVideo();
         setupActiveNav();
         setupServiceWorker();
         setupInstallPrompt();

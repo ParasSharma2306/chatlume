@@ -29,14 +29,14 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.7.0">
+    <link rel="stylesheet" href="../css/style.css?v=1.7.1">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script type="module" src="../js/instagram.js?v=1.7.0"></script>
+    <script type="module" src="../js/instagram.js?v=1.7.1"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <style>
         /* ── Instagram accent overrides ── */
@@ -269,7 +269,7 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.7.0</div>
+                    <div class="app-version-label" data-app-version>v1.7.1</div>
                 </section>
 
                 <!-- Thread selector -->
@@ -346,9 +346,9 @@
                     </div>
                 </div>
                 <div class="header-tools">
-                    <button id="ig-search-toggle" type="button" aria-label="Search messages" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>
+                    <button id="ig-search-toggle" type="button" aria-label="Search messages" aria-controls="ig-search-toolbar" aria-expanded="false" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>
                     <div class="menu-container">
-                        <button id="ig-menu-toggle" type="button" aria-label="Open menu"><i class="ph ph-dots-three-vertical"></i></button>
+                        <button id="ig-menu-toggle" type="button" aria-label="Open chat actions" aria-controls="ig-header-menu" aria-expanded="false"><i class="ph ph-dots-three-vertical"></i></button>
                         <div class="dropdown-menu" id="ig-header-menu">
                             <button type="button" class="menu-item" id="ig-jump-bottom"><i class="ph ph-arrow-down"></i> Jump to Bottom</button>
                         </div>
@@ -359,12 +359,12 @@
             <section class="search-toolbar" id="ig-search-toolbar">
                 <div class="search-input-group">
                     <button id="ig-search-close" type="button" aria-label="Close search"><i class="ph ph-arrow-left"></i></button>
-                    <input type="text" id="ig-live-search" placeholder="Search messages..." autocomplete="off">
+                    <input type="search" id="ig-live-search" placeholder="Search messages..." aria-label="Search messages in this conversation" autocomplete="off">
                 </div>
                 <div class="search-nav">
                     <span id="ig-search-counter" aria-live="polite"></span>
-                    <button id="ig-search-up" type="button"><i class="ph ph-caret-up"></i></button>
-                    <button id="ig-search-down" type="button"><i class="ph ph-caret-down"></i></button>
+                    <button id="ig-search-up" type="button" aria-label="Previous result"><i class="ph ph-caret-up"></i></button>
+                    <button id="ig-search-down" type="button" aria-label="Next result"><i class="ph ph-caret-down"></i></button>
                 </div>
             </section>
 
@@ -437,6 +437,6 @@
 
     
 
-    <script src="../js/site.js?v=1.7.0" defer></script>
+    <script src="../js/site.js?v=1.7.1" defer></script>
 </body>
 </html>

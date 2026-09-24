@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.7.0';
+const CACHE_NAME = 'chatlume-v1.7.1';
 const OFFLINE_FALLBACK = 'index.html';
 // Scripts, modules and styles are addressed with a release token (`?v=`).
 // A page from one release therefore only ever asks for that release's files,
@@ -86,7 +86,8 @@ const ASSETS_TO_CACHE = [
     'assets/maskable-512.png',
     'assets/icon-192.png',
     'assets/icon-512.png',
-    'assets/og-image.png'
+    'assets/og-image.png',
+    'assets/brag-poster.jpg'
 ];
 
 // Install: cache core assets. The new worker then *waits* until the page asks

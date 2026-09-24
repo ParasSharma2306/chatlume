@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.7.0)
+ * ChatLume HTML Export (v1.7.1)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Media files are intentionally NOT embedded — each attachment is shown
@@ -20,7 +20,7 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-import { buildRichText } from './shared/text.js?v=1.7.0';
+import { buildRichText } from './shared/text.js?v=1.7.1';
 
 export function exportChatAsHTML({
   filename,
