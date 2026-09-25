@@ -321,6 +321,26 @@
         }
     }
 
+    function hasPathTraversal(path) {
+        if (!path || typeof path !== "string") return false;
+        var decoded = path;
+        for (var i = 0; i < 3; i++) {
+            try {
+                var next = decodeURIComponent(decoded);
+                if (next === decoded) break;
+                decoded = next;
+            } catch (_) {
+                break;
+            }
+        }
+        var clean = decoded.split("?")[0].split("#")[0];
+        var segments = clean.replace(/\\/g, "/").split("/");
+        for (var s = 0; s < segments.length; s++) {
+            if (segments[s] === "..") return true;
+        }
+        return false;
+    }
+
     /** If on the landing page and a remote chat or autoOpen is configured, jump directly to the viewer. */
     function checkRemotePreload() {
         // Do not redirect if already inside /public/ or on a viewer page
@@ -338,6 +358,7 @@
         var params = new URLSearchParams(window.location.search);
         var src = params.get("src") || params.get("zip") || params.get("folder");
         if (src) {
+            if (hasPathTraversal(src)) return;
             window.location.replace("public/viewer.html" + window.location.search);
             return;
         }
@@ -347,6 +368,7 @@
             .then(function (res) { return res.ok ? res.json() : null; })
             .then(function (config) {
                 if (config && config.src && config.autoOpen !== false) {
+                    if (hasPathTraversal(config.src)) return;
                     var target = "public/viewer.html";
                     var query = [];
                     if (config.src) query.push("src=" + encodeURIComponent(config.src));

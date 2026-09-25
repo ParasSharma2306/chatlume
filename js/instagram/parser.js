@@ -9,7 +9,7 @@
  * ============================================================================
  */
 import { countEmojis } from "../shared/emoji.js?v=1.7.3";
-import { baseName, detectMediaType } from "../shared/media-types.js?v=1.7.3";
+import { baseName, detectMediaType, hasPathTraversal } from "../shared/media-types.js?v=1.7.3";
 import { tailRange } from "../shared/virtual-list.js?v=1.7.3";
 import { fixMojibake } from "./mojibake.js?v=1.7.3";
 import { IG_MAX_RENDERED, igState } from "./state.js?v=1.7.3";
@@ -23,10 +23,11 @@ import { IG_MAX_RENDERED, igState } from "./state.js?v=1.7.3";
 export function findThreads(entries) {
     const map = new Map();
     entries.forEach((entry) => {
-        if (entry.directory) return;
+        if (entry.directory || hasPathTraversal(entry.filename)) return;
         const m = entry.filename.match(/messages\/inbox\/([^/]+)\/(message_\d+\.json)$/i);
         if (!m) return;
         const folder = m[1];
+        if (hasPathTraversal(folder)) return;
         if (!map.has(folder)) map.set(folder, { folder, files: [] });
         map.get(folder).files.push(entry);
     });
@@ -63,9 +64,10 @@ export function normalizeKey(path) {
 export function buildMediaStore(entries) {
     let index = 0;
     entries.forEach((entry) => {
-        if (entry.directory || entry.filename.toLowerCase().endsWith(".json")) return;
+        if (entry.directory || entry.filename.toLowerCase().endsWith(".json") || hasPathTraversal(entry.filename)) return;
 
         const name = baseName(entry.filename);
+        if (!name || hasPathTraversal(name)) return;
         // Instagram photos can be .webp; they must stay images, not stickers.
         const mediaType = detectMediaType(name, { stickers: false });
         const id = `igm-${index++}-${normalizeKey(entry.filename).slice(-20)}`;
@@ -90,7 +92,7 @@ export function buildMediaStore(entries) {
 
 /** Finds the record for a message's media URI, trying looser keys in turn. */
 export function findMedia(uri) {
-    if (!uri) return null;
+    if (!uri || hasPathTraversal(uri)) return null;
     const candidates = [
         normalizeKey(uri),
         normalizeKey(baseName(uri)),

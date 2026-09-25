@@ -13,7 +13,7 @@ import { exportChatAsHTML } from "../export.js?v=1.7.3";
 import { showSponsorPrompt } from "../support.js?v=1.7.3";
 import { $, nextFrame, wait } from "../shared/dom.js?v=1.7.3";
 import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.3";
-import { baseName } from "../shared/media-types.js?v=1.7.3";
+import { baseName, hasPathTraversal } from "../shared/media-types.js?v=1.7.3";
 import { ISSUES_URL, state } from "./state.js?v=1.7.3";
 import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.7.3";
 import { parseChatData, parseChatDataFromEntry, parseChatDataFromStream } from "./parser.js?v=1.7.3";
@@ -172,6 +172,16 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
  */
 export async function loadRemoteChat({ src, name = "", title = "" } = {}) {
     if (!src || state.isLoading) return;
+    if (hasPathTraversal(src)) {
+        console.error("[ChatLume] Blocked path traversal in src:", src);
+        showEmptyState({
+            icon: "ph-duotone ph-warning-circle",
+            iconColor: "#f5a623",
+            title: "Invalid chat source",
+            body: "Relative '..' path traversal is not permitted in chat source URLs."
+        });
+        return;
+    }
 
     let savedName = "";
     try {
@@ -246,7 +256,7 @@ async function loadRemoteZipExport(src, gen) {
     state.zipReader = reader;
 
     const allEntries = await reader.getEntries();
-    const entries = allEntries.filter((e) => !e.directory && !e.filename.startsWith("__MACOSX/"));
+    const entries = allEntries.filter((e) => !e.directory && !e.filename.startsWith("__MACOSX/") && !hasPathTraversal(e.filename));
     const chatEntry = entries
         .filter((e) => e.filename.toLowerCase().endsWith(".txt"))
         .sort((a, b) => b.uncompressedSize - a.uncompressedSize)[0];
@@ -276,6 +286,9 @@ async function loadRemoteZipExport(src, gen) {
 }
 
 async function loadRemoteFolderExport(src, gen) {
+    if (hasPathTraversal(src)) {
+        throw new Error("Invalid remote source: path traversal not permitted");
+    }
     const cleanBase = src.replace(/\/+$/, "");
     state.remoteDirectBase = cleanBase;
 
@@ -336,7 +349,7 @@ async function loadChatExport(file) {
     state.zipReader = reader;
     const allEntries = await reader.getEntries();
 
-    const entries = allEntries.filter((e) => !e.directory && !e.filename.startsWith("__MACOSX/"));
+    const entries = allEntries.filter((e) => !e.directory && !e.filename.startsWith("__MACOSX/") && !hasPathTraversal(e.filename));
     const chatEntry = entries
         .filter((e) => e.filename.toLowerCase().endsWith(".txt"))
         .sort((a, b) => b.uncompressedSize - a.uncompressedSize)[0];

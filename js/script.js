@@ -24,6 +24,7 @@
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { $, isVisible } from "./shared/dom.js?v=1.7.3";
+import { hasPathTraversal } from "./shared/media-types.js?v=1.7.3";
 import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.7.3";
 import { popOverlayState } from "./shared/history.js?v=1.7.3";
 import { runSplashLoader } from "./shared/splash.js?v=1.7.3";
@@ -124,6 +125,10 @@ async function initRemoteExport() {
     const title = params.get("title") || "";
 
     if (src) {
+        if (hasPathTraversal(src)) {
+            console.error("[ChatLume] Path traversal detected in ?src parameter:", src);
+            return;
+        }
         await loadRemoteChat({ src, name, title });
         return;
     }
@@ -137,6 +142,10 @@ async function initRemoteExport() {
         if (response && response.ok) {
             const config = await response.json();
             if (config && config.src) {
+                if (hasPathTraversal(config.src)) {
+                    console.error("[ChatLume] Path traversal detected in config.json:", config.src);
+                    return;
+                }
                 await loadRemoteChat({
                     src: config.src,
                     name: config.name || "",

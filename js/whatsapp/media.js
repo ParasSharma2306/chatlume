@@ -14,7 +14,7 @@
  * ============================================================================
  */
 import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.7.3";
-import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.7.3";
+import { baseName, detectMediaType, formatBytes, hasPathTraversal, labelForMediaKind } from "../shared/media-types.js?v=1.7.3";
 import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.7.3";
 import { createMediaModal } from "../shared/media-modal.js?v=1.7.3";
 import {
@@ -73,6 +73,7 @@ export function stripAttachmentPrefix(value) {
 export function buildMediaStore(attachments) {
     attachments.forEach((attachment, index) => {
         const fileName = attachment.name;
+        if (!fileName || hasPathTraversal(fileName) || hasPathTraversal(attachment.path)) return;
         const mediaType = detectMediaType(fileName);
         const id = `media-${index}-${normalizeLookupKey(fileName)}`;
 
@@ -109,6 +110,9 @@ export function buildMediaStore(attachments) {
 
 /** Registers a direct remote URL for an attachment (used in folder / WebDAV mode). */
 export function registerDirectAttachment(fileName, directUrl, size = 0) {
+    if (hasPathTraversal(fileName) || hasPathTraversal(directUrl)) {
+        return null;
+    }
     const name = baseName(fileName);
     const mediaType = detectMediaType(name);
     const id = `media-direct-${normalizeLookupKey(fileName)}`;
@@ -150,6 +154,9 @@ export function registerDirectAttachment(fileName, directUrl, size = 0) {
 
 /** Finds the media record a chat line refers to, trying looser keys in turn. */
 export function findMediaByName(fileName) {
+    if (hasPathTraversal(fileName)) {
+        return null;
+    }
     const candidates = [
         normalizeLookupKey(fileName),
         normalizeLookupKey(stripAttachmentPrefix(fileName)),
@@ -167,12 +174,17 @@ export function findMediaByName(fileName) {
 
 /** The media item stored on a message for a referenced file name. */
 export function resolveAttachment(fileName) {
+    if (hasPathTraversal(fileName)) {
+        return createMissingMediaItem(fileName);
+    }
     let media = findMediaByName(fileName);
     if (!media && state.remoteDirectBase) {
         const cleanBase = state.remoteDirectBase.replace(/\/+$/, "");
         const pathSegments = fileName.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
         const directUrl = `${cleanBase}/${pathSegments}`;
-        media = registerDirectAttachment(fileName, directUrl);
+        if (!hasPathTraversal(directUrl)) {
+            media = registerDirectAttachment(fileName, directUrl);
+        }
     }
     if (!media) {
         return createMissingMediaItem(fileName);

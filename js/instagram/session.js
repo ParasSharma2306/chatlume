@@ -13,6 +13,7 @@ import { showSponsorPrompt } from "../support.js?v=1.7.3";
 import { $, q, replayClass } from "../shared/dom.js?v=1.7.3";
 import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.3";
 import { clearMediaStore } from "../shared/media-urls.js?v=1.7.3";
+import { hasPathTraversal } from "../shared/media-types.js?v=1.7.3";
 import { fixMojibake } from "./mojibake.js?v=1.7.3";
 import { igState } from "./state.js?v=1.7.3";
 import { cleanupZip, lazyMedia } from "./media.js?v=1.7.3";
@@ -53,7 +54,8 @@ export async function initViewer() {
 
     try {
         const reader = new ZipReader(new BlobReader(file));
-        const entries = await reader.getEntries();
+        const rawEntries = await reader.getEntries();
+        const entries = rawEntries.filter((e) => !hasPathTraversal(e.filename));
         if (isStaleZip()) {
             reader.close().catch(() => {});
             return;

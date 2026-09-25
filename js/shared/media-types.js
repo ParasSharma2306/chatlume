@@ -126,7 +126,34 @@ export function formatBytes(bytes) {
     return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-/** Last path segment of a ZIP entry name. */
+/** Last path segment of a path or ZIP entry name. Rejects ".." or "." segments. */
 export function baseName(filePath) {
-    return String(filePath || "").split("/").pop() || "";
+    const last = String(filePath || "").replace(/\\/g, "/").split("/").pop() || "";
+    return last === ".." || last === "." ? "" : last;
 }
+
+/**
+ * Detects whether a path or URL string attempts relative ".." path traversal.
+ * Handles encoded representations (%2e%2e, %2f, %5c) and Windows backslashes.
+ *
+ * @param {string} path
+ * @returns {boolean} True if any path segment is "..".
+ */
+export function hasPathTraversal(path) {
+    if (!path || typeof path !== "string") return false;
+    let decoded = path;
+    for (let i = 0; i < 3; i++) {
+        try {
+            const next = decodeURIComponent(decoded);
+            if (next === decoded) break;
+            decoded = next;
+        } catch (_) {
+            break;
+        }
+    }
+    const clean = decoded.split("?")[0].split("#")[0];
+    const normalized = clean.replace(/\\/g, "/");
+    const segments = normalized.split("/");
+    return segments.includes("..");
+}
+
