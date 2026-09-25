@@ -30,6 +30,9 @@ export async function ensureMediaUrl(state, media) {
     if (media.loadingPromise) {
         return media.loadingPromise;
     }
+    if (media.directUrl) {
+        return media.directUrl;
+    }
     if (!media.entry) {
         throw new Error("Media source is unavailable");
     }
@@ -52,8 +55,10 @@ export async function ensureMediaUrl(state, media) {
 
 export function releaseMediaUrl(state, media) {
     if (!media?.url) return;
-    URL.revokeObjectURL(media.url);
-    state.mediaUrls.delete(media.url);
+    if (media.url.startsWith("blob:")) {
+        URL.revokeObjectURL(media.url);
+        state.mediaUrls.delete(media.url);
+    }
     media.url = "";
     media.hasLoaded = false;
 }

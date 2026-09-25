@@ -137,6 +137,12 @@ self.addEventListener('fetch', (event) => {
     // Only GET is cacheable; anything else goes straight to the network.
     if (request.method !== 'GET') return;
 
+    // Range requests and dynamic/large exports go straight to the network.
+    if (request.headers.has('range')) return;
+
+    const url = new URL(request.url);
+    if (url.pathname.endsWith('/config.json') || url.pathname.endsWith('.zip')) return;
+
     if (isNavigation(request)) {
         event.respondWith(handleNavigation(request));
         return;

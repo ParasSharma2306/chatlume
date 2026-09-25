@@ -321,7 +321,46 @@
         }
     }
 
+    /** If on the landing page and a remote chat or autoOpen is configured, jump directly to the viewer. */
+    function checkRemotePreload() {
+        // Do not redirect if already inside /public/ or on a viewer page
+        var pathname = window.location.pathname;
+        if (pathname.indexOf("/public/") !== -1 || pathname.indexOf("viewer.html") !== -1) {
+            return;
+        }
+
+        // Only redirect from the landing page / site root
+        var isLandingPage = pathname === "" || pathname === "/" || pathname.endsWith("/index.html") || pathname.endsWith("/");
+        if (!isLandingPage) {
+            return;
+        }
+
+        var params = new URLSearchParams(window.location.search);
+        var src = params.get("src") || params.get("zip") || params.get("folder");
+        if (src) {
+            window.location.replace("public/viewer.html" + window.location.search);
+            return;
+        }
+
+        if (typeof fetch !== "function") return;
+        fetch("config.json", { credentials: "same-origin" })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (config) {
+                if (config && config.src && config.autoOpen !== false) {
+                    var target = "public/viewer.html";
+                    var query = [];
+                    if (config.src) query.push("src=" + encodeURIComponent(config.src));
+                    if (config.name) query.push("name=" + encodeURIComponent(config.name));
+                    if (config.title) query.push("title=" + encodeURIComponent(config.title));
+                    if (query.length) target += "?" + query.join("&");
+                    window.location.replace(target);
+                }
+            })
+            .catch(function () {});
+    }
+
     function init() {
+        checkRemotePreload();
         setupTheme();
         setupReveals();
         setupToTop();

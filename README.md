@@ -282,6 +282,36 @@ Ensure the deployment script path (`/path/to/your/app/directory/ChatLume`) in `.
 
 ---
 
+### Option 4: Preloaded Chat (Lazy Loading from Server or WebDAV)
+
+If you self-host ChatLume for your personal chat archive, you can host your export on your server and have ChatLume pre-load it automatically on page load — without re-uploading the file on every visit.
+
+Multi-gigabyte exports are **lazy-loaded**: ChatLume uses HTTP Range requests (`206 Partial Content`) to read only the archive catalog and chat text at boot. Media attachments (photos, videos, audio notes) are streamed on demand only when scrolled into view.
+
+#### 1. Via URL Parameter
+Open the viewer with the `src` parameter pointing to your export (or directory/WebDAV URL):
+```
+https://your-domain.com/public/viewer.html?src=/exports/export.zip&name=YourName
+```
+
+#### 2. Via `config.json`
+Copy `config.example.json` to `config.json` (git-ignored, so it won't conflict with updates):
+```json
+{
+  "src": "/exports/export.zip",
+  "name": "YourName",
+  "title": "Chat History",
+  "autoOpen": true
+}
+```
+* When `autoOpen` is `true` (default), visiting the root URL forwards directly to the viewer with your preloaded chat.
+* Set `"src"` to a `.zip` archive or to an unzipped export folder / WebDAV URL ending in `/`.
+
+#### 3. Protecting Your Chat (Reverse Proxy Authentication)
+ChatLume is 100% auth-agnostic and relies on standard browser credentials (`credentials: "same-origin"`). If you protect your domain or export path using a reverse proxy with **Authelia**, **Authentik**, **Cloudflare Access**, or **HTTP Basic Auth**, the browser automatically sends the session cookies with all Range requests. No unauthenticated client can access the chat or media files.
+
+---
+
 ## Tech Stack
 
 | Layer | Tech |

@@ -8,7 +8,7 @@
  * the empty viewer.
  * ============================================================================
  */
-import { BlobReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+import { BlobReader, HttpRangeReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
 import { exportChatAsHTML } from "../export.js?v=1.7.3";
 import { showSponsorPrompt } from "../support.js?v=1.7.3";
 import { $, nextFrame, wait } from "../shared/dom.js?v=1.7.3";
@@ -16,7 +16,7 @@ import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1
 import { baseName } from "../shared/media-types.js?v=1.7.3";
 import { ISSUES_URL, state } from "./state.js?v=1.7.3";
 import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.7.3";
-import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.7.3";
+import { parseChatData, parseChatDataFromEntry, parseChatDataFromStream } from "./parser.js?v=1.7.3";
 import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.7.3";
 import {
     isPersistentStorageEnabled,
@@ -162,6 +162,141 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
     }
 }
 
+/**
+ * Loads a remote chat export (ZIP or folder/WebDAV) by URL with lazy streaming.
+ *
+ * @param {Object} options
+ * @param {string} options.src         URL to the remote ZIP file or directory.
+ * @param {string} [options.name]      User's display name in the chat.
+ * @param {string} [options.title]     Custom chat title.
+ */
+export async function loadRemoteChat({ src, name = "", title = "" } = {}) {
+    if (!src || state.isLoading) return;
+
+    let savedName = "";
+    try {
+        savedName = localStorage.getItem("chatlume-display-name") || "";
+    } catch (_) {}
+
+    state.myName = name.trim() || savedName;
+    state.activeImportId = "";
+
+    const isZip = /\.zip(\?.*)?$/i.test(src);
+    const fileLabel = title || baseName(src.split("?")[0].replace(/\/+$/, "")) || "Remote Chat";
+    const initText = isZip ? "Connecting to server and reading archive..." : "Fetching chat from server...";
+
+    setLoadingState(true, `Loading ${fileLabel}`, initText);
+
+    await nextFrame();
+    await wait(60);
+
+    cleanupMediaStore();
+    resetChatState();
+    resetSenderFilterUI();
+    restoreEmptyState();
+
+    if (isMobileLayout()) {
+        setSidebarState(false);
+    }
+
+    const gen = ++state.loadGeneration;
+
+    try {
+        if (isZip) {
+            await loadRemoteZipExport(src, gen);
+        } else {
+            await loadRemoteFolderExport(src, gen);
+        }
+
+        if (state.messageOnlyCount === 0) {
+            showNothingParsedState();
+            return;
+        }
+
+        updateUIState(fileLabel);
+        renderChatList();
+        requestAnimationFrame(scrollToBottom);
+        showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
+        showSponsorPrompt();
+
+        if (name.trim()) {
+            try {
+                localStorage.setItem("chatlume-display-name", name.trim());
+            } catch (_) {}
+        }
+    } catch (error) {
+        console.error("[ChatLume] Remote load failed:", error);
+        const shown = showEmptyState({
+            icon: "ph-duotone ph-warning-circle",
+            iconColor: "#f5a623",
+            title: "Couldn't load remote chat",
+            body: error.message || "Failed to fetch or parse the remote export.",
+            actions: HOW_TO_EXPORT_CTA
+        });
+        if (!shown) {
+            showToast(`Error: ${error.message}`, "error");
+        }
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+async function loadRemoteZipExport(src, gen) {
+    const reader = new ZipReader(new HttpRangeReader(src, { credentials: "same-origin" }));
+    state.zipReader = reader;
+
+    const allEntries = await reader.getEntries();
+    const entries = allEntries.filter((e) => !e.directory && !e.filename.startsWith("__MACOSX/"));
+    const chatEntry = entries
+        .filter((e) => e.filename.toLowerCase().endsWith(".txt"))
+        .sort((a, b) => b.uncompressedSize - a.uncompressedSize)[0];
+
+    if (!chatEntry) {
+        throw new Error("No .txt file found in remote ZIP archive");
+    }
+
+    const attachments = entries
+        .filter((e) => e !== chatEntry)
+        .map((e) => ({
+            name: baseName(e.filename),
+            path: e.filename,
+            entry: e,
+            size: e.uncompressedSize || 0
+        }));
+
+    updateLoadingCopy(
+        attachments.length
+            ? `Matched ${attachments.length.toLocaleString()} attachments. Streaming chat...`
+            : "Streaming chat..."
+    );
+    await wait(30);
+
+    buildMediaStore(attachments);
+    await parseChatDataFromEntry(chatEntry, gen);
+}
+
+async function loadRemoteFolderExport(src, gen) {
+    const cleanBase = src.replace(/\/+$/, "");
+    state.remoteDirectBase = cleanBase;
+
+    const chatUrl = `${cleanBase}/_chat.txt`;
+    const response = await fetch(chatUrl, { credentials: "same-origin" });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch _chat.txt (${response.status} ${response.statusText})`);
+    }
+
+    updateLoadingCopy("Streaming chat messages...");
+    await wait(30);
+
+    const contentLength = parseInt(response.headers.get("Content-Length") || "0", 10) || 0;
+    if (response.body && typeof response.body.pipeTo === "function") {
+        await parseChatDataFromStream(response.body, gen, contentLength);
+    } else {
+        const text = await response.text();
+        await parseChatData(text);
+    }
+}
+
 /** The file opened but produced no messages: explain which kind of "no". */
 function showNothingParsedState() {
     const { unrecognizedHeaders, unrecognizedSample } = state.parseDiagnostics;
@@ -250,6 +385,7 @@ export function resetChatState() {
     state.inferredDateOrder = "DMY";
     state.parseDiagnostics = { unrecognizedHeaders: 0, unrecognizedSample: "" };
     state.activeMediaId = "";
+    state.remoteDirectBase = "";
     lazyMedia.disconnect();
     updateSearchCounter();
     setSearchEmptyState(false);

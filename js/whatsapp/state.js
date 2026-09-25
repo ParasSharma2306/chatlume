@@ -53,6 +53,7 @@ export const state = {
     mediaUrls: new Set(),
     activeMediaId: "",
     zipReader: null,
+    remoteDirectBase: "",
 
     // ── Rendering / search ───────────────────────────────────────────────
     renderRange: { start: 0, end: 0 },

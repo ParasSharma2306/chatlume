@@ -292,3 +292,52 @@ export async function parseChatDataFromEntry(entry, gen) {
         }
     }
 }
+
+/**
+ * Parses chat messages from a ReadableStream (e.g. response.body from fetch)
+ * chunk by chunk without reading the entire response into memory at once.
+ *
+ * @param {ReadableStream} readableStream
+ * @param {number} gen
+ * @param {number} [totalBytes]
+ */
+export async function parseChatDataFromStream(readableStream, gen, totalBytes = 0) {
+    const { processLine, finalize, getLineIndex } = createChatLineProcessor();
+    const decoder = new TextDecoder("utf-8");
+    let lineBuffer = "";
+    let bytesLoaded = 0;
+    const knownTotal = totalBytes || 1;
+    let nextYieldAt = PROGRESS_EVERY_LINES;
+
+    const consumer = new WritableStream({
+        write(chunk) {
+            if (state.loadGeneration !== gen) {
+                throw new DOMException("Load superseded by a newer file selection", "AbortError");
+            }
+            bytesLoaded += chunk.length;
+            lineBuffer += decoder.decode(chunk, { stream: true });
+            const parts = lineBuffer.split("\n");
+            lineBuffer = parts.pop();
+            for (const rawLine of parts) {
+                processLine(rawLine);
+            }
+            const lineIndex = getLineIndex();
+            if (lineIndex >= nextYieldAt) {
+                const pct = totalBytes ? Math.round((bytesLoaded / knownTotal) * 100) : 0;
+                const status = totalBytes
+                    ? `Parsing messages... ${pct}% (${lineIndex.toLocaleString()} lines)`
+                    : `Parsing messages... (${lineIndex.toLocaleString()} lines)`;
+                updateLoadingCopy(status);
+                nextYieldAt = lineIndex + PROGRESS_EVERY_LINES;
+                return new Promise((resolve) => setTimeout(resolve, 0));
+            }
+        },
+        close() {
+            const tail = lineBuffer + decoder.decode();
+            if (tail) processLine(tail);
+        }
+    });
+
+    await readableStream.pipeTo(consumer);
+    finalize();
+}

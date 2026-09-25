@@ -50,7 +50,7 @@ import {
 import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.7.3";
 import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.7.3";
 import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.7.3";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.7.3";
+import { closeActiveChat, initViewer, loadChatFile, loadRemoteChat } from "./whatsapp/session.js?v=1.7.3";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
@@ -110,7 +110,44 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     setupPWAInstall();
     initPersistentStorage({ openFile: loadChatFile, closeChat: closeActiveChat });
+    await initRemoteExport();
 });
+
+/**
+ * Automatically pre-loads a remote chat export if specified via URL query
+ * parameters (e.g. ?src=... or ?zip=...) or in a local config.json.
+ */
+async function initRemoteExport() {
+    const params = new URLSearchParams(window.location.search);
+    const src = params.get("src") || params.get("zip") || params.get("folder");
+    const name = params.get("name") || params.get("displayName") || "";
+    const title = params.get("title") || "";
+
+    if (src) {
+        await loadRemoteChat({ src, name, title });
+        return;
+    }
+
+    // If no query parameters, check for optional config.json
+    try {
+        let response = await fetch("../config.json", { credentials: "same-origin" }).catch(() => null);
+        if (!response || !response.ok) {
+            response = await fetch("config.json", { credentials: "same-origin" }).catch(() => null);
+        }
+        if (response && response.ok) {
+            const config = await response.json();
+            if (config && config.src) {
+                await loadRemoteChat({
+                    src: config.src,
+                    name: config.name || "",
+                    title: config.title || ""
+                });
+            }
+        }
+    } catch (_) {
+        // Silently ignore if config.json is absent or invalid
+    }
+}
 
 window.addEventListener("resize", () => {
     if (!isMobileLayout()) { setSidebarState(false); }

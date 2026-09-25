@@ -85,7 +85,8 @@ export function buildMediaStore(attachments) {
             ext: mediaType.ext,
             size: attachment.size || 0,
             entry: attachment.entry || null,
-            url: "",
+            directUrl: attachment.directUrl || "",
+            url: attachment.directUrl || "",
             loadingPromise: null,
             hasLoaded: false
         };
@@ -104,6 +105,47 @@ export function buildMediaStore(attachments) {
             }
         });
     });
+}
+
+/** Registers a direct remote URL for an attachment (used in folder / WebDAV mode). */
+export function registerDirectAttachment(fileName, directUrl, size = 0) {
+    const name = baseName(fileName);
+    const mediaType = detectMediaType(name);
+    const id = `media-direct-${normalizeLookupKey(fileName)}`;
+    if (state.mediaStore.has(id)) {
+        return state.mediaStore.get(id);
+    }
+
+    const media = {
+        id,
+        name,
+        path: fileName,
+        kind: mediaType.kind,
+        mime: mediaType.mime,
+        ext: mediaType.ext,
+        size,
+        entry: null,
+        directUrl,
+        url: directUrl,
+        loadingPromise: null,
+        hasLoaded: false
+    };
+
+    state.mediaStore.set(id, media);
+
+    const keys = new Set([
+        normalizeLookupKey(fileName),
+        normalizeLookupKey(name),
+        normalizeLookupKey(stripAttachmentPrefix(name))
+    ]);
+
+    keys.forEach((key) => {
+        if (key && !state.mediaLookup.has(key)) {
+            state.mediaLookup.set(key, media);
+        }
+    });
+
+    return media;
 }
 
 /** Finds the media record a chat line refers to, trying looser keys in turn. */
@@ -125,7 +167,13 @@ export function findMediaByName(fileName) {
 
 /** The media item stored on a message for a referenced file name. */
 export function resolveAttachment(fileName) {
-    const media = findMediaByName(fileName);
+    let media = findMediaByName(fileName);
+    if (!media && state.remoteDirectBase) {
+        const cleanBase = state.remoteDirectBase.replace(/\/+$/, "");
+        const pathSegments = fileName.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/");
+        const directUrl = `${cleanBase}/${pathSegments}`;
+        media = registerDirectAttachment(fileName, directUrl);
+    }
     if (!media) {
         return createMissingMediaItem(fileName);
     }
