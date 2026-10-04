@@ -303,6 +303,7 @@ function ensureExportButton() {
                 : "";
             exportChatAsHTML({
                 theme: "whatsapp",
+                colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
                 title: `${state.chatTitle || "WhatsApp Chat"}${filterSuffix}`,
                 messageCount: exportedCount,
                 messages: exportedMessages

@@ -11,6 +11,7 @@
  * @param {string}   [opts.filename]      Download filename. Defaults to
  *                                        chatlume-export-YYYY-MM-DD.html
  * @param {"whatsapp"|"instagram"} [opts.theme]  Visual theme.
+ * @param {"light"|"dark"} [opts.colorScheme] Viewer color scheme.
  * @param {string}   [opts.title]         Chat title shown in the header.
  * @param {number}   [opts.messageCount]  Total message count for the header.
  * @param {Array}    opts.messages        Normalised export items. Each item is
@@ -25,6 +26,7 @@ import { buildRichText } from './shared/text.js?v=1.7.3';
 export function exportChatAsHTML({
   filename,
   theme = 'whatsapp',
+  colorScheme = 'dark',
   title = 'Chat',
   messageCount = 0,
   messages = [],
@@ -33,7 +35,7 @@ export function exportChatAsHTML({
   const dateStamp = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
   const fname = filename || `chatlume-export-${dateStamp}.html`;
 
-  const html = buildExportDocument({ theme, title, messageCount, messages, today });
+  const html = buildExportDocument({ theme, colorScheme, title, messageCount, messages, today });
   triggerDownload(html, fname);
 }
 
@@ -68,8 +70,9 @@ const MEDIA_LABELS = {
 };
 
 // ── Document builder ─────────────────────────────────────────────────────────
-function buildExportDocument({ theme, title, messageCount, messages, today }) {
+function buildExportDocument({ theme, colorScheme, title, messageCount, messages, today }) {
   const isIg = theme === 'instagram';
+  const isLight = colorScheme === 'light';
   const exportedAt = today.toLocaleString(undefined, {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
@@ -83,7 +86,7 @@ function buildExportDocument({ theme, title, messageCount, messages, today }) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ChatLume Export — ${escapeHtml(title)}</title>
-<style>${exportStyles(isIg)}</style>
+<style>${exportStyles(isIg, isLight)}</style>
 </head>
 <body class="${isIg ? 'ig' : 'wa'}">
   <div class="ce-wrap">
@@ -187,35 +190,41 @@ function renderText(text, theme) {
 }
 
 // ── Theme styles ─────────────────────────────────────────────────────────────
-function exportStyles(isIg) {
+function exportStyles(isIg, isLight) {
   const t = isIg
     ? {
-        bg: '#000000',
-        surface: '#121212',
-        text: '#f5f5f5',
-        muted: '#a8a8a8',
+        bg: isLight ? '#ffffff' : '#000000',
+        surface: isLight ? '#fafafa' : '#121212',
+        text: isLight ? '#262626' : '#f5f5f5',
+        muted: isLight ? '#737373' : '#a8a8a8',
         sentBg: 'linear-gradient(135deg, #405DE6 0%, #833AB4 55%, #C13584 100%)',
         sentText: '#ffffff',
-        recvBg: '#262626',
-        recvText: '#f5f5f5',
+        recvBg: isLight ? '#efefef' : '#262626',
+        recvText: isLight ? '#262626' : '#f5f5f5',
         accent: '#C13584',
-        chip: 'rgba(38,38,38,0.92)',
-        border: 'rgba(255,255,255,0.08)',
-        link: '#7aa7ff',
+        chip: isLight ? 'rgba(239,239,239,0.92)' : 'rgba(38,38,38,0.92)',
+        border: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
+        link: isLight ? '#385898' : '#7aa7ff',
+        textLink: isLight ? '#385898' : '#cbe',
+        media: isLight ? 'rgba(0,0,0,0.035)' : 'rgba(255,255,255,0.06)',
+        share: isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.05)',
       }
     : {
-        bg: '#0b141a',
-        surface: '#111b21',
-        text: '#e9edef',
-        muted: '#8696a0',
-        sentBg: '#005c4b',
-        sentText: '#e9edef',
-        recvBg: '#202c33',
-        recvText: '#e9edef',
+        bg: isLight ? '#efeae2' : '#0b141a',
+        surface: isLight ? '#ffffff' : '#111b21',
+        text: isLight ? '#111b21' : '#e9edef',
+        muted: isLight ? '#667781' : '#8696a0',
+        sentBg: isLight ? '#d9fdd3' : '#005c4b',
+        sentText: isLight ? '#111b21' : '#e9edef',
+        recvBg: isLight ? '#ffffff' : '#202c33',
+        recvText: isLight ? '#111b21' : '#e9edef',
         accent: '#00a884',
-        chip: 'rgba(24,34,41,0.92)',
-        border: 'rgba(255,255,255,0.06)',
-        link: '#53bdeb',
+        chip: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(24,34,41,0.92)',
+        border: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+        link: isLight ? '#027eb5' : '#53bdeb',
+        textLink: isLight ? '#027eb5' : '#aef',
+        media: isLight ? 'rgba(0,0,0,0.035)' : 'rgba(255,255,255,0.06)',
+        share: isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.05)',
       };
 
   return `
@@ -258,13 +267,13 @@ a{color:${t.link};}
 .ce-row.sent .ce-bubble{background:${t.sentBg};color:${t.sentText};border-top-right-radius:4px;}
 .ce-row:not(.first) .ce-bubble{border-radius:16px;}
 .ce-sender{font-size:12.8px;font-weight:600;margin-bottom:3px;}
-.ce-text a{color:${isIg ? '#cbe' : '#aef'};text-decoration:underline;}
+.ce-text a{color:${t.textLink};text-decoration:underline;}
 .ce-text{white-space:normal;}
 .ce-time{font-size:10.5px;color:${t.muted};opacity:0.7;text-align:right;margin-top:3px;}
 .ce-row.sent .ce-time{color:rgba(255,255,255,0.7);}
 .ce-media{
   display:flex;align-items:center;gap:10px;margin-top:6px;padding:9px 11px;
-  background:rgba(255,255,255,0.06);border:1px solid ${t.border};border-radius:10px;
+  background:${t.media};border:1px solid ${t.border};border-radius:10px;
 }
 .ce-media-icon{font-size:22px;flex-shrink:0;line-height:1;}
 .ce-media-info{display:flex;flex-direction:column;min-width:0;}
@@ -275,7 +284,7 @@ a{color:${t.link};}
 }
 .ce-share{
   display:flex;align-items:center;gap:6px;margin-top:6px;padding:8px 11px;
-  background:rgba(255,255,255,0.05);border:1px solid ${t.border};border-radius:10px;font-size:13px;
+  background:${t.share};border:1px solid ${t.border};border-radius:10px;font-size:13px;
 }
 .ce-share a{word-break:break-all;}
 .ce-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}

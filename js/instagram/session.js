@@ -220,6 +220,7 @@ function ensureExportButton() {
         try {
             exportChatAsHTML({
                 theme: "instagram",
+                colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
                 title: igState.chatTitle || "Instagram DMs",
                 messageCount: igState.messageOnlyCount,
                 messages: collectExportMessages()
