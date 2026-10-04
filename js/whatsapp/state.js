@@ -7,7 +7,7 @@
  * session.js returns the per-chat fields to their defaults before each load.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS } from "../settings.js?v=1.7.3";
+import { DEFAULT_SETTINGS } from "../settings.js?v=1.8.0";
 
 /** Rows added to the virtual window per scroll step. */
 export const BATCH_SIZE = 60;
@@ -69,7 +69,7 @@ export const state = {
     // Bumped on every load so a superseded parse or copy can tell it lost.
     loadGeneration: 0,
 
-    // ── Persistent Storage (Beta) ────────────────────────────────────────
+    // ── Persistent Storage ──────────────────────────────────────────────
     storageSupported: false,
     storedImports: [],
     storedImportsLoaded: false,

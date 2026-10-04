@@ -100,6 +100,27 @@
         document.querySelectorAll(".dynamic-year").forEach(function (el) { el.textContent = year; });
     }
 
+    /** Give touch and pen input a short, consistent point of contact. */
+    function setupTapFeedback() {
+        var targets = "button:not(:disabled), a[href], [role='button'], [role='option'], .setting-row, .chat-item, .sender-filter-item, .emoji-item";
+        document.addEventListener("pointerdown", function (event) {
+            if ((event.pointerType !== "touch" && event.pointerType !== "pen") ||
+                (typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+                event.button !== 0) return;
+
+            var target = event.target.closest(targets);
+            if (!target || target.getAttribute("aria-disabled") === "true" || target.closest("audio, video")) return;
+
+            var ripple = document.createElement("span");
+            ripple.className = "tap-ripple";
+            ripple.setAttribute("aria-hidden", "true");
+            ripple.style.left = event.clientX + "px";
+            ripple.style.top = event.clientY + "px";
+            document.body.appendChild(ripple);
+            ripple.addEventListener("animationend", function () { ripple.remove(); }, { once: true });
+        }, { passive: true });
+    }
+
     /** The homepage demo uses native autoplay; honor reduced-motion preferences. */
     function setupHeroVideo() {
         var video = document.querySelector("[data-hero-video]");
@@ -326,6 +347,7 @@
         setupReveals();
         setupToTop();
         setupYear();
+        setupTapFeedback();
         setupHeroVideo();
         setupActiveNav();
         setupServiceWorker();

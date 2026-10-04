@@ -1,5 +1,5 @@
 /**
- * ChatLume persistent storage (Beta).
+ * ChatLume persistent storage.
  *
  * Keeps imported exports on the device so they don't have to be picked again
  * after ChatLume is closed. Everything stays inside the browser's origin
@@ -258,7 +258,7 @@ export function copyFileToStorage(file, id, { onProgress } = {}) {
         // A blocked or missing worker script must surface as a normal failure,
         // not as an exception thrown out of the caller's await chain.
         try {
-            worker = new Worker(new URL("./storage-worker.js?v=1.7.3", import.meta.url));
+            worker = new Worker(new URL("./storage-worker.js?v=1.8.0", import.meta.url));
         } catch (error) {
             fail(error?.name || "Error", error?.message || "The storage worker could not be started");
             return;

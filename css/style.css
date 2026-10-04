@@ -344,7 +344,7 @@ a {
 .profile-button,
 .sidebar-nav button,
 .mobile-menu,
-.header-tools button,
+.header-tools > button,
 .drawer-close,
 .chat-item,
 .chat-footer button,
@@ -383,7 +383,7 @@ a {
 }
 
 .sidebar-nav button,
-.header-tools button,
+.header-tools > button,
 .mobile-menu,
 .chat-footer button {
     color: var(--text-secondary);
@@ -394,7 +394,7 @@ a {
 }
 
 .sidebar-nav button:hover,
-.header-tools button:hover,
+.header-tools > button:hover,
 .chat-footer button:hover,
 .mobile-menu:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -559,7 +559,7 @@ a {
     font-weight: 600;
     border-radius: 24px;
     font-size: 15px;
-    box-shadow: 0 4px 10px rgba(0, 168, 132, 0.3);
+    box-shadow: none;
 }
 
 .btn-primary[disabled],
@@ -2240,7 +2240,7 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
         max-height: 55dvh;
     }
 
-    .header-tools button {
+    .header-tools > button {
         padding: 7px;
     }
 
@@ -2905,11 +2905,6 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
-@keyframes cl-sheen {
-    0%   { transform: translateX(-120%) skewX(-18deg); }
-    60%, 100% { transform: translateX(260%) skewX(-18deg); }
-}
-
 /* Scroll-reveal: elements start hidden and are released by IntersectionObserver.
    `.no-js`-safe — if the observer never runs, `.cl-revealed` is applied on load. */
 .cl-reveal {
@@ -2946,26 +2941,6 @@ body.light-theme .sent .meta { color: rgba(17, 27, 33, 0.56); }
 .btn-secondary:not(:disabled):active { transform: translateY(0) scale(0.985); }
 .btn-primary:disabled,
 .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-
-/* Sheen sweep on the big landing CTA. */
-.btn-large {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
-}
-.btn-large::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    bottom: -50%;
-    left: 0;
-    width: 40%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-    transform: translateX(-120%) skewX(-18deg);
-    pointer-events: none;
-    z-index: -1;
-}
-.btn-large:hover::after { animation: cl-sheen 0.9s ease forwards; }
 
 /* Keyboard focus that is visible on every surface. */
 a:focus-visible,
@@ -4367,21 +4342,6 @@ body.light-theme .sponsor-prompt {
     .sponsor-prompt-yes:hover { transform: none; }
 }
 
-/* ── Persistent Storage (Beta) ── */
-.beta-tag {
-    display: inline-block;
-    margin-left: 6px;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: rgba(0, 168, 132, 0.14);
-    color: var(--primary);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    vertical-align: middle;
-}
-
 .storage-note {
     display: flex;
     align-items: flex-start;
@@ -4631,8 +4591,9 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 }
 .sender-filter-btn:hover,
 .sender-filter-btn[aria-expanded="true"] {
-    border-color: var(--border);
-    background: var(--bg-input);
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-primary);
 }
 .sender-filter-btn:active { background: var(--bg-soft); }
 .sender-filter-btn i.ph-funnel { color: var(--text-secondary); font-size: 14px; }
@@ -4653,6 +4614,109 @@ body.light-theme .persist-card { box-shadow: 0 18px 40px rgba(17, 27, 33, 0.12);
 }
 .sender-filter-container.has-filter .sender-filter-btn i.ph-funnel,
 .sender-filter-container.has-filter .sender-filter-caret { color: var(--primary); }
+
+/* ── Sitewide touch and control feedback ── */
+:root {
+    --motion-fast: 140ms;
+    --motion-standard: 220ms;
+    --ease-standard: cubic-bezier(0.2, 0.75, 0.25, 1);
+    --ease-press: cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+
+:where(button, a[href], [role="button"], [role="option"], input, select, summary) {
+    touch-action: manipulation;
+}
+
+:where(button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="option"]:not([aria-disabled="true"])) {
+    transition-property: transform, background-color, border-color, color, box-shadow, filter, opacity;
+    transition-duration: var(--motion-standard);
+    transition-timing-function: var(--ease-standard);
+}
+
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+[role="option"]:not([aria-disabled="true"]):active,
+a[href]:active,
+.setting-row:active,
+.chat-item:active,
+.sender-filter-item:active,
+.emoji-item:active,
+.feature-card:active,
+.platform-card:active,
+.repo-card:active,
+.sponsor-card:active,
+.stat-box:active,
+.media-doc-link:active {
+    transform: scale(0.975);
+    filter: brightness(1.04);
+    transition-duration: 90ms;
+    transition-timing-function: var(--ease-press);
+}
+
+.btn-primary:not(:disabled):active,
+.btn-secondary:not(:disabled):active { transform: scale(0.975); }
+
+.tap-ripple {
+    position: fixed;
+    z-index: 9999;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(0, 168, 132, 0.2) 0%, rgba(0, 168, 132, 0.12) 52%, transparent 74%);
+    animation: tap-ripple-expand 430ms var(--ease-standard) forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes tap-ripple-expand {
+    0% { opacity: 0.78; transform: scale(0.4); }
+    100% { opacity: 0; transform: scale(8); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .feature-card,
+    .platform-card,
+    .repo-card,
+    .sponsor-card,
+    .stat-box {
+        transition-timing-function: var(--ease-standard);
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    :root { --control-height: 44px; }
+
+    .setting-row { min-height: 56px; }
+    .menu-item { min-height: 48px; }
+    .chat-header .header-tools > button,
+    .chat-header .menu-container > button,
+    .sidebar-nav button,
+    .mobile-menu,
+    .drawer-close,
+    .to-top { min-width: 44px; min-height: 44px; }
+
+    .landing-nav .nav-links a { padding: 8px 6px; }
+    .tap-ripple { animation-duration: 380ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tap-ripple { display: none; animation: none; }
+    button:not(:disabled):active,
+    [role="button"]:not([aria-disabled="true"]):active,
+    [role="option"]:not([aria-disabled="true"]):active,
+    a[href]:active,
+    .setting-row:active,
+    .chat-item:active,
+    .sender-filter-item:active,
+    .emoji-item:active,
+    .feature-card:active,
+    .platform-card:active,
+    .repo-card:active,
+    .sponsor-card:active,
+    .stat-box:active,
+    .media-doc-link:active { transform: none; filter: none; }
+}
 
 .sender-filter-wrapper { border: 0; background: transparent; box-shadow: none; }
 .sender-filter-btn { flex: 0 1 auto; }

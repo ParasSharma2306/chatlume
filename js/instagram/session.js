@@ -8,17 +8,17 @@
  * ============================================================================
  */
 import { BlobReader, TextWriter, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.7.3";
-import { showSponsorPrompt } from "../support.js?v=1.7.3";
-import { $, q, replayClass } from "../shared/dom.js?v=1.7.3";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.3";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.7.3";
-import { fixMojibake } from "./mojibake.js?v=1.7.3";
-import { igState } from "./state.js?v=1.7.3";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.7.3";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessages, sortMessageFiles } from "./parser.js?v=1.7.3";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.7.3";
-import { showThreadSelector } from "./threads.js?v=1.7.3";
+import { exportChatAsHTML } from "../export.js?v=1.8.0";
+import { showSponsorPrompt } from "../support.js?v=1.8.0";
+import { $, q, replayClass } from "../shared/dom.js?v=1.8.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.0";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.8.0";
+import { fixMojibake } from "./mojibake.js?v=1.8.0";
+import { igState } from "./state.js?v=1.8.0";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.8.0";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessages, sortMessageFiles } from "./parser.js?v=1.8.0";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.0";
+import { showThreadSelector } from "./threads.js?v=1.8.0";
 import {
     closeMenu,
     generateStats,
@@ -29,7 +29,7 @@ import {
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.7.3";
+} from "./ui.js?v=1.8.0";
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
 export async function initViewer() {
@@ -203,33 +203,45 @@ function updateUI(title, participants) {
     ensureExportButton();
 }
 
-/** Adds "Export HTML" to the header menu the first time a thread opens. */
+/** Adds the two HTML export choices to the header menu. */
 function ensureExportButton() {
     const menu = $("ig-header-menu");
     if (!menu || $("ig-export-chat-btn")) return;
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "menu-item";
-    btn.id = "ig-export-chat-btn";
-    btn.setAttribute("data-export-btn", "");
-    btn.title = "Exports text only — media referenced by filename for efficiency";
-    btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
-    btn.addEventListener("click", () => {
-        closeMenu();
-        try {
-            exportChatAsHTML({
-                theme: "instagram",
-                colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
-                title: igState.chatTitle || "Instagram DMs",
-                messageCount: igState.messageOnlyCount,
-                messages: collectExportMessages()
-            });
-            showToast("Chat exported as HTML");
-        } catch (err) {
-            console.error("[ChatLume] Export failed:", err);
-            showToast("Export failed", "error");
-        }
-    });
-    menu.appendChild(btn);
+    const addButton = (id, label, icon, includeAttachments) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "menu-item";
+        btn.id = id;
+        btn.setAttribute("data-export-btn", "");
+        btn.innerHTML = `<i class="ph ${icon}"></i> ${label}`;
+        btn.addEventListener("click", async () => {
+            closeMenu();
+            btn.disabled = true;
+            try {
+                if (includeAttachments) showToast("Preparing chat and attachments…");
+                const result = await exportChatAsHTML({
+                    theme: "instagram",
+                    colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
+                    includeAttachments,
+                    mediaStore: igState.mediaStore,
+                    title: igState.chatTitle || "Instagram DMs",
+                    messageCount: igState.messageOnlyCount,
+                    messages: collectExportMessages()
+                });
+                showToast(includeAttachments
+                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}`
+                    : "Chat exported as HTML");
+            } catch (err) {
+                console.error("[ChatLume] Export failed:", err);
+                showToast("Export failed", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        menu.appendChild(btn);
+    };
+
+    addButton("ig-export-chat-btn", "Export without attachments (.html)", "ph-file-text", false);
+    addButton("ig-export-chat-media-btn", "Export with attachments (.zip)", "ph-file-zip", true);
 }

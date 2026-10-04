@@ -1,17 +1,18 @@
 /**
- * ChatLume HTML Export (v1.7.3)
+ * ChatLume HTML Export (v1.8.0)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
- * data. Media files are intentionally NOT embedded — each attachment is shown
- * as a styled placeholder card with its filename, so the export stays small
- * and loads instantly. All CSS is inlined and uses the system font stack, so
- * the file has zero external dependencies.
+ * data. Exports can be downloaded as a standalone HTML file or as a ZIP
+ * package containing the HTML and its referenced attachments. All CSS is
+ * inlined and uses the system font stack, so the files have no dependencies.
  *
  * @param {Object}   opts
  * @param {string}   [opts.filename]      Download filename. Defaults to
  *                                        chatlume-export-YYYY-MM-DD.html
  * @param {"whatsapp"|"instagram"} [opts.theme]  Visual theme.
  * @param {"light"|"dark"} [opts.colorScheme] Viewer color scheme.
+ * @param {boolean} [opts.includeAttachments] Package referenced media in ZIP.
+ * @param {Map} [opts.mediaStore] Media records keyed by attachment ID.
  * @param {string}   [opts.title]         Chat title shown in the header.
  * @param {number}   [opts.messageCount]  Total message count for the header.
  * @param {Array}    opts.messages        Normalised export items. Each item is
@@ -21,12 +22,14 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-import { buildRichText } from './shared/text.js?v=1.7.3';
+import { buildRichText } from './shared/text.js?v=1.8.0';
 
-export function exportChatAsHTML({
+export async function exportChatAsHTML({
   filename,
   theme = 'whatsapp',
   colorScheme = 'dark',
+  includeAttachments = false,
+  mediaStore = new Map(),
   title = 'Chat',
   messageCount = 0,
   messages = [],
@@ -34,15 +37,69 @@ export function exportChatAsHTML({
   const today = new Date();
   const dateStamp = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
   const fname = filename || `chatlume-export-${dateStamp}.html`;
+  const mediaPaths = includeAttachments ? await collectExportMedia(messages, mediaStore) : new Map();
+  const html = buildExportDocument({ theme, colorScheme, title, messageCount, messages, today, mediaPaths });
 
-  const html = buildExportDocument({ theme, colorScheme, title, messageCount, messages, today });
-  triggerDownload(html, fname);
+  if (!includeAttachments) {
+    triggerDownload(new Blob([html], { type: 'text/html;charset=utf-8' }), fname);
+    return { attachmentCount: 0 };
+  }
+
+  const zip = await import('https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm');
+  const zipWriter = new zip.ZipWriter(new zip.BlobWriter('application/zip'));
+  try {
+    await zipWriter.add('index.html', new zip.TextReader(html));
+    for (const media of mediaPaths.values()) {
+      if (media.blob) {
+        await zipWriter.add(media.archivePath, new zip.BlobReader(media.blob), { level: 0 });
+      }
+    }
+    const archive = await zipWriter.close();
+    triggerDownload(archive, filename || `chatlume-export-${dateStamp}.zip`);
+    return { attachmentCount: [...mediaPaths.values()].filter((media) => media.blob).length };
+  } catch (error) {
+    await zipWriter.close().catch(() => {});
+    throw error;
+  }
+}
+
+async function collectExportMedia(messages, mediaStore) {
+  const { BlobWriter } = await import('https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm');
+  const mediaPaths = new Map();
+  let index = 0;
+
+  for (const item of messages) {
+    for (const attachment of item?.media || []) {
+      if (!attachment.id || mediaPaths.has(attachment.id)) continue;
+      const media = mediaStore.get(attachment.id);
+      if (!media?.entry) continue;
+
+      const filename = safeArchiveFilename(media.name || attachment.name || `attachment-${index + 1}`);
+      const archivePath = `attachments/${String(++index).padStart(4, '0')}-${filename}`;
+      const blob = await media.entry.getData(new BlobWriter(media.mime || 'application/octet-stream'));
+      mediaPaths.set(attachment.id, {
+        archivePath,
+        href: archivePath.split('/').map(encodeURIComponent).join('/'),
+        blob,
+        mime: media.mime || blob.type || 'application/octet-stream',
+      });
+    }
+  }
+
+  return mediaPaths;
+}
+
+function safeArchiveFilename(name) {
+  return String(name || 'attachment')
+    .split(/[\\/]/).pop()
+    .replace(/[<>:"|?*\u0000-\u001f]/g, '_')
+    .replace(/[. ]+$/g, '') || 'attachment';
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const MEDIA_NOTICE =
   '⚡ Media files are not included in this export to keep file size minimal and loading fast. ' +
-  'Reference the filenames above to locate media in your original export folder.';
+  'Use the filenames shown in the message cards to locate media in your original export folder.';
 
 // kind → emoji icon (spec section 1)
 const MEDIA_ICONS = {
@@ -70,7 +127,7 @@ const MEDIA_LABELS = {
 };
 
 // ── Document builder ─────────────────────────────────────────────────────────
-function buildExportDocument({ theme, colorScheme, title, messageCount, messages, today }) {
+function buildExportDocument({ theme, colorScheme, title, messageCount, messages, today, mediaPaths }) {
   const isIg = theme === 'instagram';
   const isLight = colorScheme === 'light';
   const exportedAt = today.toLocaleString(undefined, {
@@ -78,7 +135,11 @@ function buildExportDocument({ theme, colorScheme, title, messageCount, messages
     hour: '2-digit', minute: '2-digit',
   });
 
-  const body = renderMessages(messages, theme);
+  const body = renderMessages(messages, theme, mediaPaths);
+  const includedCount = [...mediaPaths.values()].filter((media) => media.blob).length;
+  const mediaNotice = includedCount
+    ? `Attachments are included in the <code>attachments</code> folder (${includedCount.toLocaleString()}). Keep that folder beside this HTML file.`
+    : MEDIA_NOTICE;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -96,14 +157,14 @@ function buildExportDocument({ theme, colorScheme, title, messageCount, messages
       <div class="ce-sub">${escapeHtml(exportedAt)} · ${Number(messageCount).toLocaleString()} messages</div>
     </header>
 
-    <div class="ce-notice">${MEDIA_NOTICE}</div>
+    <div class="ce-notice">${mediaNotice}</div>
 
     <main class="ce-list">
 ${body}
     </main>
 
     <footer class="ce-footer">
-      <p>Generated by ChatLume — <a href="https://chatlume.app" target="_blank" rel="noopener noreferrer">chatlume.app</a> · Media files not embedded for efficiency.</p>
+      <p>Generated by ChatLume — <a href="https://chatlume.app" target="_blank" rel="noopener noreferrer">chatlume.app</a>.</p>
     </footer>
   </div>
 </body>
@@ -111,7 +172,7 @@ ${body}
 }
 
 // ── Message rendering ────────────────────────────────────────────────────────
-function renderMessages(messages, theme) {
+function renderMessages(messages, theme, mediaPaths) {
   let lastSender = null;
   const out = [];
 
@@ -137,7 +198,7 @@ function renderMessages(messages, theme) {
       ? `<div class="ce-sender" style="color:${escapeAttr(item.color || '#888')}">${escapeHtml(item.sender)}</div>`
       : '';
     const textHtml = item.text ? `<div class="ce-text">${renderText(item.text, theme)}</div>` : '';
-    const mediaHtml = (item.media && item.media.length) ? renderMediaCards(item.media) : '';
+    const mediaHtml = (item.media && item.media.length) ? renderMediaCards(item.media, mediaPaths) : '';
     const shareHtml = item.shareLink ? renderShare(item.shareLink, item.shareText) : '';
     const reactionsHtml = (item.reactions && item.reactions.length) ? renderReactions(item.reactions) : '';
     const timeHtml = item.time ? `<div class="ce-time">${escapeHtml(item.time)}</div>` : '';
@@ -153,13 +214,27 @@ function renderMessages(messages, theme) {
   return out.join('\n');
 }
 
-function renderMediaCards(media) {
+function renderMediaCards(media, mediaPaths) {
   return media.map((m) => {
     const kind = m.kind || 'document';
     const icon = MEDIA_ICONS[kind] || MEDIA_ICONS.document;
     const label = MEDIA_LABELS[kind] || 'File';
     const name = m.name || 'attachment';
-    return `<div class="ce-media"><span class="ce-media-icon">${icon}</span><span class="ce-media-info"><span class="ce-media-label">${escapeHtml(label)}</span><span class="ce-media-name">${escapeHtml(name)}</span></span></div>`;
+    const included = m.id && mediaPaths.get(m.id);
+    let preview = '';
+    if (included) {
+      const href = escapeAttr(included.href);
+      if (kind === 'image' || kind === 'sticker') {
+        preview = `<a class="ce-media-preview-link" href="${href}" target="_blank" rel="noopener noreferrer"><img class="ce-media-preview" src="${href}" alt="${escapeAttr(name)}"></a>`;
+      } else if (kind === 'video') {
+        preview = `<video class="ce-media-preview" controls preload="metadata"><source src="${href}" type="${escapeAttr(included.mime)}"></video>`;
+      } else if (kind === 'audio' || kind === 'voice') {
+        preview = `<audio class="ce-media-audio" controls preload="metadata"><source src="${href}" type="${escapeAttr(included.mime)}"></audio>`;
+      } else {
+        preview = `<a class="ce-media-download" href="${href}" download>Download attachment</a>`;
+      }
+    }
+    return `<div class="ce-media"><div class="ce-media-heading"><span class="ce-media-icon">${icon}</span><span class="ce-media-info"><span class="ce-media-label">${escapeHtml(label)}</span><span class="ce-media-name">${escapeHtml(name)}</span></span></div>${preview}</div>`;
   }).join('');
 }
 
@@ -272,11 +347,16 @@ a{color:${t.link};}
 .ce-time{font-size:10.5px;color:${t.muted};opacity:0.7;text-align:right;margin-top:3px;}
 .ce-row.sent .ce-time{color:rgba(255,255,255,0.7);}
 .ce-media{
-  display:flex;align-items:center;gap:10px;margin-top:6px;padding:9px 11px;
+  margin-top:6px;padding:9px 11px;
   background:${t.media};border:1px solid ${t.border};border-radius:10px;
 }
+.ce-media-heading{display:flex;align-items:center;gap:10px;min-width:0;}
 .ce-media-icon{font-size:22px;flex-shrink:0;line-height:1;}
 .ce-media-info{display:flex;flex-direction:column;min-width:0;}
+.ce-media-preview-link{display:block;margin-top:9px;}
+.ce-media-preview{display:block;max-width:100%;max-height:420px;border-radius:7px;object-fit:contain;}
+.ce-media-audio{display:block;width:min(340px,100%);margin-top:9px;}
+.ce-media-download{display:inline-block;margin-top:8px;color:${t.link};font-size:13px;}
 .ce-media-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:${t.muted};font-weight:600;}
 .ce-media-name{
   font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
@@ -323,7 +403,9 @@ function escapeAttr(value) {
 }
 
 function triggerDownload(htmlString, filename) {
-  const blob = new Blob([htmlString], { type: 'text/html;charset=utf-8' });
+  const blob = htmlString instanceof Blob
+    ? htmlString
+    : new Blob([htmlString], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

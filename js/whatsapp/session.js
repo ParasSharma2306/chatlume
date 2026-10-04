@@ -9,24 +9,24 @@
  * ============================================================================
  */
 import { BlobReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.7.3";
-import { showSponsorPrompt } from "../support.js?v=1.7.3";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.7.3";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.7.3";
-import { baseName } from "../shared/media-types.js?v=1.7.3";
-import { ISSUES_URL, state } from "./state.js?v=1.7.3";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.7.3";
-import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.7.3";
-import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.7.3";
+import { exportChatAsHTML } from "../export.js?v=1.8.0";
+import { showSponsorPrompt } from "../support.js?v=1.8.0";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.8.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.0";
+import { baseName } from "../shared/media-types.js?v=1.8.0";
+import { ISSUES_URL, state } from "./state.js?v=1.8.0";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.8.0";
+import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.8.0";
+import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.8.0";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.7.3";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.7.3";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.7.3";
-import { generateStats } from "./stats.js?v=1.7.3";
+} from "./persistence.js?v=1.8.0";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.0";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.8.0";
+import { generateStats } from "./stats.js?v=1.8.0";
 import {
     closeMenu,
     isMobileLayout,
@@ -38,7 +38,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.7.3";
+} from "./ui.js?v=1.8.0";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
@@ -280,41 +280,53 @@ function updateUIState(filename) {
     populateSenderFilter();
 }
 
-/** Adds "Export HTML" to the header menu the first time a chat opens. */
+/** Adds the two HTML export choices to the header menu. */
 function ensureExportButton() {
     const menu = $("header-menu");
     if (!menu || $("export-chat-btn")) return;
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "menu-item";
-    btn.id = "export-chat-btn";
-    btn.setAttribute("data-export-btn", "");
-    btn.title = "Exports text only — media referenced by filename for efficiency";
-    btn.innerHTML = '<i class="ph ph-download-simple"></i> Export HTML';
-    btn.addEventListener("click", () => {
-        closeMenu();
-        try {
-            const exportedMessages = collectExportMessages();
-            const exportedCount = exportedMessages.filter((m) => m.type === "msg").length;
-            const isFiltered = Boolean(state.selectedSenders && state.selectedSenders.length > 0);
-            const filterSuffix = isFiltered
-                ? ` (${state.selectedSenders.length === 1 ? state.selectedSenders[0] : `${state.selectedSenders.length} participants`})`
-                : "";
-            exportChatAsHTML({
-                theme: "whatsapp",
-                colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
-                title: `${state.chatTitle || "WhatsApp Chat"}${filterSuffix}`,
-                messageCount: exportedCount,
-                messages: exportedMessages
-            });
-            showToast("Chat exported as HTML");
-        } catch (err) {
-            console.error("[ChatLume] Export failed:", err);
-            showToast("Export failed", "error");
-        }
-    });
-    menu.appendChild(btn);
+    const addButton = (id, label, icon, includeAttachments) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "menu-item";
+        btn.id = id;
+        btn.setAttribute("data-export-btn", "");
+        btn.innerHTML = `<i class="ph ${icon}"></i> ${label}`;
+        btn.addEventListener("click", async () => {
+            closeMenu();
+            btn.disabled = true;
+            try {
+                const exportedMessages = collectExportMessages();
+                const exportedCount = exportedMessages.filter((m) => m.type === "msg").length;
+                const isFiltered = Boolean(state.selectedSenders && state.selectedSenders.length > 0);
+                const filterSuffix = isFiltered
+                    ? ` (${state.selectedSenders.length === 1 ? state.selectedSenders[0] : `${state.selectedSenders.length} participants`})`
+                    : "";
+                if (includeAttachments) showToast("Preparing chat and attachments…");
+                const result = await exportChatAsHTML({
+                    theme: "whatsapp",
+                    colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
+                    includeAttachments,
+                    mediaStore: state.mediaStore,
+                    title: `${state.chatTitle || "WhatsApp Chat"}${filterSuffix}`,
+                    messageCount: exportedCount,
+                    messages: exportedMessages
+                });
+                showToast(includeAttachments
+                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}`
+                    : "Chat exported as HTML");
+            } catch (err) {
+                console.error("[ChatLume] Export failed:", err);
+                showToast("Export failed", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        menu.appendChild(btn);
+    };
+
+    addButton("export-chat-btn", "Export without attachments (.html)", "ph-file-text", false);
+    addButton("export-chat-media-btn", "Export with attachments (.zip)", "ph-file-zip", true);
 }
 
 /**
