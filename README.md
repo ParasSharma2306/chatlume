@@ -1,6 +1,6 @@
 # ChatLume
 
-> A browser-based viewer for WhatsApp and Instagram chat exports.
+> A browser-based viewer for WhatsApp, Instagram and Facebook Messenger chat exports.
 
 > [💖 Sponsor this project](https://github.com/sponsors/ParasSharma2306)
 
@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.8.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.9.0-beta1-blue?style=flat-square)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ChatLume started as a favor for my girlfriend. She wanted to look back through some old WhatsApp chats, but the export WhatsApp actually gives you is a raw `.txt` wall of text: readable if you squint, but nothing like what the conversation actually looked like. I wanted her to see it the way it happened, so I built a small viewer to do just that.
 
-It turned out better than I expected, so I cleaned it up and put it online. It now handles WhatsApp and Instagram exports, runs entirely in the browser, and can export chats as standalone HTML or as an offline HTML-and-attachments package. I built and keep improving it with help from Claude Code, Gemini's Antigravity CLI, and Codex.
+It turned out better than I expected, so I cleaned it up and put it online. It now handles WhatsApp, Instagram and Facebook Messenger exports, runs entirely in the browser, and can export chats as standalone HTML or as an offline HTML-and-attachments package. I built and keep improving it with help from Claude Code, Gemini's Antigravity CLI, and Codex.
 
 ---
 
@@ -34,6 +34,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 |---------|---------|
 | WhatsApp viewer | Renders `_chat.txt` or `.zip` exports as a real WhatsApp-style chat UI, with sent/received bubbles, grouped messages, sticky date headers and system messages |
 | Instagram viewer | Reads Instagram "Download Your Data" JSON archives; pick a conversation from the thread list, filter threads by name, and see reactions, shares, unsent markers and media |
+| Facebook Messenger viewer | Reads HTML conversations from a Meta export ZIP, discovers message parts in the archive, and shows text, exported timestamps and resolvable attachments. Numeric slash dates follow the observed month/day/year format. No timezone is assumed, so the viewer does not create epoch timestamps. Messenger metadata such as reactions and shared-post details is not interpreted in this first version. |
 | Media from ZIP | Images, stickers, videos, voice notes (with waveform and duration), documents, contacts and archives are read straight out of the ZIP — nothing is extracted to disk |
 | Lazy media | Attachments are decoded only when they scroll into view and released again off-screen, so multi-GB exports stay light on memory |
 | Media viewer | Tap any attachment for a full-screen viewer with download |
@@ -305,12 +306,13 @@ PRs are welcome. The codebase is plain HTML/CSS/JS: no build tools, no bundler, 
 
 ### Code layout
 
-No bundler: every file under `js/` is served as-is as an ES module. The two viewers are entry points that wire DOM events to small, single-purpose modules:
+No bundler: every file under `js/` is served as-is as an ES module. The three viewers are entry points that wire DOM events to small, single-purpose modules:
 
 ```
 js/
 ├── script.js              WhatsApp viewer entry point (boot + event wiring)
 ├── instagram.js           Instagram viewer entry point
+├── messenger.js           Facebook Messenger HTML ZIP viewer entry point
 ├── whatsapp/              WhatsApp viewer
 │   ├── state.js           shared mutable state + constants
 │   ├── session.js         open / parse / close a chat
@@ -329,7 +331,9 @@ js/
 │   └── ui.js              drawers, sheets, toast, loading overlay
 ├── instagram/             Instagram viewer (same shape: state, session, parser,
 │                          threads, media, render, search, ui, mojibake)
-├── shared/                utilities both viewers use
+├── messenger/             Facebook Messenger viewer (state, session, parser,
+│                          threads, media, render)
+├── shared/                utilities shared by viewers
 │   ├── dom.js             $, escaping, small predicates
 │   ├── text.js            links, *bold* _italic_ ~strike~, search highlight
 │   ├── media-types.js     file name → kind / MIME, formatBytes
@@ -354,7 +358,7 @@ Dependencies point one way: entry → viewer modules → `shared/` → nothing. 
 
 ### Tests
 
-The pure modules (`js/whatsapp-parser.js`, `js/settings.js`, `js/shared/*`, `js/whatsapp/format.js`, `js/instagram/parser.js`, `js/instagram/mojibake.js`) are covered by Node's built-in test runner — no install step:
+The pure modules (`js/whatsapp-parser.js`, `js/settings.js`, `js/shared/*`, `js/whatsapp/format.js`, `js/instagram/parser.js`, `js/instagram/mojibake.js`, and the Messenger parser helpers) are covered by Node's built-in test runner — no install step:
 
 ```bash
 npm test          # node --test tests/

@@ -7,11 +7,11 @@
  * messages.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.0";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.0";
-import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.8.0";
-import { createToast } from "../shared/toast.js?v=1.8.0";
-import { igState } from "./state.js?v=1.8.0";
+import { $, escapeHtml } from "../shared/dom.js?v=1.9.0-beta1";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.9.0-beta1";
+import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.9.0-beta1";
+import { createToast } from "../shared/toast.js?v=1.9.0-beta1";
+import { igState } from "./state.js?v=1.9.0-beta1";
 
 export const showToast = createToast("ig-toast");
 

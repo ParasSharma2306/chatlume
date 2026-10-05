@@ -3,6 +3,7 @@
  * Stamps a release version everywhere it has to agree.
  *
  *   node scripts/bump-version.mjs 1.6.1
+ *   node scripts/bump-version.mjs 1.9.0-beta1
  *
  * Every locally served script, module and stylesheet URL carries a `?v=` token
  * (in HTML, in `import` specifiers, in the storage worker URL and in the
@@ -19,8 +20,8 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const version = process.argv[2];
 
-if (!/^\d+\.\d+\.\d+$/.test(version || "")) {
-    console.error("Usage: node scripts/bump-version.mjs <major.minor.patch>");
+if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(version || "")) {
+    console.error("Usage: node scripts/bump-version.mjs <major.minor.patch[-prerelease]>");
     process.exit(1);
 }
 
@@ -35,6 +36,7 @@ export const VERSIONED_FILES = [
     "public/how-to-export-instagram.html",
     "public/how-to-use.html",
     "public/instagram-viewer.html",
+    "public/messenger-viewer.html",
     "public/viewer.html",
     "js/export.js",
     "js/instagram.js",
@@ -44,6 +46,13 @@ export const VERSIONED_FILES = [
     "js/instagram/search.js",
     "js/instagram/session.js",
     "js/instagram/threads.js",
+    "js/messenger.js",
+    "js/messenger/media.js",
+    "js/messenger/parser.js",
+    "js/messenger/render.js",
+    "js/messenger/session.js",
+    "js/messenger/state.js",
+    "js/messenger/threads.js",
     "js/instagram/ui.js",
     "js/script.js",
     "js/shared/lazy-media.js",
@@ -79,16 +88,16 @@ export const VERSIONED_FILES = [
 
 const REPLACEMENTS = [
     // Asset token on local JS/CSS URLs and module specifiers.
-    [/(\.(?:js|css))\?v=\d+\.\d+\.\d+/g, `$1?v=${version}`],
+    [/(\.(?:js|css))\?v=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g, `$1?v=${version}`],
     // Human-readable version strings.
-    [/const APP_VERSION = "\d+\.\d+\.\d+"/, `const APP_VERSION = "${version}"`],
-    [/const IG_APP_VERSION = "\d+\.\d+\.\d+"/, `const IG_APP_VERSION = "${version}"`],
-    [/const CACHE_NAME = 'chatlume-v\d+\.\d+\.\d+'/, `const CACHE_NAME = 'chatlume-v${version}'`],
-    [/data-app-version>v\d+\.\d+\.\d+</g, `data-app-version>v${version}<`],
-    [/Version \d+\.\d+\.\d+ &nbsp;/g, `Version ${version} &nbsp;`],
-    [/ChatLume HTML Export \(v\d+\.\d+\.\d+\)/, `ChatLume HTML Export (v${version})`],
-    [/badge\/version-v\d+\.\d+\.\d+-/, `badge/version-v${version}-`],
-    [/"version": "\d+\.\d+\.\d+"/, `"version": "${version}"`]
+    [/const APP_VERSION = "\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"/, `const APP_VERSION = "${version}"`],
+    [/const IG_APP_VERSION = "\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"/, `const IG_APP_VERSION = "${version}"`],
+    [/const CACHE_NAME = 'chatlume-v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?'/, `const CACHE_NAME = 'chatlume-v${version}'`],
+    [/data-app-version>v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?</g, `data-app-version>v${version}<`],
+    [/Version \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? &nbsp;/g, `Version ${version} &nbsp;`],
+    [/ChatLume HTML Export \(v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\)/, `ChatLume HTML Export (v${version})`],
+    [/badge\/version-v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?-/, `badge/version-v${version}-`],
+    [/"version": "\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"/, `"version": "${version}"`]
 ];
 
 let touched = 0;

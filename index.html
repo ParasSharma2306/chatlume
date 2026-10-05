@@ -6,31 +6,31 @@
     <meta name="theme-color" content="#0b141a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>ChatLume — Free WhatsApp & Instagram Chat Viewer</title>
-    <meta name="description" content="View your WhatsApp and Instagram chat exports for free. 100% private — your chats never leave your device. Works offline. No account needed.">
-    <meta name="keywords" content="whatsapp chat viewer, instagram chat viewer, whatsapp export viewer, instagram dm viewer, view whatsapp backup, chatlume">
+    <title>ChatLume — Private Chat Viewer</title>
+    <meta name="description" content="View WhatsApp, Instagram and Facebook Messenger chat exports for free. 100% private — your chats never leave your device. Works offline. No account needed.">
+    <meta name="keywords" content="whatsapp chat viewer, instagram chat viewer, facebook messenger export viewer, messenger html export, whatsapp export viewer, instagram dm viewer, view whatsapp backup, chatlume">
     <meta name="author" content="ChatLume">
     <meta name="application-name" content="ChatLume">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chatlume.app/">
     <meta property="og:site_name" content="ChatLume">
-    <meta property="og:title" content="ChatLume — Free WhatsApp & Instagram Chat Viewer">
-    <meta property="og:description" content="100% private WhatsApp & Instagram chat viewer. Everything stays on your device. No uploads, no servers.">
+    <meta property="og:title" content="ChatLume — Private Chat Viewer">
+    <meta property="og:description" content="100% private WhatsApp, Instagram and Facebook Messenger chat viewer. Everything stays on your device. No uploads, no servers.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chatlume.app/">
     <meta property="og:image" content="https://chatlume.app/assets/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
-    <meta name="twitter:image:alt" content="ChatLume — a private WhatsApp and Instagram chat viewer that runs entirely in your browser.">
+    <meta property="og:image:alt" content="ChatLume — a private chat viewer that runs entirely in your browser.">
+    <meta name="twitter:image:alt" content="ChatLume — a private chat viewer that runs entirely in your browser.">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ChatLume — Free WhatsApp & Instagram Chat Viewer">
-    <meta name="twitter:description" content="100% private WhatsApp & Instagram chat viewer. Everything stays on your device.">
+    <meta name="twitter:title" content="ChatLume — Private Chat Viewer">
+    <meta name="twitter:description" content="100% private WhatsApp, Instagram and Facebook Messenger chat viewer. Everything stays on your device.">
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">
     <link rel="icon" href="assets/favicon.ico" sizes="any">
     <link rel="icon" href="assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="./css/style.css?v=1.8.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.9.0-beta1">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://api.producthunt.com" crossorigin>
@@ -45,7 +45,7 @@
         "@type": "WebApplication",
         "name": "ChatLume",
         "url": "https://chatlume.app",
-        "description": "Free WhatsApp and Instagram chat export viewer. 100% private — your chats never leave your device.",
+        "description": "Free WhatsApp, Instagram and Facebook Messenger chat export viewer. 100% private — your chats never leave your device.",
         "applicationCategory": "Utility",
         "operatingSystem": "Any",
         "offers": {
@@ -56,6 +56,7 @@
         "featureList": [
             "WhatsApp chat viewer",
             "Instagram DM viewer",
+            "Facebook Messenger HTML export viewer",
             "100% private - no data uploaded",
             "Works offline",
             "Chat analytics and stats"
@@ -96,6 +97,7 @@
         <div class="nav-links">
             <a href="public/viewer.html">WhatsApp</a>
             <a href="public/instagram-viewer.html">Instagram</a>
+            <a href="public/messenger-viewer.html">Messenger</a>
             <a href="sponsors.html">Sponsors</a>
             <button type="button" class="nav-theme-toggle" data-theme-toggle aria-label="Toggle theme">
                 <i class="ph ph-moon-stars"></i>
@@ -151,6 +153,10 @@
                 <div class="platform-title">Instagram DMs</div>
                 <div class="platform-sub">Open JSON export .zip files</div>
             </div>
+        </a>
+        <a href="public/messenger-viewer.html" class="platform-card cl-reveal">
+            <i class="ph-fill ph-facebook-logo" aria-hidden="true" style="color:#1684ff"></i>
+            <div class="platform-text"><div class="platform-title">Facebook Messenger</div><div class="platform-sub">Open HTML export .zip files</div></div>
         </a>
     </section>
 
@@ -216,7 +222,7 @@
 
     <button type="button" class="to-top" data-to-top aria-label="Back to top"><i class="ph ph-arrow-up"></i></button>
 
-    <script src="./js/site.js?v=1.8.0" defer></script>
-    <script src="./js/sponsors.js?v=1.8.0" defer></script>
+    <script src="./js/site.js?v=1.9.0-beta1" defer></script>
+    <script src="./js/sponsors.js?v=1.9.0-beta1" defer></script>
 </body>
 </html>

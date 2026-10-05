@@ -14,13 +14,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (relative) => readFileSync(resolve(root, relative), "utf8");
 
 const sw = read("sw.js");
-const VERSION = sw.match(/const CACHE_NAME = 'chatlume-v(\d+\.\d+\.\d+)'/)?.[1];
+const VERSION = sw.match(/const CACHE_NAME = 'chatlume-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)'/)?.[1];
 
 const HTML_PAGES = [
     "index.html", "sponsors.html", "privacy.html",
     "public/404.html", "public/how-it-works.html", "public/how-to-export.html",
     "public/how-to-export-instagram.html", "public/how-to-use.html",
-    "public/instagram-viewer.html", "public/viewer.html"
+    "public/instagram-viewer.html", "public/messenger-viewer.html", "public/viewer.html"
 ];
 /** Every .js file under js/, recursively (js/shared, js/whatsapp, js/instagram, …). */
 function listJs(dir) {
@@ -34,14 +34,14 @@ const JS_FILES = listJs(resolve(root, "js"));
 
 describe(`release token v${VERSION}`, () => {
     test("service worker declares a semantic version", () => {
-        assert.match(VERSION || "", /^\d+\.\d+\.\d+$/);
+        assert.match(VERSION || "", /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/);
     });
 
     test("human-readable versions agree with the service worker", () => {
         assert.equal(read("js/script.js").match(/const APP_VERSION = "([^"]+)"/)[1], VERSION);
         assert.equal(read("js/instagram.js").match(/const IG_APP_VERSION = "([^"]+)"/)[1], VERSION);
         assert.equal(JSON.parse(read("package.json")).version, VERSION);
-        for (const page of ["public/viewer.html", "public/instagram-viewer.html"]) {
+        for (const page of ["public/viewer.html", "public/instagram-viewer.html", "public/messenger-viewer.html"]) {
             assert.equal(read(page).match(/data-app-version>v([^<]+)</)[1], VERSION, page);
         }
     });
@@ -94,6 +94,7 @@ describe(`release token v${VERSION}`, () => {
 
     test("bump script targets every file that carries the version", () => {
         const script = read("scripts/bump-version.mjs");
+        assert.match(script, /\(\?:-\[0-9A-Za-z-\]\+/);
         for (const page of [...HTML_PAGES, "js/script.js", "js/instagram.js", "js/storage.js", "sw.js", "package.json"]) {
             assert.ok(script.includes(`"${page}"`), `${page} not listed in bump-version.mjs`);
         }
@@ -106,7 +107,7 @@ describe(`release token v${VERSION}`, () => {
     });
 
     test("the module tree is split by viewer and every module documents itself", () => {
-        for (const dir of ["js/shared", "js/whatsapp", "js/instagram"]) {
+        for (const dir of ["js/shared", "js/whatsapp", "js/instagram", "js/messenger"]) {
             assert.ok(JS_FILES.some((file) => file.startsWith(`${dir}/`)), `${dir} should contain modules`);
         }
         for (const file of JS_FILES) {

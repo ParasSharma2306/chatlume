@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b141a">
+    <title>Facebook Messenger Viewer — ChatLume</title>
+    <meta name="description" content="View Facebook Messenger HTML exports locally in your browser. Your ZIP and messages are never uploaded.">
+    <link rel="stylesheet" href="../css/style.css?v=1.9.0-beta1">
+    <link rel="icon" href="../assets/favicon.ico" sizes="any">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .messenger-brand { color: #1684ff; }
+        .messenger-avatar { background: linear-gradient(135deg,#1684ff,#0866ff); color: #fff; }
+        #messenger-drop-target:hover, #messenger-drop-target.dragover, #messenger-drop-target.ready { border-color: #1684ff; }
+        #messenger-drag-overlay .drag-overlay-inner { border-color:#1684ff; background:rgba(22,132,255,.08); }
+        #messenger-drag-overlay .drag-overlay-inner i { color:#1684ff; }
+        #messenger-message-list .msg-row.sent .bubble { background:#0866ff; border:0; color:#fff; }
+        #messenger-message-list .msg-row.sent .meta { color:rgba(255,255,255,.7); }
+        #messenger-message-list .tail-out .bubble::after { background:#0866ff; }
+        #messenger-message-list .msg-row.received .bubble { background:var(--bg-header); }
+        #messenger-message-list .tail-in .bubble::before { background:var(--bg-header); }
+        #messenger-message-list .msg-row { max-width:min(72%,600px); }
+        .messenger-limit-note { margin:12px 0; padding:10px 12px; border:1px solid var(--border); border-radius:10px; color:var(--text-secondary); font-size:12px; line-height:1.5; }
+        .messenger-time-note { margin:8px auto 14px; max-width:680px; padding:8px 12px; color:var(--text-secondary); text-align:center; font-size:12px; }
+        #messenger-header-menu.open { display:block; }
+        #messenger-header-menu { display:none; }
+    </style>
+    <script>
+        try { if (localStorage.getItem("chatlume-theme") === "light") document.documentElement.dataset.bootTheme = "light"; } catch (_) {}
+    </script>
+    <style>html[data-boot-theme="light"] { background:#f8f9fa; }</style>
+</head>
+<body>
+    <script>if (document.documentElement.dataset.bootTheme === "light") document.body.classList.add("light-theme");</script>
+    <nav class="app-nav">
+        <a href="../index.html" class="back-home"><i class="ph ph-house"></i> Home</a>
+        <div class="nav-links"><a href="viewer.html">WhatsApp</a><a href="instagram-viewer.html">Instagram</a></div>
+    </nav>
+    <div class="drag-overlay" id="messenger-drag-overlay" aria-hidden="true"><div class="drag-overlay-inner"><i class="ph ph-file-arrow-up"></i><p>Drop your export here</p><span>Facebook Messenger <strong>.zip</strong> export</span></div></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="messenger-sidebar" aria-label="Messenger conversations">
+            <header class="sidebar-header">
+                <div class="profile-thumb" style="background:none;border:0"><strong class="messenger-brand">Messenger</strong></div>
+                <div class="sidebar-nav"><button id="messenger-theme-toggle" type="button" aria-label="Toggle theme"><i class="ph ph-moon-stars"></i></button></div>
+            </header>
+            <div class="sidebar-content">
+                <section class="upload-state" id="messenger-upload-panel">
+                    <div class="brand-hero"><h1 class="messenger-brand">Messenger</h1><span>Chat Viewer</span></div>
+                    <p style="line-height:1.5;color:var(--text-secondary)">Facebook Messenger HTML exports are currently supported.</p>
+                    <div class="input-wrapper"><label for="messenger-my-name">Your name (optional)</label><input id="messenger-my-name" type="text" autocomplete="name" placeholder="Match your sender name to mark your messages"></div>
+                    <button class="drop-target" id="messenger-drop-target" type="button">
+                        <i class="ph ph-file-zip" aria-hidden="true"></i><p>Drop <strong>.zip</strong> export</p>
+                        <input type="file" id="messenger-file-input" accept=".zip,application/zip" hidden>
+                        <span class="btn-secondary">Browse</span><span class="mobile-tap-hint">Tap to select a file</span>
+                    </button>
+                    <div id="messenger-selected-file" class="load-hint">No ZIP selected</div>
+                    <button class="btn-primary" id="messenger-load-button" type="button">Load conversations</button>
+                    <div class="privacy-pill"><i class="ph-fill ph-shield-check"></i> Processed locally. The ZIP is never uploaded.</div>
+                    <div class="messenger-limit-note">The first version shows message text, timestamps and basic attachments. Reactions, shared-post details, stickers, calls and some system events are not interpreted. Observed numeric slash dates are read as month/day/year. Exported timestamps provide no timezone, so ChatLume does not create epoch times.</div>
+                    <div class="app-version-label" data-app-version>v1.9.0-beta1</div>
+                </section>
+                <section class="chat-list hidden" id="messenger-thread-panel" aria-label="Conversations">
+                    <div class="section-label">SELECT A CONVERSATION</div>
+                    <label class="thread-filter"><i class="ph ph-magnifying-glass"></i><input id="messenger-thread-filter" type="search" placeholder="Filter conversations" autocomplete="off"></label>
+                    <p class="thread-count" id="messenger-thread-count"></p>
+                    <div id="messenger-thread-list"></div>
+                    <div class="thread-empty" id="messenger-thread-empty" hidden>No conversation matches that name.</div>
+                </section>
+                <section class="chat-list hidden" id="messenger-loaded-panel" aria-label="Loaded conversation">
+                    <div class="search-bar-sidebar"><i class="ph ph-magnifying-glass"></i><input type="text" placeholder="Search chats" disabled aria-label="Search chats"></div>
+                    <button class="chat-item active" type="button" id="messenger-open-list">
+                        <div class="chat-item-avatar messenger-avatar" aria-hidden="true">M</div>
+                        <div class="chat-item-info"><h4 id="messenger-sidebar-title">Conversation</h4><span id="messenger-sidebar-sub">Observed senders</span></div>
+                    </button>
+                </section>
+            </div>
+        </aside>
+        <button class="sidebar-backdrop" id="messenger-sidebar-backdrop" type="button" aria-label="Close sidebar"></button>
+        <main class="chat-interface">
+            <header class="chat-header">
+                <button class="mobile-menu" id="messenger-mobile-menu" type="button" aria-label="Open sidebar"><i class="ph ph-list"></i></button>
+                <div class="header-profile"><div class="chat-item-avatar messenger-avatar">M</div><div class="header-info"><h2 id="messenger-header-name">Facebook Messenger</h2><p id="messenger-header-meta">ChatLume · Local viewer</p></div></div>
+                <div class="header-tools"><div class="menu-container"><button id="messenger-header-menu-toggle" type="button" aria-label="Conversation actions"><i class="ph ph-dots-three-vertical"></i></button><div class="dropdown-menu" id="messenger-header-menu"><button class="menu-item" type="button" data-change-conversation><i class="ph ph-chat-circle"></i> Change conversation</button></div></div></div>
+            </header>
+            <button type="button" class="scroll-latest" id="messenger-scroll-latest" hidden aria-label="Jump to latest message"><i class="ph-bold ph-arrow-down"></i></button>
+            <section class="messages-viewport" id="messenger-viewport" aria-label="Messages">
+                <div class="empty-placeholder" id="messenger-empty-state">
+                    <div class="illustration"><i class="ph-duotone ph-facebook-logo" style="color:#1684ff"></i></div>
+                    <h2 class="messenger-brand">Facebook Messenger</h2>
+                    <p>Open a Meta/Facebook data export ZIP to view conversations in this browser.</p>
+                    <div class="empty-hints"><span class="empty-hint"><i class="ph-fill ph-file-zip"></i> HTML export</span><span class="empty-hint"><i class="ph-fill ph-shield-check"></i> Never uploaded</span></div>
+                </div>
+                <div class="messenger-time-note" id="messenger-epoch-note" hidden>Times are shown in the export's local format. No timezone is assumed, so epoch timestamps are unavailable.</div>
+                <div class="message-list" id="messenger-message-list"></div>
+            </section>
+            <footer class="chat-footer"><div class="fake-input">Imported conversation · read only</div></footer>
+        </main>
+        <div class="media-modal" id="messenger-media-modal" hidden>
+            <button class="media-modal-backdrop" id="messenger-media-modal-backdrop" type="button" aria-label="Close media"></button>
+            <div class="media-modal-dialog" role="dialog" aria-modal="true" aria-label="Attachment">
+                <div class="media-modal-header"><div><h2>Media</h2><p id="messenger-media-modal-subtitle"></p></div><div class="media-modal-actions"><a id="messenger-media-download-link" download title="Download"><i class="ph ph-download-simple"></i></a><button id="messenger-media-modal-close" type="button" aria-label="Close"><i class="ph ph-x"></i></button></div></div>
+                <div class="media-modal-body" id="messenger-media-modal-body"></div>
+            </div>
+        </div>
+        <div class="processing-overlay" id="messenger-processing-overlay" hidden><div class="processing-card" role="status"><i class="ph-fill ph-spinner-gap processing-spinner"></i><h2 id="messenger-processing-title">Loading</h2><p id="messenger-processing-copy">Please wait…</p></div></div>
+        <div id="messenger-toast" aria-live="polite"></div>
+    </div>
+    <script src="../js/site.js?v=1.9.0-beta1" defer></script>
+    <script type="module" src="../js/messenger.js?v=1.9.0-beta1"></script>
+</body>
+</html>

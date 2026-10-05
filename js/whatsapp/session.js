@@ -9,24 +9,24 @@
  * ============================================================================
  */
 import { BlobReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.8.0";
-import { showSponsorPrompt } from "../support.js?v=1.8.0";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.8.0";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.0";
-import { baseName } from "../shared/media-types.js?v=1.8.0";
-import { ISSUES_URL, state } from "./state.js?v=1.8.0";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.8.0";
-import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.8.0";
-import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.8.0";
+import { exportChatAsHTML } from "../export.js?v=1.9.0-beta1";
+import { showSponsorPrompt } from "../support.js?v=1.9.0-beta1";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.9.0-beta1";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.9.0-beta1";
+import { baseName } from "../shared/media-types.js?v=1.9.0-beta1";
+import { ISSUES_URL, state } from "./state.js?v=1.9.0-beta1";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.9.0-beta1";
+import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.9.0-beta1";
+import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.9.0-beta1";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.8.0";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.0";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.8.0";
-import { generateStats } from "./stats.js?v=1.8.0";
+} from "./persistence.js?v=1.9.0-beta1";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.9.0-beta1";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.9.0-beta1";
+import { generateStats } from "./stats.js?v=1.9.0-beta1";
 import {
     closeMenu,
     isMobileLayout,
@@ -38,7 +38,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.8.0";
+} from "./ui.js?v=1.9.0-beta1";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
