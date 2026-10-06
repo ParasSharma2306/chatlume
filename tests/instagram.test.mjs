@@ -332,6 +332,12 @@ describe("Instagram UI integration contracts", () => {
         assert.match(script, /\$\("ig-change-thread"\)\?\.addEventListener\("click"/);
         assert.match(script, /senderDropdown\.hidden = true;[\s\S]*setAttribute\("aria-expanded", "false"\)/);
         assert.match(script, /\[data-ig-setting\].*addEventListener\("change"/s);
+        assert.match(session, /setLoading\(true, "Opening ZIP"[\s\S]*?try \{\s*await yieldToPaint\(\)/,
+            "ZIP startup waits must be inside the error-handled loading flow");
+        assert.match(session, /setLoading\(true, "Loading thread"[\s\S]*?try \{\s*await yieldToPaint\(\)/,
+            "thread startup waits must be inside the finally-protected loading flow");
+        assert.match(session, /finally \{\s*if \(!isStale\(\)\) setLoading\(false\);/,
+            "the active thread load always releases the processing overlay");
         assert.match(session, /showErrorState\(/);
         assert.match(session, /showEmptyThreadState\(/);
     });

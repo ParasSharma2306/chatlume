@@ -19,23 +19,23 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.8.2";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.2";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.2";
-import { popOverlayState } from "./shared/history.js?v=1.8.2";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.2";
-import { createThemeController } from "./shared/theme.js?v=1.8.2";
-import { igState } from "./instagram/state.js?v=1.8.2";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.2";
-import { handleViewportScroll, jumpToBottom, renderChatList, resetRenderToBottom } from "./instagram/render.js?v=1.8.2";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.8.2";
-import { filterMessagesBySender, getInstagramSenderSummary } from "./instagram/filter.js?v=1.8.2";
-import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.8.2";
-import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.8.2";
-import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.8.2";
-import { DEFAULT_IG_SETTINGS, readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.8.2";
-import { initViewer, loadThread } from "./instagram/session.js?v=1.8.2";
-import { showThreadSelector } from "./instagram/threads.js?v=1.8.2";
+import { $, q, escapeHtml } from "./shared/dom.js?v=1.8.3";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.3";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.3";
+import { popOverlayState } from "./shared/history.js?v=1.8.3";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.3";
+import { createThemeController } from "./shared/theme.js?v=1.8.3";
+import { igState } from "./instagram/state.js?v=1.8.3";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.3";
+import { handleViewportScroll, jumpToBottom, renderChatList, resetRenderToBottom } from "./instagram/render.js?v=1.8.3";
+import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.8.3";
+import { filterMessagesBySender, getInstagramSenderSummary } from "./instagram/filter.js?v=1.8.3";
+import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.8.3";
+import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.8.3";
+import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.8.3";
+import { DEFAULT_IG_SETTINGS, readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.8.3";
+import { initViewer, loadThread } from "./instagram/session.js?v=1.8.3";
+import { showThreadSelector } from "./instagram/threads.js?v=1.8.3";
 import {
     closeAllDrawers,
     closeMenu,
@@ -47,11 +47,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.8.2";
+} from "./instagram/ui.js?v=1.8.3";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const IG_APP_VERSION = "1.8.2";
+const IG_APP_VERSION = "1.8.3";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
