@@ -8,17 +8,20 @@
  * ============================================================================
  */
 import { BlobReader, TextWriter, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.8.1";
-import { showSponsorPrompt } from "../support.js?v=1.8.1";
-import { $, q, replayClass } from "../shared/dom.js?v=1.8.1";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.1";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.8.1";
-import { fixMojibake } from "./mojibake.js?v=1.8.1";
-import { igState } from "./state.js?v=1.8.1";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.8.1";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessages, sortMessageFiles } from "./parser.js?v=1.8.1";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.1";
-import { showThreadSelector } from "./threads.js?v=1.8.1";
+import { exportChatAsHTML } from "../export.js?v=1.8.2";
+import { showSponsorPrompt } from "../support.js?v=1.8.2";
+import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.2";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.2";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.8.2";
+import { fixMojibake } from "./mojibake.js?v=1.8.2";
+import { igState } from "./state.js?v=1.8.2";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.8.2";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.2";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.2";
+import { showThreadSelector } from "./threads.js?v=1.8.2";
+import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.2";
+import { getInstagramSenders } from "./filter.js?v=1.8.2";
+import { initialThreadSelection } from "./threads-model.js?v=1.8.2";
 import {
     closeMenu,
     generateStats,
@@ -29,12 +32,12 @@ import {
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.8.1";
+} from "./ui.js?v=1.8.2";
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
-export async function initViewer() {
+export async function initViewer({ file: fileOverride = null, record = null } = {}) {
     if (igState.isLoading) return;
-    const file = $("ig-file-input")?.files?.[0] || igState.selectedFile;
+    const file = fileOverride || $("ig-file-input")?.files?.[0] || igState.selectedFile;
     if (!file) { showToast("Please select an Instagram export ZIP", "warn"); return; }
     if (!file.name.toLowerCase().endsWith(".zip")) { showToast("Please select a .zip file", "warn"); return; }
 
@@ -47,6 +50,11 @@ export async function initViewer() {
     const isStaleZip = () => igState.loadGeneration !== gen;
 
     cleanupZip();
+    igState.currentFile = file;
+    igState.activeImportId = record?.id || "";
+    igState.restoreImportId = record?.id || "";
+    igState.restoreThreadFolder = record?.threadFolder || "";
+    if (record?.ownerName && $("ig-my-name") && !$("ig-my-name").value.trim()) $("ig-my-name").value = record.ownerName;
 
     setLoading(true, "Opening ZIP", "Reading your Instagram export...");
     await yieldToPaint();
@@ -71,11 +79,12 @@ export async function initViewer() {
         igState.threads = threads;
         setLoading(false);
 
-        if (threads.length === 1) {
-            await loadThread(threads[0]);
-        } else {
-            showThreadSelector(threads, loadThread);
+        const selectedThread = initialThreadSelection(threads, record?.threadFolder || "");
+        if (selectedThread) {
+            await loadThread(selectedThread);
+            return;
         }
+        showThreadSelector(threads, loadThread);
     } catch (err) {
         if (isStaleZip()) return;
         console.error(err);
@@ -88,15 +97,22 @@ export async function initViewer() {
 function resetThreadState() {
     igState.messages = [];
     igState.filteredMessages = [];
+    igState.selectedSenders = [];
     igState.messageOnlyCount = 0;
     igState.colorMap = {};
     igState.senderStats = {};
     igState.emojiStats = {};
     igState.hourlyStats = Array(24).fill(0);
     igState.mediaCount = 0;
+    igState.mediaMissingCount = 0;
     igState.searchResults = [];
     igState.searchPointer = -1;
+    igState.searchQuery = "";
+    clearTimeout(igState.searchTimer);
+    igState.searchTimer = null;
     igState.activeMediaId = "";
+    $("ig-sender-filter-list")?.replaceChildren();
+    $("ig-sender-filter-container")?.setAttribute("hidden", "");
     clearMediaStore(igState);
     lazyMedia.disconnect();
     if ($("ig-message-list")) $("ig-message-list").innerHTML = "";
@@ -133,17 +149,17 @@ export async function loadThread(thread) {
             if (isStale()) return;
             const text = await sortedFiles[i].getData(new TextWriter("utf-8"));
             if (isStale()) return;
-            let data;
-            try { data = JSON.parse(text); } catch { continue; }
-            if (data.title) threadTitle = fixMojibake(data.title);
-            if (data.participants?.length && !participants.length) {
-                participants = data.participants.map((p) => fixMojibake(p.name));
+            const data = parseMessageFile(text);
+            if (!data) continue;
+            if (typeof data.title === "string" && data.title) threadTitle = fixMojibake(data.title);
+            if (Array.isArray(data.participants) && data.participants.length && !participants.length) {
+                participants = data.participants.map((p) => fixMojibake(String(p?.name || ""))).filter(Boolean);
             }
-            if (data.messages?.length) allRaw.push(...data.messages);
+            if (Array.isArray(data.messages) && data.messages.length) allRaw.push(...data.messages);
         }
 
         // Oldest first
-        allRaw.sort((a, b) => a.timestamp_ms - b.timestamp_ms);
+        allRaw = sortMessagesChronologically(allRaw);
 
         const nameInput = $("ig-my-name")?.value.trim();
         // Instagram lists the account owner LAST in `participants`, so falling back
@@ -168,10 +184,15 @@ export async function loadThread(thread) {
         }
 
         updateUI(threadTitle, participants);
+        populateInstagramSenderFilter();
         renderChatList();
         requestAnimationFrame(scrollToBottom);
         showToast(`Loaded ${igState.messageOnlyCount.toLocaleString()} messages`);
         if (isMobileLayout()) setSidebarState(false);
+        if (igState.activeImportId) {
+            try { await markInstagramImportOpened(thread); }
+            catch (error) { console.warn("Saved thread metadata could not be updated:", error); }
+        } else void persistInstagramImport(igState.currentFile, thread);
         showSponsorPrompt();
     } catch (err) {
         console.error(err);
@@ -181,24 +202,36 @@ export async function loadThread(thread) {
     }
 }
 
+function populateInstagramSenderFilter() {
+    const list = $("ig-sender-filter-list");
+    if (!list) return;
+    list.innerHTML = getInstagramSenders(igState.messages).map((sender, index) => `
+        <label class="sender-filter-item"><input type="checkbox" value="${escapeAttribute(sender)}" id="ig-sender-${index}"><span>${escapeHtml(sender)}</span></label>
+    `).join("");
+}
+
 /** Puts the loaded thread's title and counts into the sidebar and header. */
 function updateUI(title, participants) {
     $("ig-upload-panel")?.classList.add("hidden");
     $("ig-thread-panel")?.classList.add("hidden");
     $("ig-chat-list-panel")?.classList.remove("hidden");
     $("ig-empty-state")?.classList.add("hidden");
+    $("ig-sender-filter-container")?.removeAttribute("hidden");
 
     // One-shot reveal: the message list is virtualised, so animate the container
     // rather than each message.
     replayClass([$("ig-viewport"), q(".chat-header .header-profile")], "chat-revealed");
 
     const withMedia = igState.mediaCount ? ` • ${igState.mediaCount.toLocaleString()} media` : "";
+    const missing = igState.mediaMissingCount ? ` • ${igState.mediaMissingCount.toLocaleString()} missing` : "";
     const avatar = q(".chat-item-avatar", $("ig-chat-list-item"));
     if (avatar) avatar.textContent = initialsFor(title);
     if ($("ig-sidebar-title")) $("ig-sidebar-title").innerText = title;
     if ($("ig-header-name")) $("ig-header-name").innerText = title;
-    if ($("ig-header-meta")) $("ig-header-meta").innerText = `${igState.messageOnlyCount.toLocaleString()} messages${withMedia}`;
-    if ($("ig-sidebar-sub")) $("ig-sidebar-sub").innerText = participants.join(", ") || "Direct Message";
+    if ($("ig-header-meta")) $("ig-header-meta").innerText = `${igState.messageOnlyCount.toLocaleString()} messages${withMedia}${missing}`;
+    if ($("ig-sidebar-sub")) $("ig-sidebar-sub").innerText = igState.mediaMissingCount
+        ? `${igState.mediaMissingCount} missing attachment${igState.mediaMissingCount === 1 ? "" : "s"}`
+        : participants.join(", ") || "Direct Message";
 
     ensureExportButton();
 }

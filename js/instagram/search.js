@@ -6,14 +6,10 @@
  * captions — the same surface the WhatsApp viewer searches.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.8.1";
-import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.8.1";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.8.1";
-
-function getSearchableText(entry) {
-    const mediaNames = (entry.mediaItems || []).map((m) => m.name).join(" ");
-    return `${entry.sender || ""} ${entry.text || ""} ${mediaNames} ${entry.shareText || ""}`.toLowerCase();
-}
+import { $, isTypingTarget } from "../shared/dom.js?v=1.8.2";
+import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.8.2";
+import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.8.2";
+import { findMessageSearchResults, nextSearchIndex } from "./search-model.js?v=1.8.2";
 
 export const isSearchOpen = () => Boolean($("ig-search-toolbar")?.classList.contains("active"));
 
@@ -27,6 +23,8 @@ export function toggleSearch() {
     if (open) { input.focus(); return; }
     input.value = "";
     clearTimeout(igState.searchTimer);
+    igState.searchTimer = null;
+    igState.searchQuery = "";
     igState.searchResults = [];
     igState.searchPointer = -1;
     updateSearchCounter();
@@ -38,11 +36,15 @@ export function toggleSearch() {
 /** Debounced input handler for the search box. */
 export function handleSearchInput(event) {
     clearTimeout(igState.searchTimer);
-    igState.searchTimer = setTimeout(() => runSearch(event.target.value), IG_SEARCH_DEBOUNCE_MS);
+    const query = event.target.value;
+    igState.searchTimer = setTimeout(() => runSearch(query), IG_SEARCH_DEBOUNCE_MS);
 }
 
 export function runSearch(query) {
-    const normalized = query.trim().toLowerCase();
+    clearTimeout(igState.searchTimer);
+    igState.searchTimer = null;
+    const normalized = String(query || "").trim().toLowerCase();
+    igState.searchQuery = normalized;
     if (!normalized) {
         igState.searchResults = [];
         igState.searchPointer = -1;
@@ -51,9 +53,7 @@ export function runSearch(query) {
         renderChatList();
         return;
     }
-    igState.searchResults = igState.messages
-        .filter((m) => m.type === "msg" && getSearchableText(m).includes(normalized))
-        .map((m) => m.id);
+    igState.searchResults = findMessageSearchResults(igState.filteredMessages, normalized);
     if (!igState.searchResults.length) {
         igState.searchPointer = -1;
         updateSearchCounter("No matches");
@@ -82,9 +82,7 @@ export function setSearchEmptyState(visible, query = "") {
 /** Moves to the previous/next hit, wrapping at either end. */
 export function navSearch(direction) {
     if (!igState.searchResults.length) return;
-    igState.searchPointer += direction === "up" ? -1 : 1;
-    if (igState.searchPointer < 0) igState.searchPointer = igState.searchResults.length - 1;
-    if (igState.searchPointer >= igState.searchResults.length) igState.searchPointer = 0;
+    igState.searchPointer = nextSearchIndex(igState.searchPointer, igState.searchResults.length, direction);
     updateSearchCounter();
     jumpToMessage(igState.searchResults[igState.searchPointer]);
 }

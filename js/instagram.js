@@ -19,17 +19,23 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.8.1";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.1";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.1";
-import { popOverlayState } from "./shared/history.js?v=1.8.1";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.1";
-import { createThemeController } from "./shared/theme.js?v=1.8.1";
-import { igState } from "./instagram/state.js?v=1.8.1";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.1";
-import { handleViewportScroll, jumpToBottom } from "./instagram/render.js?v=1.8.1";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, toggleSearch } from "./instagram/search.js?v=1.8.1";
-import { initViewer } from "./instagram/session.js?v=1.8.1";
+import { $, q, escapeHtml } from "./shared/dom.js?v=1.8.2";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.2";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.2";
+import { popOverlayState } from "./shared/history.js?v=1.8.2";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.2";
+import { createThemeController } from "./shared/theme.js?v=1.8.2";
+import { igState } from "./instagram/state.js?v=1.8.2";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.2";
+import { handleViewportScroll, jumpToBottom, renderChatList, resetRenderToBottom } from "./instagram/render.js?v=1.8.2";
+import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.8.2";
+import { filterMessagesBySender, getInstagramSenderSummary } from "./instagram/filter.js?v=1.8.2";
+import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.8.2";
+import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.8.2";
+import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.8.2";
+import { DEFAULT_IG_SETTINGS, readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.8.2";
+import { initViewer, loadThread } from "./instagram/session.js?v=1.8.2";
+import { showThreadSelector } from "./instagram/threads.js?v=1.8.2";
 import {
     closeAllDrawers,
     closeMenu,
@@ -41,23 +47,26 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.8.1";
+} from "./instagram/ui.js?v=1.8.2";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const IG_APP_VERSION = "1.8.1";
+const IG_APP_VERSION = "1.8.2";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
 // ── Boot ────────────────────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     theme.applySaved();
+    igState.settings = readInstagramSettings();
+    syncInstagramSettingsControls();
     bindUI();
     document.querySelectorAll("[data-app-version]").forEach((el) => { el.textContent = `v${IG_APP_VERSION}`; });
     runSplashLoader();
     showCompatBannerIfNeeded();
     if (isMobileLayout()) setSidebarState(true);
+    await initInstagramPersistence({ openImport: (file, record) => initViewer({ file, record }) });
 });
 
 window.addEventListener("resize", () => {
@@ -74,12 +83,16 @@ window.addEventListener("popstate", () => {
     closeMediaModal();
     closeMenu();
     closeAllDrawers();
+    closeDateSheet({ fromHistory: true });
+    closeInstagramWrapped({ fromHistory: true });
 });
 
 // ── Event wiring ────────────────────────────────────────────────────────────
 
 function bindUI() {
     $("ig-theme-toggle")?.addEventListener("click", theme.toggle);
+    $("ig-open-settings")?.addEventListener("click", () => openDrawer("ig-settings"));
+    $("ig-close-settings")?.addEventListener("click", () => dismissDrawer("ig-settings"));
     $("ig-mobile-menu")?.addEventListener("click", toggleSidebar);
     $("ig-sidebar-backdrop")?.addEventListener("click", toggleSidebar);
 
@@ -99,6 +112,48 @@ function bindUI() {
     $("ig-live-search")?.addEventListener("input", handleSearchInput);
     $("ig-search-up")?.addEventListener("click", () => navSearch("up"));
     $("ig-search-down")?.addEventListener("click", () => navSearch("down"));
+    $("ig-date-jump-action")?.addEventListener("click", () => { closeMenu(); openDateSheet(); });
+    $("ig-date-sheet-cancel")?.addEventListener("click", () => closeDateSheet());
+    $("ig-date-sheet-apply")?.addEventListener("click", applyDateJump);
+    $("ig-date-sheet")?.addEventListener("click", (event) => { if (event.target === event.currentTarget) closeDateSheet(); });
+    $("ig-generate-wrapped")?.addEventListener("click", openInstagramWrapped);
+    $("ig-wrapped-close")?.addEventListener("click", () => closeInstagramWrapped());
+    $("ig-wrapped-backdrop")?.addEventListener("click", () => closeInstagramWrapped());
+    $("ig-wrapped-download")?.addEventListener("click", downloadInstagramWrapped);
+    $("ig-change-thread")?.addEventListener("click", () => showThreadSelector(igState.threads, loadThread));
+    document.querySelectorAll("[data-ig-another-export]").forEach((button) => button.addEventListener("click", () => {
+        $("ig-thread-panel")?.classList.add("hidden");
+        $("ig-chat-list-panel")?.classList.add("hidden");
+        $("ig-upload-panel")?.classList.remove("hidden");
+        $("ig-sender-filter-container")?.setAttribute("hidden", "");
+        if (isMobileLayout()) setSidebarState(true);
+    }));
+
+    $("ig-sender-filter-btn")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const dropdown = $("ig-sender-filter-dropdown");
+        const open = Boolean(dropdown?.hidden);
+        if (dropdown) dropdown.hidden = !open;
+        $("ig-sender-filter-btn")?.setAttribute("aria-expanded", String(open));
+    });
+    $("ig-sender-filter-list")?.addEventListener("change", applyInstagramSenderFilter);
+    $("ig-sender-filter-reset")?.addEventListener("click", () => {
+        $("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]").forEach((input) => { input.checked = false; });
+        applyInstagramSenderFilter();
+    });
+    document.addEventListener("click", (event) => {
+        const container = $("ig-sender-filter-container");
+        if (container && !container.contains(event.target)) {
+            $("ig-sender-filter-dropdown")?.setAttribute("hidden", "");
+            $("ig-sender-filter-btn")?.setAttribute("aria-expanded", "false");
+        }
+    });
+
+    document.querySelectorAll("[data-ig-setting]").forEach((control) => control.addEventListener("change", handleInstagramSettingChange));
+    $("ig-storage-list")?.addEventListener("click", handleInstagramStorageClick);
+    $("ig-storage-delete-all")?.addEventListener("click", deleteAllInstagramImports);
+    $("ig-storage-cancel")?.addEventListener("click", cancelInstagramCopy);
+    $("ig-reset-settings")?.addEventListener("click", resetInstagramSettings);
 
     // Header menu (the thread session adds its export action here).
     $("ig-menu-toggle")?.addEventListener("click", toggleMenu);
@@ -152,6 +207,41 @@ function bindUI() {
     document.addEventListener("keydown", handleGlobalKeydown);
 }
 
+function syncInstagramSettingsControls() {
+    document.querySelectorAll("[data-ig-setting]").forEach((control) => {
+        const value = igState.settings[control.dataset.igSetting];
+        if (control.type === "checkbox") control.checked = Boolean(value);
+        else control.value = value;
+    });
+}
+
+function handleInstagramSettingChange(event) {
+    const control = event.currentTarget;
+    const key = control.dataset.igSetting;
+    const value = control.type === "checkbox" ? control.checked : control.value;
+    igState.settings = writeInstagramSettings({ ...igState.settings, [key]: value });
+    if (key === "persistentStorage") handleInstagramStorageSetting(event);
+    renderChatList();
+}
+
+function resetInstagramSettings() {
+    const wasStoring = igState.settings.persistentStorage;
+    igState.settings = writeInstagramSettings({ ...DEFAULT_IG_SETTINGS, persistentStorage: false });
+    syncInstagramSettingsControls();
+    if (wasStoring) handleInstagramStorageSetting({ target: { checked: false } });
+    renderChatList();
+    showToast("Instagram settings reset");
+}
+
+function applyInstagramSenderFilter() {
+    igState.selectedSenders = [...($("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]:checked") || [])].map((input) => input.value);
+    igState.filteredMessages = filterMessagesBySender(igState.messages, igState.selectedSenders);
+    const summary = getInstagramSenderSummary(igState.selectedSenders);
+    $("ig-sender-filter-btn")?.setAttribute("aria-label", `Filter by sender. ${summary}`);
+    if (igState.searchQuery) runSearch(igState.searchQuery);
+    else resetRenderToBottom();
+}
+
 // ── Keyboard ────────────────────────────────────────────────────────────────
 
 function handleGlobalKeydown(event) {
@@ -165,6 +255,15 @@ function handleGlobalKeydown(event) {
 /** Closes the topmost overlay. */
 function handleEscape() {
     if (igState.activeMediaId) { closeMediaModal(); return; }
+    if (!$("ig-date-sheet")?.hidden) { closeDateSheet(); return; }
+    if (!$("ig-wrapped-modal")?.hidden) { closeInstagramWrapped(); return; }
+    const senderDropdown = $("ig-sender-filter-dropdown");
+    if (senderDropdown && !senderDropdown.hidden) {
+        senderDropdown.hidden = true;
+        $("ig-sender-filter-btn")?.setAttribute("aria-expanded", "false");
+        $("ig-sender-filter-btn")?.focus({ preventScroll: true });
+        return;
+    }
     if (isSearchOpen()) { toggleSearch(); return; }
     const wasMenuOpen = $("ig-header-menu")?.classList.contains("show");
     closeMenu();

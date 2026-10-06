@@ -8,6 +8,8 @@
  * ============================================================================
  */
 
+import { readInstagramSettings } from "./settings.js?v=1.8.2";
+
 export const IG_BATCH_SIZE = 60;
 export const IG_MAX_RENDERED = 180;
 export const IG_SEARCH_DEBOUNCE_MS = 120;
@@ -18,10 +20,12 @@ export const igState = {
     zipReader: null,
     threads: [],             // { folder, files[] } per conversation folder
     selectedFile: null,
+    currentFile: null,
 
     // ── Parsed thread ────────────────────────────────────────────────────
     messages: [],
     filteredMessages: [],
+    selectedSenders: [],
     messageOnlyCount: 0,
     myName: "",
     chatTitle: "Instagram DMs",
@@ -32,6 +36,10 @@ export const igState = {
     emojiStats: {},
     hourlyStats: Array(24).fill(0),
     mediaCount: 0,
+    mediaMissingCount: 0,
+    settings: readInstagramSettings(),
+    storageSupported: false,
+    storedImports: [],
 
     // ── Media (see shared/media-urls.js) ─────────────────────────────────
     mediaStore: new Map(),
@@ -44,6 +52,7 @@ export const igState = {
     searchResults: [],
     searchPointer: -1,
     searchTimer: null,
+    searchQuery: "",
 
     // ── Session ──────────────────────────────────────────────────────────
     isLoading: false,
@@ -51,5 +60,8 @@ export const igState = {
     // otherwise let the older scan finish last and overwrite the entries.
     loadGeneration: 0,
     // Same guard for picking a second conversation mid-parse.
-    threadGeneration: 0
+    threadGeneration: 0,
+    activeImportId: "",
+    restoreImportId: "",
+    restoreThreadFolder: ""
 };

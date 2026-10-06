@@ -7,10 +7,11 @@
  * the user taps.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.1";
-import { folderLabel } from "./parser.js?v=1.8.1";
-import { igState } from "./state.js?v=1.8.1";
-import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.1";
+import { $, escapeHtml } from "../shared/dom.js?v=1.8.2";
+import { folderLabel } from "./parser.js?v=1.8.2";
+import { igState } from "./state.js?v=1.8.2";
+import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.2";
+import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.8.2";
 
 /**
  * @param {Array}    threads   From parser.findThreads().
@@ -19,6 +20,7 @@ import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.1";
 export function showThreadSelector(threads, onSelect) {
     $("ig-upload-panel")?.classList.add("hidden");
     $("ig-chat-list-panel")?.classList.add("hidden");
+    $("ig-sender-filter-container")?.setAttribute("hidden", "");
     const panel = $("ig-thread-panel");
     const list = $("ig-thread-list");
     if (!panel || !list) return;
@@ -26,9 +28,7 @@ export function showThreadSelector(threads, onSelect) {
 
     // Sort by folder label so a long export is scannable, and remember the
     // original index — selection indexes into igState.threads.
-    const entries = threads
-        .map((thread, index) => ({ index, label: folderLabel(thread.folder), files: thread.files.length }))
-        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+    const entries = makeThreadOptions(threads, folderLabel);
 
     const filterInput = $("ig-thread-filter");
     const countEl = $("ig-thread-count");
@@ -36,9 +36,7 @@ export function showThreadSelector(threads, onSelect) {
 
     function paint(query) {
         const needle = query.trim().toLowerCase();
-        const visible = needle
-            ? entries.filter((e) => e.label.toLowerCase().includes(needle))
-            : entries;
+        const visible = filterThreadOptions(entries, needle);
 
         list.innerHTML = visible.map((e) => `
     <button class="chat-item" type="button" data-thread-idx="${e.index}">

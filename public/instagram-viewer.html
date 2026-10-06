@@ -29,14 +29,14 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.8.1">
+    <link rel="stylesheet" href="../css/style.css?v=1.8.2">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script type="module" src="../js/instagram.js?v=1.8.1"></script>
+    <script type="module" src="../js/instagram.js?v=1.8.2"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <style>
         /* ── Instagram accent overrides ── */
@@ -239,6 +239,7 @@
                 </button>
                 <div class="sidebar-nav">
                     <button id="ig-open-stats" type="button" title="Analytics" aria-label="Open analytics"><i class="ph ph-chart-pie-slice"></i></button>
+                    <button id="ig-open-settings" type="button" title="Settings" aria-label="Open settings"><i class="ph ph-gear-six"></i></button>
                     <button id="ig-theme-toggle" type="button" title="Toggle Theme" aria-label="Toggle theme"><i class="ph ph-moon-stars"></i></button>
                 </div>
             </header>
@@ -269,11 +270,12 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.8.1</div>
+                    <div class="app-version-label" data-app-version>v1.8.2</div>
                 </section>
 
                 <!-- Thread selector -->
                 <section class="chat-list hidden" id="ig-thread-panel" aria-label="Thread list">
+                    <button type="button" class="btn-secondary import-another" data-ig-another-export><i class="ph ph-file-arrow-up"></i> Open another export</button>
                     <div class="section-label">SELECT A CONVERSATION</div>
                     <label class="thread-filter" for="ig-thread-filter">
                         <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
@@ -289,10 +291,6 @@
 
                 <!-- Chat loaded -->
                 <section class="chat-list hidden" id="ig-chat-list-panel" aria-label="Loaded conversation">
-                    <div class="search-bar-sidebar">
-                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-                        <input type="text" placeholder="Search chats" disabled aria-label="Search chats">
-                    </div>
                     <button class="chat-item active" type="button" id="ig-chat-list-item">
                         <div class="chat-item-avatar ig-avatar-gradient" aria-hidden="true"></div>
                         <div class="chat-item-info">
@@ -300,6 +298,8 @@
                             <span id="ig-sidebar-sub">Loaded</span>
                         </div>
                     </button>
+                    <button type="button" class="btn-secondary import-another" id="ig-change-thread"><i class="ph ph-list-bullets"></i> Choose another conversation</button>
+                    <button type="button" class="btn-secondary import-another" data-ig-another-export><i class="ph ph-file-arrow-up"></i> Open another export</button>
                 </section>
             </div>
 
@@ -324,6 +324,56 @@
                     <div class="emoji-grid" id="ig-emoji-grid"></div>
                     <div class="section-label">ACTIVITY BREAKDOWN</div>
                     <div class="stats-list" id="ig-stats-list"></div>
+                    <button type="button" class="btn-secondary settings-reset" id="ig-generate-wrapped"><i class="ph ph-sparkle"></i> Generate Instagram Wrapped</button>
+                </div>
+            </section>
+            <section class="drawer" id="ig-settings-drawer" aria-label="Instagram settings">
+                <div class="drawer-header">
+                    <button class="drawer-close" id="ig-close-settings" type="button" aria-label="Close settings"><i class="ph ph-arrow-left"></i></button>
+                    <h2>Settings</h2>
+                </div>
+                <div class="drawer-scroll">
+                    <div class="settings-group">
+                        <div class="section-label">TIME DISPLAY</div>
+                        <label class="setting-row" for="ig-setting-time-format"><span><strong>Time Format</strong><small>Choose 12-hour or 24-hour timestamps.</small></span>
+                            <select id="ig-setting-time-format" data-ig-setting="timeFormat"><option value="12">12-hour</option><option value="24">24-hour</option></select>
+                        </label>
+                        <label class="setting-row" for="ig-setting-show-seconds"><span><strong>Show Seconds</strong><small>Show seconds from the export timestamps.</small></span>
+                            <input type="checkbox" id="ig-setting-show-seconds" data-ig-setting="showSeconds">
+                        </label>
+                        <label class="setting-row" for="ig-setting-time-brackets"><span><strong>Time Brackets</strong><small>Add brackets around message timestamps.</small></span>
+                            <select id="ig-setting-time-brackets" data-ig-setting="timeBrackets"><option value="none">None</option><option value="square">[Square]</option><option value="round">(Round)</option></select>
+                        </label>
+                    </div>
+                    <div class="settings-group">
+                        <div class="section-label">DATE DISPLAY</div>
+                        <label class="setting-row" for="ig-setting-date-format"><span><strong>Date Format</strong><small>Choose the date marker format.</small></span>
+                            <select id="ig-setting-date-format" data-ig-setting="dateFormat"><option value="long">Long</option><option value="dmy">DD/MM/YYYY</option><option value="mdy">MM/DD/YYYY</option><option value="ymd">YYYY/MM/DD</option></select>
+                        </label>
+                        <label class="setting-row" for="ig-setting-date-separator"><span><strong>Date Separator</strong><small>Used for numeric date formats.</small></span>
+                            <select id="ig-setting-date-separator" data-ig-setting="dateSeparator"><option value="/">Slash</option><option value="-">Dash</option><option value=".">Dot</option></select>
+                        </label>
+                        <label class="setting-row" for="ig-setting-date-brackets"><span><strong>Date Brackets</strong><small>Add brackets around date markers.</small></span>
+                            <select id="ig-setting-date-brackets" data-ig-setting="dateBrackets"><option value="none">None</option><option value="square">[Square]</option><option value="round">(Round)</option></select>
+                        </label>
+                        <label class="setting-row" for="ig-setting-show-senders"><span><strong>Sender Names</strong><small>Show incoming sender names above grouped messages.</small></span>
+                            <input type="checkbox" id="ig-setting-show-senders" data-ig-setting="showSenderNames">
+                        </label>
+                    </div>
+                    <div class="settings-group">
+                        <div class="section-label">PERSISTENT STORAGE</div>
+                        <label class="setting-row" for="ig-setting-persistent-storage"><span><strong>Persistent Storage</strong><small>Keep Instagram export ZIPs on this device. Nothing is uploaded.</small></span>
+                            <input type="checkbox" id="ig-setting-persistent-storage" data-ig-setting="persistentStorage">
+                        </label>
+                        <p class="storage-note storage-note-warn" id="ig-storage-unsupported" hidden>Local persistent storage requires a supported browser on HTTPS.</p>
+                        <p class="storage-note" id="ig-storage-status" role="status"></p>
+                        <button type="button" class="btn-secondary" id="ig-storage-cancel" hidden>Cancel saving</button>
+                        <div id="ig-storage-manage" hidden>
+                            <div class="storage-list" id="ig-storage-list"></div>
+                            <button type="button" class="btn-secondary storage-delete-all" id="ig-storage-delete-all">Delete saved Instagram exports</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary settings-reset" id="ig-reset-settings">Reset Settings</button>
                 </div>
             </section>
         </aside>
@@ -346,10 +396,17 @@
                     </div>
                 </div>
                 <div class="header-tools">
+                    <div class="sender-filter-container" id="ig-sender-filter-container" hidden>
+                        <button type="button" class="sender-filter-btn" id="ig-sender-filter-btn" aria-haspopup="dialog" aria-controls="ig-sender-filter-dropdown" aria-expanded="false" aria-label="Filter by sender"><i class="ph ph-users-three"></i></button>
+                        <div class="sender-filter-dropdown" id="ig-sender-filter-dropdown" role="dialog" aria-label="Filter messages by sender" hidden>
+                            <div class="sender-filter-dropdown-header"><strong>Participants</strong><button type="button" class="sender-filter-reset-btn" id="ig-sender-filter-reset">Reset</button></div>
+                            <div class="sender-filter-list" id="ig-sender-filter-list" role="group" aria-label="Participants"></div>
+                        </div>
+                    </div>
                     <button id="ig-search-toggle" type="button" aria-label="Search messages" aria-controls="ig-search-toolbar" aria-expanded="false" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>
                     <div class="menu-container">
                         <button id="ig-menu-toggle" type="button" aria-label="Open chat actions" aria-controls="ig-header-menu" aria-expanded="false"><i class="ph ph-dots-three-vertical"></i></button>
-                        <div class="dropdown-menu" id="ig-header-menu"></div>
+                        <div class="dropdown-menu" id="ig-header-menu"><button type="button" class="menu-item" id="ig-date-jump-action"><i class="ph ph-calendar-blank"></i> Go to Date</button></div>
                     </div>
                 </div>
             </header>
@@ -421,6 +478,33 @@
             </div>
         </div>
 
+        <div class="date-sheet-backdrop" id="ig-date-sheet" hidden>
+            <div class="date-sheet" role="dialog" aria-modal="true" aria-labelledby="ig-date-sheet-title">
+                <h3 id="ig-date-sheet-title">Go to Date</h3>
+                <p>Select a local date in this conversation.</p>
+                <input type="date" id="ig-date-sheet-input" class="date-sheet-input" aria-label="Date to jump to">
+                <p id="ig-date-sheet-error" class="storage-note storage-note-warn" role="status" hidden>No messages were found on or before that date.</p>
+                <div class="date-sheet-actions">
+                    <button class="btn-secondary" id="ig-date-sheet-cancel" type="button">Cancel</button>
+                    <button class="btn-primary" id="ig-date-sheet-apply" type="button">Jump</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="media-modal" id="ig-wrapped-modal" hidden>
+            <button class="media-modal-backdrop" id="ig-wrapped-backdrop" type="button" aria-label="Close Instagram Wrapped"></button>
+            <div class="media-modal-dialog" style="max-width:600px" role="dialog" aria-modal="true" aria-labelledby="ig-wrapped-title">
+                <div class="media-modal-header">
+                    <div><h2 id="ig-wrapped-title">Your Instagram Wrapped</h2><p>A shareable summary of this conversation.</p></div>
+                    <div class="media-modal-actions"><button id="ig-wrapped-close" type="button" aria-label="Close"><i class="ph ph-x"></i></button></div>
+                </div>
+                <div class="media-modal-body" style="display:block;padding:20px;background:var(--bg-sidebar);overflow:auto">
+                    <div id="ig-wrapped-graphic" class="wrapped-graphic-container"></div>
+                    <button class="btn-primary" id="ig-wrapped-download" type="button" style="width:100%;margin-top:20px"><i class="ph ph-download-simple"></i> Download Image</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Processing overlay -->
         <div class="processing-overlay" id="ig-processing-overlay" hidden>
             <div class="processing-card" role="status">
@@ -435,6 +519,6 @@
 
     
 
-    <script src="../js/site.js?v=1.8.1" defer></script>
+    <script src="../js/site.js?v=1.8.2" defer></script>
 </body>
 </html>

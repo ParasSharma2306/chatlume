@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.8.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.8.2-blue?style=flat-square)
 
 ---
 
@@ -33,7 +33,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 | Feature | Details |
 |---------|---------|
 | WhatsApp viewer | Renders `_chat.txt` or `.zip` exports as a real WhatsApp-style chat UI, with sent/received bubbles, grouped messages, sticky date headers and system messages |
-| Instagram viewer | Reads Instagram "Download Your Data" JSON archives; pick a conversation from the thread list, filter threads by name, and see reactions, shares, unsent markers and media |
+| Instagram viewer | Reads Instagram "Download Your Data" JSON archives; pick or switch conversations, filter threads by name or messages by sender, and see reactions, shares, unsent markers and media |
 | Media from ZIP | Images, stickers, videos, voice notes (with waveform and duration), documents, contacts and archives are read straight out of the ZIP — nothing is extracted to disk |
 | Lazy media | Attachments are decoded only when they scroll into view and released again off-screen, so multi-GB exports stay light on memory |
 | Media viewer | Tap any attachment for a full-screen viewer with download |
@@ -46,7 +46,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 ### Finding things
 | Feature | Details |
 |---------|---------|
-| Search | Live search across senders, text and attachment names with a match counter and up/down navigation |
+| Search | Live search across senders, text, attachment names and format-specific message details with a match counter and up/down navigation |
 | Go to Date | Jump to any day in the chat from the header menu |
 | Jump to bottom | One tap back to the latest message |
 | Keyboard driven | `Ctrl+F` or `/` to search, `Esc` to close overlays, `Enter` to load |
@@ -62,14 +62,14 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 |---------|---------|
 | Display name | Tell ChatLume which participant is you so your messages sit on the right |
 | Profile picture | Set a local avatar for the header and profile drawer |
-| Settings | Time format (original/12h/24h), seconds, time brackets, date format and separator, date brackets, sender names, read ticks, rich text |
+| Settings | Viewer-specific time/date formats, seconds, brackets and sender labels; WhatsApp also has read ticks and rich text options |
 | Dark & light themes | Remembered between visits |
 
 ### Keeping and sharing
 | Feature | Details |
 |---------|---------|
 | HTML export | Save a standalone `.html` without attachments, or a `.zip` with `index.html` and referenced attachments for offline viewing |
-| Persistent Storage | Optional and **off by default**: keep imported exports on your device so you don't have to pick the file again after closing ChatLume. Copies the original export into the browser's private storage, chunked and off the main thread, with progress, cancel and quota checks. Manage or delete stored chats from Settings. WhatsApp viewer only for now. |
+| Persistent Storage | Optional and **off by default** in both viewers: keep imported exports on your device so you don't have to pick the file again after closing ChatLume. Copies the original export into the browser's private storage, chunked and off the main thread, with progress, cancel and quota checks. Each viewer manages only its own saved imports. |
 | Drag & drop | Drop a file anywhere on the page, or use the file picker |
 | Installable PWA | Add to your home screen or dock; opens on the ChatLume homepage and works fully offline thanks to a service-worker cache |
 
@@ -98,7 +98,7 @@ Full details: [Privacy Policy](https://chatlume.app/privacy.html)
 
 ## Persistent Storage
 
-Turn it on under **Settings → Persistent Storage**. From then on each export you open is copied into the browser's Origin Private File System (the original ZIP, byte for byte — media is never extracted), with a small metadata record in IndexedDB. On your next visit the chat is listed under **Saved on this device** and the last one you opened is restored automatically.
+Turn it on under either viewer's **Settings → Persistent Storage**. From then on each export you open is copied into the browser's Origin Private File System (the original export, byte for byte — media is never extracted), with a small metadata record in IndexedDB. On your next visit the last opened chat for that viewer is restored automatically. WhatsApp and Instagram imports are stored and managed separately.
 
 - Off by default; turning it off never deletes stored chats — deletion is always explicit and confirmed
 - Large copies run in a Web Worker in 16 MB chunks with a progress card and a Cancel button

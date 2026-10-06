@@ -8,19 +8,20 @@
  * message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.1";
-import { colorForName } from "../shared/colors.js?v=1.8.1";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.1";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.1";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.2";
+import { colorForName } from "../shared/colors.js?v=1.8.2";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.2";
+import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.2";
 import {
     clampRenderRange,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.8.1";
-import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.8.1";
-import { lazyMedia } from "./media.js?v=1.8.1";
-import { closeMenu } from "./ui.js?v=1.8.1";
+} from "../shared/virtual-list.js?v=1.8.2";
+import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.8.2";
+import { lazyMedia } from "./media.js?v=1.8.2";
+import { closeMenu } from "./ui.js?v=1.8.2";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.2";
 
 export const getColor = (name) => colorForName(name, igState.colorMap);
 
@@ -45,7 +46,7 @@ export function renderChatList() {
         if (!item) continue;
 
         if (item.type === "date") {
-            html += `<div class="system-msg sticky-date" id="${item.id}">${escapeHtml(item.content)}</div>`;
+            html += `<div class="system-msg sticky-date" id="${item.id}">${escapeHtml(formatDateLabel(item.ts, igState.settings))}</div>`;
             lastSender = null;
             continue;
         }
@@ -71,7 +72,7 @@ function renderMessageRow(item, isFirst) {
     const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
     const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
 
-    const senderHtml = !item.isMe && isFirst
+    const senderHtml = igState.settings.showSenderNames && !item.isMe && isFirst
         ? `<div class="sender" style="color:${getColor(item.sender)}">${escapeHtml(item.sender)}</div>`
         : "";
 
@@ -94,7 +95,7 @@ function renderMessageRow(item, isFirst) {
       <article class="${rowClass}" id="${item.id}">
         <div class="bubble">
           ${senderHtml}${textHtml}${mediaHtml}${shareHtml}
-          <div class="meta"><span>${escapeHtml(item.time)}</span></div>
+          <div class="meta"><span>${escapeHtml(formatMessageTime(item.ts, igState.settings))}</span></div>
           ${reactionsHtml}
         </div>
       </article>`;
@@ -169,7 +170,7 @@ function renderReactions(reactions) {
 export function collectExportMessages() {
     return igState.filteredMessages.map((item) => {
         if (item.type === "date") {
-            return { type: "date", label: item.content };
+            return { type: "date", label: formatDateLabel(item.ts, igState.settings) };
         }
         if (item.type === "system") {
             return { type: "system", text: item.content };
@@ -177,7 +178,7 @@ export function collectExportMessages() {
         return {
             type: "msg",
             sender: item.sender,
-            time: item.time,
+            time: formatMessageTime(item.ts, igState.settings),
             isMe: item.isMe,
             color: getColor(item.sender),
             text: item.text,

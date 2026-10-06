@@ -18,6 +18,8 @@
  * record without a file is dropped the same way.
  */
 
+import { importsOfKind } from "./shared/import-records.js?v=1.8.2";
+
 const DB_NAME = "chatlume-imports";
 const DB_VERSION = 1;
 const STORE_NAME = "imports";
@@ -258,7 +260,7 @@ export function copyFileToStorage(file, id, { onProgress } = {}) {
         // A blocked or missing worker script must surface as a normal failure,
         // not as an exception thrown out of the caller's await chain.
         try {
-            worker = new Worker(new URL("./storage-worker.js?v=1.8.1", import.meta.url));
+            worker = new Worker(new URL("./storage-worker.js?v=1.8.2", import.meta.url));
         } catch (error) {
             fail(error?.name || "Error", error?.message || "The storage worker could not be started");
             return;
@@ -310,6 +312,13 @@ export async function deleteAllImports() {
     } catch (error) {
         // Nothing left to remove.
     }
+}
+
+/** Deletes only imports owned by one viewer while leaving other formats intact. */
+export async function deleteImportsByKind(kind) {
+    const records = importsOfKind(await listImports(), kind);
+    for (const record of records) await deleteImport(record);
+    return records.length;
 }
 
 // ── Quota ────────────────────────────────────────────────────────────────────
