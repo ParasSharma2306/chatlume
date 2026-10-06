@@ -4452,6 +4452,7 @@ body.light-theme .sponsor-prompt {
     display: flex;
     align-items: center;
 }
+.search-hidden { display: none !important; }
 .stored-item .chat-item {
     flex: 1;
     min-width: 0;

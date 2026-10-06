@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.8.0';
+const CACHE_NAME = 'chatlume-v1.8.1';
 const OFFLINE_FALLBACK = 'index.html';
 // Scripts, modules and styles are addressed with a release token (`?v=`).
 // A page from one release therefore only ever asks for that release's files,
@@ -65,6 +65,7 @@ const ASSETS_TO_CACHE = [
     versioned('js/whatsapp/persistence.js'),
     versioned('js/whatsapp/render.js'),
     versioned('js/whatsapp/search.js'),
+    versioned('js/whatsapp/sidebar-search.js'),
     versioned('js/whatsapp/session.js'),
     versioned('js/whatsapp/settings-store.js'),
     versioned('js/whatsapp/settings-ui.js'),

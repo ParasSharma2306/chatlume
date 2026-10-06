@@ -23,15 +23,16 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.8.0";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.0";
-import { popOverlayState } from "./shared/history.js?v=1.8.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.0";
-import { createThemeController } from "./shared/theme.js?v=1.8.0";
-import { state } from "./whatsapp/state.js?v=1.8.0";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.0";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.8.0";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.0";
+import { $, isVisible } from "./shared/dom.js?v=1.8.1";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.1";
+import { popOverlayState } from "./shared/history.js?v=1.8.1";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.1";
+import { createThemeController } from "./shared/theme.js?v=1.8.1";
+import { state } from "./whatsapp/state.js?v=1.8.1";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.1";
+import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.8.1";
+import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.1";
+import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.1";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -40,24 +41,24 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.8.0";
+} from "./whatsapp/filter.js?v=1.8.1";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.8.0";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.0";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.0";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.0";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.8.0";
+} from "./whatsapp/date-jump.js?v=1.8.1";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.1";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.1";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.1";
+import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.8.1";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.8.0";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.0";
+} from "./whatsapp/persistence.js?v=1.8.1";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.1";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -73,11 +74,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.8.0";
+} from "./whatsapp/ui.js?v=1.8.1";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const APP_VERSION = "1.8.0";
+const APP_VERSION = "1.8.1";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -167,6 +168,7 @@ function bindUI() {
     setupFileIntake();
 
     // Search
+    $("sidebar-chat-search")?.addEventListener("input", (event) => filterSidebarChats(event.target.value));
     $("search-toggle")?.addEventListener("click", toggleSearch);
     $("search-close")?.addEventListener("click", toggleSearch);
     $("search-up")?.addEventListener("click", () => navSearch("up"));
