@@ -7,7 +7,7 @@
  * session.js returns the per-chat fields to their defaults before each load.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS } from "../settings.js?v=1.8.3";
+import { DEFAULT_SETTINGS } from "../settings.js?v=1.8.4";
 
 /** Rows added to the virtual window per scroll step. */
 export const BATCH_SIZE = 60;

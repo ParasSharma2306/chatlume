@@ -13,14 +13,14 @@
  * the dependency pointing one way (session → persistence).
  * ============================================================================
  */
-import * as storage from "../storage.js?v=1.8.3";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.3";
-import { formatBytes } from "../shared/media-types.js?v=1.8.3";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.3";
-import { STORAGE_KEYS, state } from "./state.js?v=1.8.3";
-import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.8.3";
-import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.8.3";
-import { filterSidebarChats } from "./sidebar-search.js?v=1.8.3";
+import * as storage from "../storage.js?v=1.8.4";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.4";
+import { formatBytes } from "../shared/media-types.js?v=1.8.4";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.4";
+import { STORAGE_KEYS, state } from "./state.js?v=1.8.4";
+import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.8.4";
+import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.8.4";
+import { filterSidebarChats } from "./sidebar-search.js?v=1.8.4";
 
 /**
  * Callbacks supplied by session.js:

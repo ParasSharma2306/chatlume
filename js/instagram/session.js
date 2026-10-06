@@ -7,21 +7,20 @@
  * second pick mid-way can't interleave with the first.
  * ============================================================================
  */
-import { BlobReader, TextWriter, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.8.3";
-import { showSponsorPrompt } from "../support.js?v=1.8.3";
-import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.3";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.3";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.8.3";
-import { fixMojibake } from "./mojibake.js?v=1.8.3";
-import { igState } from "./state.js?v=1.8.3";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.8.3";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.3";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.3";
-import { showThreadSelector } from "./threads.js?v=1.8.3";
-import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.3";
-import { getInstagramSenders } from "./filter.js?v=1.8.3";
-import { initialThreadSelection } from "./threads-model.js?v=1.8.3";
+import { exportChatAsHTML } from "../export.js?v=1.8.4";
+import { showSponsorPrompt } from "../support.js?v=1.8.4";
+import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.4";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.4";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.8.4";
+import { fixMojibake } from "./mojibake.js?v=1.8.4";
+import { igState } from "./state.js?v=1.8.4";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.8.4";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.4";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.4";
+import { showThreadSelector } from "./threads.js?v=1.8.4";
+import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.4";
+import { getInstagramSenders } from "./filter.js?v=1.8.4";
+import { initialThreadSelection } from "./threads-model.js?v=1.8.4";
 import {
     closeMenu,
     generateStats,
@@ -32,7 +31,26 @@ import {
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.8.3";
+} from "./ui.js?v=1.8.4";
+
+const ZIP_JS_URL = "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+let zipApiPromise = null;
+
+/** Loads the ZIP library on demand so its CDN cannot block the viewer boot. */
+function loadZipApi() {
+    if (!zipApiPromise) {
+        zipApiPromise = import(ZIP_JS_URL)
+            .then((api) => {
+                api.configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
+                return api;
+            })
+            .catch((error) => {
+                zipApiPromise = null;
+                throw error;
+            });
+    }
+    return zipApiPromise;
+}
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
 export async function initViewer({ file: fileOverride = null, record = null } = {}) {
@@ -59,6 +77,8 @@ export async function initViewer({ file: fileOverride = null, record = null } = 
     setLoading(true, "Opening ZIP", "Reading your Instagram export...");
     try {
         await yieldToPaint();
+        if (isStaleZip()) return;
+        const { BlobReader, ZipReader } = await loadZipApi();
         if (isStaleZip()) return;
         const reader = new ZipReader(new BlobReader(file));
         const entries = await reader.getEntries();
@@ -133,6 +153,8 @@ export async function loadThread(thread) {
     setLoading(true, "Loading thread", "Parsing messages...");
     try {
         await yieldToPaint();
+        if (isStale()) return;
+        const { TextWriter } = await loadZipApi();
         if (isStale()) return;
         resetThreadState();
 

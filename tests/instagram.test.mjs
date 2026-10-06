@@ -338,6 +338,10 @@ describe("Instagram UI integration contracts", () => {
             "thread startup waits must be inside the finally-protected loading flow");
         assert.match(session, /finally \{\s*if \(!isStale\(\)\) setLoading\(false\);/,
             "the active thread load always releases the processing overlay");
+        assert.doesNotMatch(script, /from ["']https:\/\/cdn\.jsdelivr\.net\/npm\/@zip\.js/,
+            "the ZIP CDN must not be part of the viewer's startup module graph");
+        assert.match(session, /function loadZipApi\(\)[\s\S]*?import\(ZIP_JS_URL\)[\s\S]*?catch\(\(error\)/,
+            "the ZIP library should load lazily and surface fetch failures through the import flow");
         assert.match(session, /showErrorState\(/);
         assert.match(session, /showEmptyThreadState\(/);
     });
