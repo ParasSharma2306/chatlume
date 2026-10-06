@@ -9,7 +9,7 @@
  * classes in the stylesheet.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.8.5";
+import { $ } from "./dom.js?v=1.8.6";
 
 /** Errors carry more text than a confirmation, so give them longer to read. */
 const TOAST_MS = { default: 2200, error: 4200 };

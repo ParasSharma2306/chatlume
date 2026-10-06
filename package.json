@@ -1,6 +1,6 @@
 {
   "name": "chatlume",
-  "version": "1.8.5",
+  "version": "1.8.6",
   "private": true,
   "description": "Browser-based WhatsApp and Instagram chat viewer. No build step; this file exists for the Node test runner.",
   "type": "module",

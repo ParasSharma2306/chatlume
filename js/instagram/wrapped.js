@@ -1,10 +1,10 @@
 /** Presents Instagram conversation statistics and exports a local image. */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.5";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.5";
-import { formatDateLabel } from "./format.js?v=1.8.5";
-import { igState } from "./state.js?v=1.8.5";
-import { showToast } from "./ui.js?v=1.8.5";
-import { summarizeInstagramThread } from "./wrapped-model.js?v=1.8.5";
+import { $, escapeHtml } from "../shared/dom.js?v=1.8.6";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
+import { formatDateLabel } from "./format.js?v=1.8.6";
+import { igState } from "./state.js?v=1.8.6";
+import { showToast } from "./ui.js?v=1.8.6";
+import { summarizeInstagramThread } from "./wrapped-model.js?v=1.8.6";
 
 const HTML2CANVAS_URL = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 

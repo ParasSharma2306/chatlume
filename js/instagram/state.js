@@ -8,7 +8,7 @@
  * ============================================================================
  */
 
-import { readInstagramSettings } from "./settings.js?v=1.8.5";
+import { readInstagramSettings } from "./settings.js?v=1.8.6";
 
 export const IG_BATCH_SIZE = 60;
 export const IG_MAX_RENDERED = 180;

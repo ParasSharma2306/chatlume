@@ -325,6 +325,11 @@ describe("Instagram UI integration contracts", () => {
         const html = readFileSync(new URL("../public/instagram-viewer.html", import.meta.url), "utf8");
         const script = readFileSync(new URL("../js/instagram.js", import.meta.url), "utf8");
         const session = readFileSync(new URL("../js/instagram/session.js", import.meta.url), "utf8");
+        assert.ok(DEFAULT_IG_SETTINGS, "Instagram format settings export is available");
+        assert.match(script, /import \{ DEFAULT_IG_SETTINGS \} from "\.\/instagram\/format\.js\?v=/,
+            "the viewer imports its default settings from the module that exports them");
+        assert.doesNotMatch(script, /import \{[^}]*DEFAULT_IG_SETTINGS[^}]*\} from "\.\/instagram\/settings\.js/,
+            "settings.js does not re-export the format defaults");
         for (const id of ["ig-change-thread", "ig-live-search", "ig-sender-filter-btn", "ig-date-jump-action", "ig-generate-wrapped", "ig-setting-persistent-storage", "ig-storage-list", "ig-media-modal"]) {
             assert.ok(html.includes(`id="${id}"`), `${id} exists in the viewer`);
         }

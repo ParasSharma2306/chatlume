@@ -6,12 +6,12 @@
  * marker, or to the closest earlier one when that day has no messages.
  * ============================================================================
  */
-import { $ } from "../shared/dom.js?v=1.8.5";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.5";
-import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.5";
-import { formatDateLabel, parseExportDateLabel } from "./format.js?v=1.8.5";
-import { renderChatList } from "./render.js?v=1.8.5";
-import { closeMenu, showToast } from "./ui.js?v=1.8.5";
+import { $ } from "../shared/dom.js?v=1.8.6";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
+import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.6";
+import { formatDateLabel, parseExportDateLabel } from "./format.js?v=1.8.6";
+import { renderChatList } from "./render.js?v=1.8.6";
+import { closeMenu, showToast } from "./ui.js?v=1.8.6";
 
 export function handleDateJumpAction(event) {
     event.preventDefault();

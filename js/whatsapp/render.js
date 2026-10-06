@@ -7,21 +7,21 @@
  * Also produces the normalised message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.5";
-import { colorForName } from "../shared/colors.js?v=1.8.5";
-import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.5";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.5";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.5";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
+import { colorForName } from "../shared/colors.js?v=1.8.6";
+import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.6";
+import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.6";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.6";
 import {
     clampRenderRange,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.8.5";
-import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.5";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.5";
-import { lazyMedia } from "./media.js?v=1.8.5";
-import { closeMenu } from "./ui.js?v=1.8.5";
+} from "../shared/virtual-list.js?v=1.8.6";
+import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.6";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.6";
+import { lazyMedia } from "./media.js?v=1.8.6";
+import { closeMenu } from "./ui.js?v=1.8.6";
 
 /** Colour for a sender's name label, stable for the life of the chat. */
 export const getColor = (name) => colorForName(name, state.colorMap);
