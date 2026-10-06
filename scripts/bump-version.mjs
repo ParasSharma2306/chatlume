@@ -59,6 +59,7 @@ export const VERSIONED_FILES = [
     "js/script.js",
     "js/shared/lazy-media.js",
     "js/shared/import-records.js",
+    "js/shared/media-urls.js",
     "js/shared/media-modal.js",
     "js/shared/splash.js",
     "js/shared/stats-panel.js",

@@ -340,6 +340,11 @@ describe("Instagram UI integration contracts", () => {
             "the active thread load always releases the processing overlay");
         assert.doesNotMatch(script, /from ["']https:\/\/cdn\.jsdelivr\.net\/npm\/@zip\.js/,
             "the ZIP CDN must not be part of the viewer's startup module graph");
+        const mediaUrls = readFileSync(new URL("../js/shared/media-urls.js", import.meta.url), "utf8");
+        assert.doesNotMatch(mediaUrls, /^\s*import\s+.*\sfrom\s+["']https?:/m,
+            "the media helper must not statically fetch ZIP.js during viewer startup");
+        assert.match(mediaUrls, /function loadBlobWriter\(\)[\s\S]*?import\(ZIP_JS_URL\)/,
+            "ZIP.js is loaded only when media decoding is requested");
         assert.match(session, /function loadZipApi\(\)[\s\S]*?import\(ZIP_JS_URL\)[\s\S]*?catch\(\(error\)/,
             "the ZIP library should load lazily and surface fetch failures through the import flow");
         assert.match(session, /showErrorState\(/);

@@ -23,16 +23,16 @@
  * ============================================================================
  */
 import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.8.4";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.4";
-import { popOverlayState } from "./shared/history.js?v=1.8.4";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.4";
-import { createThemeController } from "./shared/theme.js?v=1.8.4";
-import { state } from "./whatsapp/state.js?v=1.8.4";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.4";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.8.4";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.4";
-import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.4";
+import { $, isVisible } from "./shared/dom.js?v=1.8.5";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.5";
+import { popOverlayState } from "./shared/history.js?v=1.8.5";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.5";
+import { createThemeController } from "./shared/theme.js?v=1.8.5";
+import { state } from "./whatsapp/state.js?v=1.8.5";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.5";
+import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.8.5";
+import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.5";
+import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.5";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -41,24 +41,24 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.8.4";
+} from "./whatsapp/filter.js?v=1.8.5";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.8.4";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.4";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.4";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.4";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.8.4";
+} from "./whatsapp/date-jump.js?v=1.8.5";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.5";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.5";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.5";
+import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.8.5";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.8.4";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.4";
+} from "./whatsapp/persistence.js?v=1.8.5";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.5";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -74,11 +74,11 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.8.4";
+} from "./whatsapp/ui.js?v=1.8.5";
 
 configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
 
-const APP_VERSION = "1.8.4";
+const APP_VERSION = "1.8.5";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 

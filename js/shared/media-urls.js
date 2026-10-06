@@ -17,7 +17,21 @@
  *   renderRange / filteredMessages  the virtual window (see virtual-list.js)
  * ============================================================================
  */
-import { BlobWriter } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+const ZIP_JS_URL = "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
+let blobWriterPromise = null;
+
+/** Loads the ZIP media writer only when an attachment is actually opened. */
+function loadBlobWriter() {
+    if (!blobWriterPromise) {
+        blobWriterPromise = import(ZIP_JS_URL)
+            .then(({ BlobWriter }) => BlobWriter)
+            .catch((error) => {
+                blobWriterPromise = null;
+                throw error;
+            });
+    }
+    return blobWriterPromise;
+}
 
 /** Decodes the entry (once) and returns its blob URL. */
 export async function ensureMediaUrl(state, media) {
@@ -34,8 +48,8 @@ export async function ensureMediaUrl(state, media) {
         throw new Error("Media source is unavailable");
     }
 
-    media.loadingPromise = media.entry
-        .getData(new BlobWriter(media.mime || "application/octet-stream"))
+    media.loadingPromise = loadBlobWriter()
+        .then((BlobWriter) => media.entry.getData(new BlobWriter(media.mime || "application/octet-stream")))
         .then((blob) => {
             media.size = media.size || blob.size;
             const objectUrl = URL.createObjectURL(blob);
