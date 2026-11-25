@@ -8,39 +8,22 @@
  * of the drop target.
  * ============================================================================
  */
-import { $, q, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit } from "../shared/compat.js?v=1.8.6";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "../shared/drop-zone.js?v=1.8.6";
-import { state } from "./state.js?v=1.8.6";
-import { isMobileLayout, setSidebarState, setUploadPanelVisible, showToast } from "./ui.js?v=1.8.6";
+import { $, q, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit } from "../shared/compat.js?v=1.8.7";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "../shared/drop-zone.js?v=1.8.7";
+import { state } from "./state.js?v=1.8.7";
+import { isMobileLayout, setSidebarState, setUploadPanelVisible, showToast } from "./ui.js?v=1.8.7";
 
 /** Wires the picker, drop target and window-wide drop overlay. */
 export function setupFileIntake() {
     const fileInput = $("file-input");
     $("drop-target")?.addEventListener("click", () => fileInput?.click());
-    // Clearing the value lets the same file be picked twice in a row.
-    fileInput?.addEventListener("click", (event) => {
-        event.target.value = null;
-        state.selectedFile = null;
-        resetSelectedFileUI();
-    });
+    // Clearing the value lets the same file be picked twice in a row. The
+    // current selection stays, so cancelling the picker doesn't lose it.
+    fileInput?.addEventListener("click", (event) => { event.target.value = ""; });
     fileInput?.addEventListener("change", handleFileInputChange);
 
-    setupDropTarget($("drop-target"), (files) => {
-        const file = files[0];
-        if (exceedsCompatLimit(file)) {
-            showToast(COMPAT_LIMIT_MESSAGE, "error");
-            return;
-        }
-        state.selectedFile = file;
-        try {
-            if (fileInput) fileInput.files = files;
-        } catch (error) {
-            console.warn("Unable to assign dropped files to input:", error);
-        }
-        reflectSelectedFile(file);
-    });
-
+    setupDropTarget($("drop-target"));
     setupGlobalDropZone($("drag-overlay"), handleDroppedFile);
 }
 
@@ -52,12 +35,18 @@ function handleFileInputChange(event) {
         event.target.value = "";
         return;
     }
+    if (!/\.(txt|zip)$/i.test(file.name)) {
+        showToast("Please choose a WhatsApp .txt or .zip export", "error");
+        event.target.value = "";
+        return;
+    }
     state.selectedFile = file;
     reflectSelectedFile(file);
 }
 
 /** A file dropped anywhere on the page. */
 function handleDroppedFile(file) {
+    if (state.isLoading) return;
     const name = file.name.toLowerCase();
     if (!name.endsWith(".txt") && !name.endsWith(".zip")) {
         showToast("Please drop a WhatsApp .txt or .zip export", "error");
@@ -99,7 +88,11 @@ export function reflectSelectedFile(file) {
     }
 }
 
-export function resetSelectedFileUI() {
+/** Empties the picker once its file is open, ready for the next import. */
+export function clearSelectedFile() {
+    state.selectedFile = null;
+    const fileInput = $("file-input");
+    if (fileInput) fileInput.value = "";
     const dropTarget = $("drop-target");
     if (!dropTarget) return;
 

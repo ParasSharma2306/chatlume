@@ -8,11 +8,12 @@
  * these read `state` only for counts and flags.
  * ============================================================================
  */
-import { $, q, escapeHtml, replayClass } from "../shared/dom.js?v=1.8.6";
-import { pushOverlayState } from "../shared/history.js?v=1.8.6";
-import { createToast } from "../shared/toast.js?v=1.8.6";
-import { animateStatsIn } from "../shared/stats-panel.js?v=1.8.6";
-import { state } from "./state.js?v=1.8.6";
+import { $, q, escapeHtml, replayClass } from "../shared/dom.js?v=1.8.7";
+import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.8.7";
+import { pushOverlayState } from "../shared/history.js?v=1.8.7";
+import { createToast } from "../shared/toast.js?v=1.8.7";
+import { animateStatsIn } from "../shared/stats-panel.js?v=1.8.7";
+import { state } from "./state.js?v=1.8.7";
 
 export const showToast = createToast("toast");
 
@@ -37,8 +38,11 @@ export function closeDrawer(id) {
     $(`${id}-drawer`)?.classList.remove("open");
 }
 
-export function closeAllDrawers() {
-    document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
+/** Closes every drawer but the one owning `keepOverlay`; true if any closed. */
+export function closeAllDrawers(keepOverlay = "") {
+    const open = [...document.querySelectorAll(".drawer.open")].filter((drawer) => `drawer-${drawer.id.replace(/-drawer$/, "")}` !== keepOverlay);
+    open.forEach((drawer) => drawer.classList.remove("open"));
+    return open.length > 0;
 }
 
 // ── Sidebar ─────────────────────────────────────────────────────────────────
@@ -196,51 +200,10 @@ export function showEmptyState({ icon, iconColor, title, body, actions = "" }) {
 }
 
 // ── Confirmation sheet ──────────────────────────────────────────────────────
-// Native confirm() blocks the page and looks nothing like the app, so this
-// reuses the date-sheet styling instead.
 
-let confirmSheetResolver = null;
-
-/** Resolves true when the user confirms, false on cancel / Back / Escape. */
-export function askConfirm({ title, body, confirmLabel = "Delete" }) {
-    const sheet = $("confirm-sheet");
-    if (!sheet) return Promise.resolve(false);
-
-    resolveConfirmSheet(false);
-    const titleEl = $("confirm-sheet-title");
-    const bodyEl = $("confirm-sheet-body");
-    const applyEl = $("confirm-sheet-apply");
-    if (titleEl) titleEl.textContent = title;
-    if (bodyEl) bodyEl.textContent = body;
-    if (applyEl) applyEl.textContent = confirmLabel;
-
-    sheet.hidden = false;
-    requestAnimationFrame(() => {
-        sheet.classList.add("open");
-        $("confirm-sheet-cancel")?.focus({ preventScroll: true });
-    });
-    pushOverlayState("confirm");
-
-    return new Promise((resolve) => {
-        confirmSheetResolver = resolve;
-    });
-}
-
-export function resolveConfirmSheet(result, { fromHistory = false } = {}) {
-    const sheet = $("confirm-sheet");
-    if (!sheet || sheet.hidden || !sheet.classList.contains("open")) return;
-
-    sheet.classList.remove("open");
-    window.setTimeout(() => {
-        if (!sheet.classList.contains("open")) sheet.hidden = true;
-    }, 160);
-
-    const resolve = confirmSheetResolver;
-    confirmSheetResolver = null;
-    resolve?.(result);
-
-    if (!fromHistory && history.state && history.state.overlay === "confirm") history.back();
-}
+const confirmSheet = createConfirmSheet("confirm-sheet", "confirm");
+export const askConfirm = confirmSheet.ask;
+export const resolveConfirmSheet = confirmSheet.settle;
 
 // ── Profile picture ─────────────────────────────────────────────────────────
 

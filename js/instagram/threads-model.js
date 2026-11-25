@@ -1,7 +1,7 @@
 /** Pure helpers for selecting and searching conversations discovered in a ZIP. */
 export function makeThreadOptions(threads, labelFor) {
     return threads
-        .map((thread, index) => ({ index, label: labelFor(thread.folder), files: thread.files.length }))
+        .map((thread, index) => ({ index, label: labelFor(thread.folder), folder: thread.folder, files: thread.files.length }))
         .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }) || a.index - b.index);
 }
 

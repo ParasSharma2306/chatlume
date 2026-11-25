@@ -8,9 +8,9 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.8.6";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.8.6";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.8.6";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.8.7";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.8.7";
+import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.8.7";
 
 /** The text a message is matched against. */
 function getSearchableText(entry) {
@@ -40,7 +40,6 @@ export function toggleSearch() {
     state.searchTimer = null;
     handleSearch("");
     setSearchEmptyState(false);
-    resetRenderToBottom();
     $("search-toggle")?.focus({ preventScroll: true });
 }
 
@@ -137,12 +136,20 @@ export function jumpToMessage(messageId) {
     state.renderRange.end = Math.min(state.filteredMessages.length, state.renderRange.start + MAX_RENDERED_ITEMS);
     renderChatList();
 
-    window.setTimeout(() => {
-        const element = $(messageId);
-        if (!element) return;
-        element.scrollIntoView({ block: "center", behavior: "auto" });
-        syncFocusedSearchResult();
-    }, 40);
+    // Scroll before the browser reports the swapped content as a scroll to the
+    // edge: waiting let the list page away and drop the match from the DOM.
+    const scrollToMatch = () => $(messageId)?.scrollIntoView({ block: "center", behavior: "auto" });
+    scrollToMatch();
+    window.setTimeout(scrollToMatch, 40);
+}
+
+/** Enter / Shift+Enter step through the matches. */
+export function handleSearchKeydown(event) {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+    // Enter before the debounce fires runs the query as typed.
+    if (state.searchTimer) handleSearch(event.target.value);
+    else navSearch(event.shiftKey ? "up" : "down");
 }
 
 /** Ctrl/Cmd+F and "/" jump straight to the in-chat search. */

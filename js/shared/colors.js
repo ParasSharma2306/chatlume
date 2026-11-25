@@ -14,7 +14,7 @@ export const SENDER_COLORS = ["#e542a3", "#1f7aec", "#d44638", "#2ecc71", "#f39c
  * viewer state so it resets with each chat).
  */
 export function colorForName(name, colorMap) {
-    if (!colorMap[name]) {
+    if (!Object.prototype.hasOwnProperty.call(colorMap, name)) {
         let hash = 0;
         for (let index = 0; index < name.length; index += 1) {
             hash = name.charCodeAt(index) + ((hash << 5) - hash);

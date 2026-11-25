@@ -12,7 +12,7 @@
  *   lazyMedia.disconnect();  // before re-rendering or resetting
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.8.6";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.7";
 
 /**
  * @param {Object}   options
@@ -43,6 +43,7 @@ export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached 
             source = await ensureUrl(media);
         } catch (error) {
             console.error(error);
+            if (element.isConnected) showUnavailable(element, media);
             return;
         }
         // The render window may have moved on while the entry was decoding.
@@ -51,10 +52,13 @@ export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached 
             return;
         }
 
+        element.addEventListener("error", () => showUnavailable(element, media), { once: true });
+
         if (element.tagName === "VIDEO") {
             element.src = source;
             element.load();
-            element.addEventListener("loadeddata", () => {
+            // Not "loadeddata": with preload="metadata" it may never fire.
+            element.addEventListener("loadedmetadata", () => {
                 // Drop the play-icon placeholder that sits before the <video>.
                 element.previousElementSibling?.remove();
                 markLoaded();
@@ -69,7 +73,7 @@ export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached 
         } else {
             element.onload = markLoaded;
             element.src = source;
-            if (element.complete) {
+            if (element.complete && element.naturalWidth) {
                 markLoaded();
             }
         }
@@ -79,11 +83,28 @@ export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached 
     function showVoiceNoteDuration(audio) {
         const duration = audio.duration;
         if (!duration || !isFinite(duration)) return;
-        const durationEl = document.querySelector(`.voice-duration[data-media-id="${audio.dataset.mediaId}"]`);
+        const durationEl = audio.closest(".media-audio")?.querySelector(".voice-duration");
         if (!durationEl) return;
         const minutes = Math.floor(duration / 60);
         const seconds = String(Math.floor(duration % 60)).padStart(2, "0");
         durationEl.textContent = `${minutes}:${seconds}`;
+    }
+
+    /**
+     * Swaps a preview the browser can't show (HEIC, an exotic codec, a damaged
+     * entry) for a card with a download button. It used to shimmer forever.
+     */
+    function showUnavailable(element, media) {
+        const host = element.closest(".media-button, .media-video, .media-audio");
+        if (!host) return;
+        const card = document.createElement("div");
+        card.className = "media-doc";
+        card.innerHTML = `
+            <div class="media-doc-head"><i class="ph-fill ph-file-x"></i><div>
+                <strong>${escapeHtml(media.name)}</strong><span>Can't be previewed in this browser</span>
+            </div></div>
+            <div class="media-doc-actions"><button type="button" class="media-doc-link" data-download-media="${escapeAttribute(media.id)}">Download</button></div>`;
+        host.replaceWith(card);
     }
 
     /** Observes every not-yet-loaded media element under the root. */

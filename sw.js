@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.8.6';
+const CACHE_NAME = 'chatlume-v1.8.7';
 const OFFLINE_FALLBACK = 'index.html';
 // Scripts, modules and styles are addressed with a release token (`?v=`).
 // A page from one release therefore only ever asks for that release's files,
@@ -24,6 +24,7 @@ const ASSETS_TO_CACHE = [
     versioned('js/instagram.js'),
     versioned('js/instagram/date-jump-model.js'),
     versioned('js/instagram/date-jump.js'),
+    versioned('js/instagram/file-picker.js'),
     versioned('js/instagram/filter.js'),
     versioned('js/instagram/format.js'),
     versioned('js/instagram/media.js'),
@@ -45,10 +46,12 @@ const ASSETS_TO_CACHE = [
     versioned('js/settings.js'),
     versioned('js/shared/colors.js'),
     versioned('js/shared/compat.js'),
+    versioned('js/shared/confirm-sheet.js'),
     versioned('js/shared/dom.js'),
     versioned('js/shared/drop-zone.js'),
     versioned('js/shared/emoji.js'),
     versioned('js/shared/history.js'),
+    versioned('js/shared/identity.js'),
     versioned('js/shared/import-records.js'),
     versioned('js/shared/lazy-media.js'),
     versioned('js/shared/media-modal.js'),
@@ -61,6 +64,7 @@ const ASSETS_TO_CACHE = [
     versioned('js/shared/theme.js'),
     versioned('js/shared/toast.js'),
     versioned('js/shared/virtual-list.js'),
+    versioned('js/shared/zip.js'),
     versioned('js/site.js'),
     versioned('js/sponsors.js'),
     versioned('js/storage-worker.js'),
@@ -102,6 +106,20 @@ const ASSETS_TO_CACHE = [
     'assets/brag-poster.jpg'
 ];
 
+// Third-party files the viewers can't work without. Every URL is pinned to a
+// version, so a cached copy never goes stale and outlives releases. Without
+// this cache an installed app had no icons, and no ZIP reader, when offline.
+const CDN_CACHE = 'chatlume-cdn-v1';
+const PHOSPHOR = 'https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src';
+const CDN_ASSETS = [
+    'https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.25.0/+esm',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
+    ...[['regular', 'Phosphor'], ['bold', 'Phosphor-Bold'], ['fill', 'Phosphor-Fill'], ['duotone', 'Phosphor-Duotone']]
+        .flatMap(([weight, font]) => [`${PHOSPHOR}/${weight}/style.css`, `${PHOSPHOR}/${weight}/${font}.woff2`])
+];
+const CDN_HOSTS = new Set(['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com']);
+
 // Install: cache core assets. The new worker then *waits* until the page asks
 // it to take over (see the message handler) or every tab has closed. Taking
 // over immediately used to swap the cache underneath open pages, so a viewer
@@ -116,7 +134,9 @@ self.addEventListener('install', (event) => {
             return Promise.all(
                 ASSETS_TO_CACHE.map((asset) => cache.add(asset).catch(() => {}))
             );
-        })
+        }).then(() => Promise.all(
+            CDN_ASSETS.map((url) => handleCdn(url).catch(() => {}))
+        ))
     );
 });
 
@@ -134,7 +154,7 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((cacheNames) => Promise.all(
                 cacheNames
-                    .filter((cacheName) => cacheName !== CACHE_NAME)
+                    .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== CDN_CACHE)
                     .map((cacheName) => caches.delete(cacheName))
             ))
             .then(() => self.clients.claim())
@@ -159,8 +179,28 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    if (CDN_HOSTS.has(new URL(request.url).hostname)) {
+        event.respondWith(handleCdn(request.url).catch(() => Response.error()));
+        return;
+    }
+
     event.respondWith(handleAsset(request));
 });
+
+/**
+ * Cache first for pinned third-party files. Fetched with CORS (all of these
+ * hosts allow it) whatever the page's request mode, because an opaque response
+ * can't be checked for success and counts heavily against the storage quota.
+ */
+async function handleCdn(url) {
+    const cache = await caches.open(CDN_CACHE);
+    const cached = await cache.match(url, { ignoreVary: true });
+    if (cached) return cached;
+
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (response.ok) await cache.put(url, response.clone()).catch(() => {});
+    return response;
+}
 
 /** Same-origin script/style URLs carrying the release token. */
 function isVersionedAsset(request) {

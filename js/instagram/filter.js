@@ -25,6 +25,15 @@ export function getInstagramSenders(messages) {
         .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 }
 
+/** Messages per sender, for the filter rows. */
+export function countBySender(messages) {
+    const counts = new Map();
+    for (const item of messages) {
+        if (item.type === "msg") counts.set(item.sender, (counts.get(item.sender) || 0) + 1);
+    }
+    return counts;
+}
+
 export function getInstagramSenderSummary(selectedSenders) {
     if (!selectedSenders?.length) return "All participants";
     if (selectedSenders.length === 1) return selectedSenders[0];

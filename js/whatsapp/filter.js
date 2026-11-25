@@ -9,8 +9,9 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { state } from "./state.js?v=1.8.6";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { tailRange } from "../shared/virtual-list.js?v=1.8.7";
+import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.7";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).
@@ -282,6 +283,8 @@ export function applySenderFilter(senders, { onRender, onSearch, onToast, silent
     }
 
     state.filteredMessages = filterMessagesBySender(state.messages, state.selectedSenders);
+    // The old window indexes a different list; keeping it could render nothing.
+    state.renderRange = tailRange(state.filteredMessages.length, MAX_RENDERED_ITEMS);
     updateFilterHeaderMeta();
 
     const liveSearch = $("live-search");

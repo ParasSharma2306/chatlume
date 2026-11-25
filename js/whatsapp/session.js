@@ -8,25 +8,28 @@
  * the empty viewer.
  * ============================================================================
  */
-import { BlobReader, ZipReader } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { exportChatAsHTML } from "../export.js?v=1.8.6";
-import { showSponsorPrompt } from "../support.js?v=1.8.6";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.8.6";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.6";
-import { baseName } from "../shared/media-types.js?v=1.8.6";
-import { ISSUES_URL, state } from "./state.js?v=1.8.6";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.8.6";
-import { parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.8.6";
-import { populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.8.6";
+import { exportChatAsHTML } from "../export.js?v=1.8.7";
+import { showSponsorPrompt } from "../support.js?v=1.8.7";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.8.7";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.7";
+import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.8.7";
+import { initialsFor } from "../shared/text.js?v=1.8.7";
+import { loadZip } from "../shared/zip.js?v=1.8.7";
+import { baseName } from "../shared/media-types.js?v=1.8.7";
+import { clearSelectedFile } from "./file-picker.js?v=1.8.7";
+import { ISSUES_URL, state } from "./state.js?v=1.8.7";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.8.7";
+import { isMeSender, parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.8.7";
+import { getChatSenders, populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.8.7";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.8.6";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.6";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.8.6";
-import { generateStats } from "./stats.js?v=1.8.6";
+} from "./persistence.js?v=1.8.7";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.7";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.8.7";
+import { generateStats } from "./stats.js?v=1.8.7";
 import {
     closeMenu,
     isMobileLayout,
@@ -38,7 +41,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.8.6";
+} from "./ui.js?v=1.8.7";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
@@ -53,10 +56,6 @@ export async function initViewer() {
 
     if (!file) {
         showToast("Please select a file", "warn");
-        return;
-    }
-    if (!displayName) {
-        showToast("Enter your display name", "warn");
         return;
     }
 
@@ -80,8 +79,15 @@ export async function initViewer() {
  */
 export async function loadChatFile(file, { displayName, fileLabel = file.name, persist = false, importId = "" } = {}) {
     if (state.isLoading) return;
+    // Checked first: a file that can't open shouldn't cost the open chat.
+    if (exceedsCompatLimit(file)) {
+        showToast(fileTooLargeMessage(file), "error");
+        return;
+    }
 
-    state.myName = displayName;
+    // A search left open would highlight and count against the old chat.
+    if (state.isSearchOpen) toggleSearch();
+    state.myName = displayName || "";
     state.activeImportId = "";
 
     const isZip = file.name.toLowerCase().endsWith(".zip");
@@ -104,12 +110,6 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
 
     const gen = ++state.loadGeneration;
 
-    if (exceedsCompatLimit(file)) {
-        setLoadingState(false);
-        showToast(fileTooLargeMessage(file), "error");
-        return;
-    }
-
     try {
         let { rawText, chatEntry, attachments } = await loadChatExport(file);
 
@@ -130,14 +130,26 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
         }
 
         if (state.messageOnlyCount === 0) {
+            resetChatChrome();
             showNothingParsedState();
             return;
         }
 
-        updateUIState(fileLabel);
+        state.chatTitle = chatTitleFromFile(fileLabel);
+        // Typed a name nobody in the chat has, or none at all: work it out from
+        // a one-to-one chat, else say where to choose.
+        const owner = state.messages.some((item) => item.isMe) || state.myName
+            ? ""
+            : inferOwner(getChatSenders(), state.chatTitle);
+        if (owner) applyOwner(owner);
+
+        updateUIState();
+        clearSelectedFile();
         renderChatList();
-        requestAnimationFrame(scrollToBottom);
-        showToast(`Loaded ${state.messageOnlyCount.toLocaleString()} messages`);
+        scrollToBottom();
+        const loaded = `Loaded ${state.messageOnlyCount.toLocaleString()} messages`;
+        if (state.messages.some((item) => item.isMe)) showToast(loaded);
+        else showToast(`${loaded}. Choose which participant is you in Settings.`, "info");
         showSponsorPrompt();
 
         if (importId) {
@@ -147,6 +159,11 @@ export async function loadChatFile(file, { displayName, fileLabel = file.name, p
         }
     } catch (error) {
         console.error(error);
+        // A parse that failed half-way must not leave the old title on screen
+        // or a partial chat behind it.
+        cleanupMediaStore();
+        resetChatState();
+        resetChatChrome();
         const shown = showEmptyState({
             icon: "ph-duotone ph-warning-circle",
             iconColor: "#f5a623",
@@ -197,6 +214,7 @@ async function loadChatExport(file) {
         return { rawText: await readFileAsText(file), chatEntry: null, attachments: [] };
     }
 
+    const { BlobReader, ZipReader } = await loadZip();
     const reader = new ZipReader(new BlobReader(file));
     state.zipReader = reader;
     const allEntries = await reader.getEntries();
@@ -257,15 +275,46 @@ export function resetChatState() {
     if ($("emoji-grid")) $("emoji-grid").innerHTML = "";
 }
 
+/** "WhatsApp Chat with Jane.txt" (Android) / "WhatsApp Chat - Jane.zip" (iOS) → "Jane". */
+function chatTitleFromFile(filename) {
+    return filename
+        .replace(/\.\w+$/, "")
+        .replace(/^_chat$/i, "")
+        .replace(/^WhatsApp Chat (?:with|-) /i, "")
+        .trim() || "Chat History";
+}
+
+/** Marks `name`'s messages as the reader's own, without reparsing. */
+function applyOwner(name) {
+    state.myName = name;
+    state.messages.forEach((item) => {
+        if (item.type === "msg") item.isMe = isMeSender(item.sender);
+    });
+}
+
+/** "You in this chat" in Settings. */
+export function setChatOwner(name) {
+    if (!state.messageOnlyCount) return;
+    applyOwner(name);
+    populateSenderFilter();
+    if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
+    renderChatList();
+    if (state.activeImportId) markStoredImportOpened(state.activeImportId);
+    showToast(name ? `Showing ${name}'s messages as yours` : "No participant is marked as you");
+}
+
 /** Puts the loaded chat's name and counts into the sidebar and header. */
-function updateUIState(filename) {
+function updateUIState() {
     setUploadPanelVisible(false);
     $("empty-state")?.classList.add("hidden");
     playChatRevealOnce();
     // A freshly picked file replaces whichever stored chat was highlighted.
     renderStoredImports();
 
-    state.chatTitle = filename.replace(/(_chat\.txt|WhatsApp Chat with |\.\w+$)/gi, "").trim() || "Chat History";
+    const avatar = document.querySelector("#chat-list-item .chat-item-avatar");
+    if (avatar) avatar.textContent = initialsFor(state.chatTitle);
+    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = false; });
+    renderIdentitySelect($("identity-row"), $("setting-identity"), getChatSenders(), state.myName);
     const withMedia = state.mediaCount ? ` • ${state.mediaCount.toLocaleString()} media` : "";
 
     if ($("sidebar-title")) $("sidebar-title").innerText = state.chatTitle;
@@ -273,7 +322,7 @@ function updateUIState(filename) {
     if ($("header-meta")) $("header-meta").innerText = `${state.messageOnlyCount.toLocaleString()} messages${withMedia}`;
     if ($("sidebar-sub")) $("sidebar-sub").innerText = state.mediaMissingCount
         ? `${state.mediaMissingCount} missing attachment${state.mediaMissingCount === 1 ? "" : "s"}`
-        : "Loaded successfully";
+        : `${state.messageOnlyCount.toLocaleString()} messages`;
     if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
 
     ensureExportButton();
@@ -312,9 +361,10 @@ function ensureExportButton() {
                     messageCount: exportedCount,
                     messages: exportedMessages
                 });
+                const skipped = result.failedCount ? ` (${result.failedCount} couldn't be read)` : "";
                 showToast(includeAttachments
-                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}`
-                    : "Chat exported as HTML");
+                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}${skipped}`
+                    : "Chat exported as HTML", skipped ? "warn" : "success");
             } catch (err) {
                 console.error("[ChatLume] Export failed:", err);
                 showToast("Export failed", "error");
@@ -342,15 +392,22 @@ export function closeActiveChat() {
     resetChatState();
     resetSenderFilterUI();
     state.activeImportId = "";
-    state.chatTitle = "Chat History";
     restoreEmptyState();
+    resetChatChrome();
+}
+
+/** Header, sidebar and menu as they are with no chat open. */
+function resetChatChrome() {
+    state.chatTitle = "Chat History";
+    resetSenderFilterUI();
+    renderIdentitySelect($("identity-row"), $("setting-identity"), [], "");
     $("empty-state")?.classList.remove("hidden");
     if ($("header-name")) $("header-name").innerText = "Welcome";
     if ($("header-meta")) $("header-meta").innerText = "ChatLume";
     if ($("sidebar-title")) $("sidebar-title").innerText = "Chat History";
     if ($("sidebar-sub")) $("sidebar-sub").innerText = "Active now";
-    // updateUIState() re-creates this on the next load.
-    $("export-chat-btn")?.remove();
+    // updateUIState() shows these again on the next load.
+    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = true; });
     generateStats();
     setUploadPanelVisible(true);
 }

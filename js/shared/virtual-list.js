@@ -8,7 +8,7 @@
  * restores the scroll position against an anchor element so nothing jumps.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.8.6";
+import { $ } from "./dom.js?v=1.8.7";
 
 /** The window that shows the newest messages. */
 export function tailRange(total, maxRendered) {
@@ -18,6 +18,9 @@ export function tailRange(total, maxRendered) {
 /** Keeps the range inside the list and no wider than `maxRendered`. */
 export function clampRenderRange(state, maxRendered) {
     const total = state.filteredMessages.length;
+    // A range left over from a longer list (before a filter) points past the
+    // end and would render nothing at all.
+    if (total && state.renderRange.start >= total) state.renderRange = tailRange(total, maxRendered);
     let start = Math.max(0, Math.min(state.renderRange.start, total));
     let end = Math.max(start, Math.min(state.renderRange.end, total));
 
@@ -31,7 +34,9 @@ export function clampRenderRange(state, maxRendered) {
 /** First row that is at least partly visible, with its offset from the top. */
 export function getScrollAnchor(viewport) {
     const viewportRect = viewport.getBoundingClientRect();
-    const candidates = viewport.querySelectorAll(".message-list > .msg-row, .message-list > .system-msg");
+    // Sticky day chips are stuck to the top whatever the scroll offset, so they
+    // can't anchor anything: using one made the list skip to the end of the chat.
+    const candidates = viewport.querySelectorAll(".message-list > .msg-row, .message-list > .system-msg:not(.sticky-date)");
 
     for (const element of candidates) {
         const rect = element.getBoundingClientRect();
@@ -58,8 +63,11 @@ export function restoreScrollAnchor(viewport, anchor) {
     return true;
 }
 
+/** Distance from an edge (px) at which the next batch is brought in. */
+const PAGE_THRESHOLD = 400;
+
 /**
- * Slides the window when the viewport hits the top or bottom edge.
+ * Slides the window when the viewport nears the top or bottom edge.
  *
  * @param {HTMLElement} viewport
  * @param {Object}      state                 Carries renderRange / filteredMessages.
@@ -71,7 +79,7 @@ export function restoreScrollAnchor(viewport, anchor) {
 export function paginateOnScroll(viewport, state, { batchSize, maxRendered, render }) {
     const total = state.filteredMessages.length;
 
-    if (viewport.scrollTop <= 0 && state.renderRange.start > 0) {
+    if (viewport.scrollTop <= PAGE_THRESHOLD && state.renderRange.start > 0) {
         const anchor = getScrollAnchor(viewport);
         state.renderRange.start = Math.max(0, state.renderRange.start - batchSize);
         state.renderRange.end = Math.min(total, state.renderRange.start + maxRendered);
@@ -82,7 +90,7 @@ export function paginateOnScroll(viewport, state, { batchSize, maxRendered, rend
         return;
     }
 
-    if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 20 && state.renderRange.end < total) {
+    if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - PAGE_THRESHOLD && state.renderRange.end < total) {
         const anchor = getScrollAnchor(viewport);
         state.renderRange.end = Math.min(total, state.renderRange.end + batchSize);
         state.renderRange.start = Math.max(0, state.renderRange.end - maxRendered);
@@ -91,6 +99,31 @@ export function paginateOnScroll(viewport, state, { batchSize, maxRendered, rend
             viewport.scrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight - 1);
         }
     }
+}
+
+/**
+ * Keeps the newest message in view while attachments above it load and grow,
+ * until the reader scrolls away. Call `pin()` after scrolling to the bottom.
+ */
+export function createBottomPin(viewport, list, state) {
+    let pinned = false;
+    let lastTop = 0;
+    if (!viewport || !list) return { pin() {} };
+
+    viewport.addEventListener("scroll", () => {
+        // Only a move up unpins: content growing before the event is delivered
+        // also leaves a gap below, and that gap is what pinning closes.
+        const distance = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+        if (viewport.scrollTop < lastTop && distance > 48) pinned = false;
+        lastTop = viewport.scrollTop;
+    }, { passive: true });
+
+    if ("ResizeObserver" in window) {
+        new ResizeObserver(() => {
+            if (pinned && state.renderRange.end >= state.filteredMessages.length) viewport.scrollTop = viewport.scrollHeight;
+        }).observe(list);
+    }
+    return { pin() { pinned = true; } };
 }
 
 /** How far from the bottom (px) before the jump-to-latest pill appears. */

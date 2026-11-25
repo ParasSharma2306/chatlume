@@ -146,7 +146,6 @@ body.light-theme {
 button { cursor: pointer; }
 
 @media (max-width: 800px) {
-    :root { --chat-composer-height: 58px; }
 
     .landing-nav { flex-direction: column; gap: 16px; justify-content: center; padding: 20px 15px; }
     .landing-nav .nav-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; }
@@ -690,11 +689,12 @@ a {
 }
 
 .drawer-header {
-    height: 110px;
+    min-height: 60px;
+    flex-shrink: 0;
     background: var(--bg-header);
     display: flex;
-    align-items: flex-end;
-    padding: 20px;
+    align-items: center;
+    padding: 10px 16px;
     gap: 20px;
     border-bottom: 1px solid var(--border);
 }
@@ -4772,3 +4772,110 @@ body.light-theme .hero-demo {
     .sender-filter-caret { display: none; }
     .sender-filter-badge { position: absolute; top: -3px; right: -3px; border: 2px solid var(--bg-header); }
 }
+
+/* ── Viewer polish ── */
+:root { --chat-composer-height: 34px; }
+
+/* A read-only strip: the old footer mimicked a composer whose buttons did nothing. */
+.chat-footer {
+    flex: 0 0 auto;
+    height: calc(var(--chat-composer-height) + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px env(safe-area-inset-bottom, 0px);
+    justify-content: center;
+    gap: 6px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+.chat-footer i { color: var(--primary); font-size: 13px; }
+
+/* Holds panels that must cover the visible messages rather than scroll with them. */
+.viewport-wrap {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.messages-viewport { min-height: 0; }
+.msg-row { scroll-margin-top: 52px; }
+
+.scroll-latest,
+.scroll-latest.show { bottom: calc(var(--chat-composer-height) + env(safe-area-inset-bottom, 0px) + 16px); }
+#toast,
+#ig-toast {
+    bottom: calc(var(--chat-composer-height) + env(safe-area-inset-bottom, 0px) + 16px);
+    width: max-content;
+}
+
+/* Attachments */
+.media-video { position: relative; min-width: min(240px, 60vw); min-height: 135px; }
+.media-video video { opacity: 1; background: #000; min-height: 135px; }
+.media-video .media-placeholder {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: auto;
+    aspect-ratio: auto;
+    pointer-events: none;
+}
+.media-image:not(:has(img.loaded)) { min-width: min(220px, 60vw); min-height: 160px; }
+.media-doc { flex-wrap: wrap; }
+.media-doc-head > div { min-width: 0; }
+.media-doc-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 4px 12px;
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+}
+.media-doc-link:hover { background: color-mix(in srgb, currentColor 12%, transparent); text-decoration: none; }
+.sent .media-doc-link,
+.sent .media-doc-head i,
+.sent .media-missing-head i { color: #7fe3cd; }
+body.light-theme .sent .media-doc-link,
+body.light-theme .sent .media-doc-head i,
+body.light-theme .sent .media-missing-head i { color: #00735b; }
+
+/* Text contrast */
+.msg-text code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+body.light-theme .msg-text a { color: #027eb5; }
+body.light-theme .received .meta { color: #667781; }
+
+/* Controls */
+.menu-item[hidden],
+.setting-row[hidden] { display: none; }
+.search-input-group input:focus-visible { outline: 0; box-shadow: none; }
+.label-optional { margin-left: 4px; color: var(--text-secondary); font-size: 11px; font-weight: 400; }
+#chat-list-item .chat-item-avatar { background: linear-gradient(135deg, #00a884, #027a62); }
+.stored-open {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+}
+.stored-open:hover { border-color: var(--primary); color: var(--primary); }
+.stored-delete { border: 0; background: transparent; }
+#ig-thread-panel .upload-back { margin-bottom: 12px; }
+
+@media (min-width: 801px) {
+    .hero-actions .btn-large { width: auto; min-width: 220px; justify-content: center; }
+}
+
+/* If the viewer's scripts fail to load, never trap the page under the splash. */
+#loader { animation: cl-loader-failsafe 0.3s 8s forwards; }
+@keyframes cl-loader-failsafe { to { opacity: 0; visibility: hidden; } }
+
+.call-card { display: flex; align-items: center; gap: 8px; font-weight: 500; white-space: normal; }
+.call-card i { font-size: 18px; }
+.btn-secondary[hidden],
+.btn-primary[hidden] { display: none; }

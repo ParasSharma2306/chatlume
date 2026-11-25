@@ -7,11 +7,12 @@
  * messages.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
-import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.8.6";
-import { createToast } from "../shared/toast.js?v=1.8.6";
-import { igState } from "./state.js?v=1.8.6";
+import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.8.7";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
+import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.8.7";
+import { createToast } from "../shared/toast.js?v=1.8.7";
+import { igState } from "./state.js?v=1.8.7";
 
 export const showToast = createToast("ig-toast");
 
@@ -104,9 +105,16 @@ export function dismissDrawer(id) {
     popOverlayState();
 }
 
-export function closeAllDrawers() {
-    document.querySelectorAll(".drawer.open").forEach((drawer) => drawer.classList.remove("open"));
+/** Closes every drawer but the one owning `keepOverlay`; true if any closed. */
+export function closeAllDrawers(keepOverlay = "") {
+    const open = [...document.querySelectorAll(".drawer.open")].filter((drawer) => `drawer-${drawer.id.replace(/-drawer$/, "")}` !== keepOverlay);
+    open.forEach((drawer) => drawer.classList.remove("open"));
+    return open.length > 0;
 }
+
+const confirmSheet = createConfirmSheet("ig-confirm-sheet", "ig-confirm");
+export const askConfirm = confirmSheet.ask;
+export const resolveConfirmSheet = confirmSheet.settle;
 
 // ── Stats ───────────────────────────────────────────────────────────────────
 
@@ -125,6 +133,17 @@ export function generateStats() {
 }
 
 // ── Viewport states ─────────────────────────────────────────────────────────
+
+let pristineEmptyStateHtml = null;
+
+/** Puts the placeholder shipped in the HTML back on screen. */
+export function restoreEmptyState() {
+    const emptyEl = $("ig-empty-state");
+    if (!emptyEl) return;
+    pristineEmptyStateHtml ??= emptyEl.innerHTML;
+    emptyEl.innerHTML = pristineEmptyStateHtml;
+    emptyEl.classList.remove("hidden");
+}
 
 /** "Couldn't load / parse this file" with a link to the export guide. */
 export function showErrorState(title, message) {

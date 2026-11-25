@@ -1,13 +1,13 @@
 /** Coordinates Instagram's date picker with the virtual message list. */
-import { $ } from "../shared/dom.js?v=1.8.6";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
-import { findMessageForDate } from "./date-jump-model.js?v=1.8.6";
-import { localDateBounds } from "./format.js?v=1.8.6";
-import { igState } from "./state.js?v=1.8.6";
-import { jumpToMessage } from "./search.js?v=1.8.6";
-import { showToast } from "./ui.js?v=1.8.6";
+import { $ } from "../shared/dom.js?v=1.8.7";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
+import { findMessageForDate } from "./date-jump-model.js?v=1.8.7";
+import { localDateBounds } from "./format.js?v=1.8.7";
+import { igState } from "./state.js?v=1.8.7";
+import { jumpToMessage } from "./search.js?v=1.8.7";
+import { showToast } from "./ui.js?v=1.8.7";
 
-export { findMessageForDate, findMessageIdForDate } from "./date-jump-model.js?v=1.8.6";
+export { findMessageForDate, findMessageIdForDate } from "./date-jump-model.js?v=1.8.7";
 
 export function openDateSheet() {
     if (!igState.messageOnlyCount) { showToast("Load a conversation first", "warn"); return; }
@@ -15,6 +15,7 @@ export function openDateSheet() {
     const input = $("ig-date-sheet-input");
     if (!sheet || !input) return;
     input.value = "";
+    $("ig-date-sheet-error")?.setAttribute("hidden", "");
     sheet.hidden = false;
     requestAnimationFrame(() => {
         sheet.classList.add("open");

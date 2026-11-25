@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.8.6-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.8.7-blue?style=flat-square)
 
 ---
 
@@ -378,9 +378,9 @@ The service worker installs the new release in the background and *waits*; open 
 
 ## License
 
-MIT.
+Released under the [MIT License](LICENSE). Created by [Paras Sharma](https://parassharma.com). You're free to use, modify and self-host it; just keep the license notice.
 
-Copyright © 2026 [Paras Sharma](https://parassharma.com). ChatLume is the project name.
+ChatLume is an independent project, not affiliated with or endorsed by WhatsApp, Instagram or Meta.
 
 ## Sponsors
 

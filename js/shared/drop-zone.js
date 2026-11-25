@@ -7,8 +7,12 @@
  * ============================================================================
  */
 
-/** Highlights the sidebar drop target while dragging; hands dropped files to `onDrop`. */
-export function setupDropTarget(dropTarget, onDrop) {
+/**
+ * Highlights the sidebar drop target while dragging. The drop itself bubbles to
+ * the window handler below, which validates the file — handling it here too
+ * processed every drop twice, and accepted files the window handler rejected.
+ */
+export function setupDropTarget(dropTarget) {
     if (!dropTarget) return;
 
     ["dragenter", "dragover"].forEach((eventName) => {
@@ -23,12 +27,6 @@ export function setupDropTarget(dropTarget, onDrop) {
             event.preventDefault();
             dropTarget.classList.remove("dragover");
         });
-    });
-
-    dropTarget.addEventListener("drop", (event) => {
-        const files = event.dataTransfer?.files;
-        if (!files || files.length === 0) return;
-        onDrop(files);
     });
 }
 

@@ -6,10 +6,10 @@
  * captions — the same surface the WhatsApp viewer searches.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.8.6";
-import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.8.6";
-import { renderChatList, resetRenderToBottom, syncFocusedSearchResult } from "./render.js?v=1.8.6";
-import { findMessageSearchResults, nextSearchIndex } from "./search-model.js?v=1.8.6";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.8.7";
+import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.8.7";
+import { renderChatList } from "./render.js?v=1.8.7";
+import { findMessageSearchResults, nextSearchIndex } from "./search-model.js?v=1.8.7";
 
 export const isSearchOpen = () => Boolean($("ig-search-toolbar")?.classList.contains("active"));
 
@@ -29,7 +29,7 @@ export function toggleSearch() {
     igState.searchPointer = -1;
     updateSearchCounter();
     setSearchEmptyState(false);
-    resetRenderToBottom();
+    renderChatList();
     $("ig-search-toggle")?.focus({ preventScroll: true });
 }
 
@@ -100,10 +100,20 @@ export function jumpToMessage(id) {
     igState.renderRange.start = Math.max(0, idx - 40);
     igState.renderRange.end = Math.min(igState.filteredMessages.length, igState.renderRange.start + IG_MAX_RENDERED);
     renderChatList();
-    setTimeout(() => {
-        $(id)?.scrollIntoView({ block: "center", behavior: "auto" });
-        syncFocusedSearchResult();
-    }, 40);
+    // Scroll before the browser reports the swapped content as a scroll to the
+    // edge: waiting let the list page away and drop the match from the DOM.
+    const scrollToMatch = () => $(id)?.scrollIntoView({ block: "center", behavior: "auto" });
+    scrollToMatch();
+    setTimeout(scrollToMatch, 40);
+}
+
+/** Enter / Shift+Enter step through the matches. */
+export function handleSearchKeydown(event) {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+    // Enter before the debounce fires runs the query as typed.
+    if (igState.searchTimer) runSearch(event.target.value);
+    else navSearch(event.shiftKey ? "up" : "down");
 }
 
 /** Ctrl/Cmd+F and "/" jump straight to the in-thread search. */

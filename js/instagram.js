@@ -18,24 +18,24 @@
  * All processing is client-side; nothing is uploaded.
  * ============================================================================
  */
-import { $, q, escapeHtml } from "./shared/dom.js?v=1.8.6";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.6";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.6";
-import { popOverlayState } from "./shared/history.js?v=1.8.6";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.6";
-import { createThemeController } from "./shared/theme.js?v=1.8.6";
-import { igState } from "./instagram/state.js?v=1.8.6";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.6";
-import { handleViewportScroll, jumpToBottom, renderChatList, resetRenderToBottom } from "./instagram/render.js?v=1.8.6";
-import { handleSearchInput, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.8.6";
-import { filterMessagesBySender, getInstagramSenderSummary } from "./instagram/filter.js?v=1.8.6";
-import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.8.6";
-import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.8.6";
-import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.8.6";
-import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.8.6";
-import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.8.6";
-import { initViewer, loadThread } from "./instagram/session.js?v=1.8.6";
-import { showThreadSelector } from "./instagram/threads.js?v=1.8.6";
+import { $ } from "./shared/dom.js?v=1.8.7";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.7";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.8.7";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.8.7";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.7";
+import { createThemeController } from "./shared/theme.js?v=1.8.7";
+import { igState } from "./instagram/state.js?v=1.8.7";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.8.7";
+import { handleViewportScroll, jumpToBottom, renderChatList } from "./instagram/render.js?v=1.8.7";
+import { handleSearchInput, handleSearchKeydown, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.8.7";
+import { reflectSelectedFile } from "./instagram/file-picker.js?v=1.8.7";
+import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.8.7";
+import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.8.7";
+import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.8.7";
+import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.8.7";
+import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.8.7";
+import { applySenderSelection, closeActiveThread, initViewer, loadThread, setThreadOwner } from "./instagram/session.js?v=1.8.7";
+import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram/threads.js?v=1.8.7";
 import {
     closeAllDrawers,
     closeMenu,
@@ -43,13 +43,14 @@ import {
     handleDocumentClick,
     isMobileLayout,
     openDrawer,
+    resolveConfirmSheet,
     setSidebarState,
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.8.6";
+} from "./instagram/ui.js?v=1.8.7";
 
-const IG_APP_VERSION = "1.8.6";
+const IG_APP_VERSION = "1.8.7";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
@@ -64,25 +65,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     runSplashLoader();
     showCompatBannerIfNeeded();
     if (isMobileLayout()) setSidebarState(true);
-    await initInstagramPersistence({ openImport: (file, record) => initViewer({ file, record }) });
+    await initInstagramPersistence({ openImport: (file, record) => initViewer({ file, record }), closeThread: closeActiveThread });
 });
 
 window.addEventListener("resize", () => {
     if (!isMobileLayout()) setSidebarState(false);
 });
 
-window.addEventListener("beforeunload", () => {
+// Not "beforeunload": it also fires for mailto: links, killing the open media.
+window.addEventListener("pagehide", (event) => {
+    if (event.persisted) return;
     igState.mediaUrls.forEach((url) => URL.revokeObjectURL(url));
     igState.zipReader?.close().catch(() => {});
 });
 
-/** Back button: close whatever overlay is open (its history entry is already gone). */
-window.addEventListener("popstate", () => {
-    closeMediaModal();
+/** Back button: close whatever sits above the entry we landed on. */
+window.addEventListener("popstate", (event) => {
+    const keep = overlayOf(event);
+    if (keep !== "igmedia") closeMediaModal();
     closeMenu();
-    closeAllDrawers();
-    closeDateSheet({ fromHistory: true });
-    closeInstagramWrapped({ fromHistory: true });
+    closeAllDrawers(keep);
+    if (keep !== "ig-date-sheet") closeDateSheet({ fromHistory: true });
+    if (keep !== "ig-wrapped") closeInstagramWrapped({ fromHistory: true });
+    if (keep !== "ig-confirm") resolveConfirmSheet(false, { fromHistory: true });
 });
 
 // ── Event wiring ────────────────────────────────────────────────────────────
@@ -96,7 +101,7 @@ function bindUI() {
 
     setupFileIntake();
 
-    $("ig-load-btn")?.addEventListener("click", initViewer);
+    $("ig-load-btn")?.addEventListener("click", () => initViewer());
     // Typing a name and hitting Enter is the obvious next move.
     $("ig-my-name")?.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
@@ -108,11 +113,20 @@ function bindUI() {
     $("ig-search-toggle")?.addEventListener("click", toggleSearch);
     $("ig-search-close")?.addEventListener("click", toggleSearch);
     $("ig-live-search")?.addEventListener("input", handleSearchInput);
+    $("ig-live-search")?.addEventListener("keydown", handleSearchKeydown);
     $("ig-search-up")?.addEventListener("click", () => navSearch("up"));
     $("ig-search-down")?.addEventListener("click", () => navSearch("down"));
     $("ig-date-jump-action")?.addEventListener("click", () => { closeMenu(); openDateSheet(); });
     $("ig-date-sheet-cancel")?.addEventListener("click", () => closeDateSheet());
     $("ig-date-sheet-apply")?.addEventListener("click", applyDateJump);
+    $("ig-date-sheet-input")?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        applyDateJump();
+    });
+    $("ig-confirm-sheet-cancel")?.addEventListener("click", () => resolveConfirmSheet(false));
+    $("ig-confirm-sheet-apply")?.addEventListener("click", () => resolveConfirmSheet(true));
+    $("ig-confirm-sheet")?.addEventListener("click", (event) => { if (event.target === event.currentTarget) resolveConfirmSheet(false); });
     $("ig-date-sheet")?.addEventListener("click", (event) => { if (event.target === event.currentTarget) closeDateSheet(); });
     $("ig-generate-wrapped")?.addEventListener("click", openInstagramWrapped);
     $("ig-wrapped-close")?.addEventListener("click", () => closeInstagramWrapped());
@@ -123,9 +137,10 @@ function bindUI() {
         $("ig-thread-panel")?.classList.add("hidden");
         $("ig-chat-list-panel")?.classList.add("hidden");
         $("ig-upload-panel")?.classList.remove("hidden");
-        $("ig-sender-filter-container")?.setAttribute("hidden", "");
+        syncBackButtons();
         if (isMobileLayout()) setSidebarState(true);
     }));
+    document.querySelectorAll("[data-ig-back]").forEach((button) => button.addEventListener("click", showOpenThread));
 
     $("ig-sender-filter-btn")?.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -135,6 +150,11 @@ function bindUI() {
         $("ig-sender-filter-btn")?.setAttribute("aria-expanded", String(open));
     });
     $("ig-sender-filter-list")?.addEventListener("change", applyInstagramSenderFilter);
+    $("ig-sender-filter-close")?.addEventListener("click", () => {
+        $("ig-sender-filter-dropdown")?.setAttribute("hidden", "");
+        $("ig-sender-filter-btn")?.setAttribute("aria-expanded", "false");
+        $("ig-sender-filter-btn")?.focus({ preventScroll: true });
+    });
     $("ig-sender-filter-reset")?.addEventListener("click", () => {
         $("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]").forEach((input) => { input.checked = false; });
         applyInstagramSenderFilter();
@@ -148,7 +168,9 @@ function bindUI() {
     });
 
     document.querySelectorAll("[data-ig-setting]").forEach((control) => control.addEventListener("change", handleInstagramSettingChange));
+    $("ig-setting-identity")?.addEventListener("change", (event) => setThreadOwner(event.target.value));
     $("ig-storage-list")?.addEventListener("click", handleInstagramStorageClick);
+    $("ig-stored-list")?.addEventListener("click", handleInstagramStorageClick);
     $("ig-storage-delete-all")?.addEventListener("click", deleteAllInstagramImports);
     $("ig-storage-cancel")?.addEventListener("click", cancelInstagramCopy);
     $("ig-reset-settings")?.addEventListener("click", resetInstagramSettings);
@@ -232,12 +254,9 @@ function resetInstagramSettings() {
 }
 
 function applyInstagramSenderFilter() {
-    igState.selectedSenders = [...($("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]:checked") || [])].map((input) => input.value);
-    igState.filteredMessages = filterMessagesBySender(igState.messages, igState.selectedSenders);
-    const summary = getInstagramSenderSummary(igState.selectedSenders);
-    $("ig-sender-filter-btn")?.setAttribute("aria-label", `Filter by sender. ${summary}`);
-    if (igState.searchQuery) runSearch(igState.searchQuery);
-    else resetRenderToBottom();
+    applySenderSelection([...($("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]:checked") || [])].map((input) => input.value));
+    if (isSearchOpen() && igState.searchQuery) runSearch(igState.searchQuery);
+    else jumpToBottom();
 }
 
 // ── Keyboard ────────────────────────────────────────────────────────────────
@@ -252,7 +271,8 @@ function handleGlobalKeydown(event) {
 
 /** Closes the topmost overlay. */
 function handleEscape() {
-    if (igState.activeMediaId) { closeMediaModal(); return; }
+    if (igState.activeMediaId) { $("ig-media-modal-close")?.click(); return; }
+    if ($("ig-confirm-sheet") && !$("ig-confirm-sheet").hidden) { resolveConfirmSheet(false); return; }
     if (!$("ig-date-sheet")?.hidden) { closeDateSheet(); return; }
     if (!$("ig-wrapped-modal")?.hidden) { closeInstagramWrapped(); return; }
     const senderDropdown = $("ig-sender-filter-dropdown");
@@ -265,8 +285,11 @@ function handleEscape() {
     if (isSearchOpen()) { toggleSearch(); return; }
     const wasMenuOpen = $("ig-header-menu")?.classList.contains("show");
     closeMenu();
-    if (wasMenuOpen) $("ig-menu-toggle")?.focus();
-    closeAllDrawers();
+    if (wasMenuOpen) {
+        $("ig-menu-toggle")?.focus();
+        return;
+    }
+    if (closeAllDrawers()) popOverlayState();
 }
 
 // ── File intake ─────────────────────────────────────────────────────────────
@@ -275,12 +298,9 @@ function handleEscape() {
 function setupFileIntake() {
     const fileInput = $("ig-file-input");
     $("ig-drop-target")?.addEventListener("click", () => fileInput?.click());
-    // Clearing the value lets the same file be picked twice in a row.
-    fileInput?.addEventListener("click", (event) => {
-        event.target.value = null;
-        igState.selectedFile = null;
-        resetDropTarget();
-    });
+    // Clearing the value lets the same file be picked twice in a row. The
+    // current selection stays, so cancelling the picker doesn't lose it.
+    fileInput?.addEventListener("click", (event) => { event.target.value = ""; });
     fileInput?.addEventListener("change", (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -289,25 +309,22 @@ function setupFileIntake() {
             event.target.value = "";
             return;
         }
-        igState.selectedFile = file;
-        reflectSelectedFile(file);
-    });
-
-    setupDropTarget($("ig-drop-target"), (files) => {
-        const file = files[0];
-        if (exceedsCompatLimit(file)) {
-            showToast(COMPAT_LIMIT_MESSAGE, "error");
+        if (!/\.zip$/i.test(file.name)) {
+            showToast("Please choose a .zip Instagram export", "error");
+            event.target.value = "";
             return;
         }
         igState.selectedFile = file;
         reflectSelectedFile(file);
     });
 
+    setupDropTarget($("ig-drop-target"));
     setupGlobalDropZone($("ig-drag-overlay"), handleDroppedFile);
 }
 
 /** A file dropped anywhere on the page. */
 function handleDroppedFile(file) {
+    if (igState.isLoading) return;
     const name = file.name.toLowerCase();
     if (name.endsWith(".txt")) {
         showToast("Instagram exports are .zip (JSON format) — .txt is WhatsApp only", "error");
@@ -327,28 +344,11 @@ function handleDroppedFile(file) {
     // If a thread is already open, the upload panel is hidden — point the
     // user back at the Load button.
     if ($("ig-upload-panel")?.classList.contains("hidden")) {
+        $("ig-thread-panel")?.classList.add("hidden");
+        $("ig-chat-list-panel")?.classList.add("hidden");
+        $("ig-upload-panel").classList.remove("hidden");
+        syncBackButtons();
         if (isMobileLayout()) setSidebarState(true);
         showToast("File ready — tap Load DMs to open it", "info");
     }
-}
-
-/** Turns the drop target into a "Ready to load" confirmation. */
-function reflectSelectedFile(file) {
-    const dropTarget = $("ig-drop-target");
-    if (!dropTarget) return;
-    dropTarget.classList.add("ready");
-    const icon = q("i", dropTarget);
-    const label = q("p", dropTarget);
-    if (icon) { icon.className = "ph-fill ph-check-circle"; icon.style.color = "#C13584"; }
-    if (label) label.innerHTML = `<strong>${escapeHtml(file.name)}</strong><br><span style="font-size:12px;opacity:0.7">Ready to load</span>`;
-}
-
-function resetDropTarget() {
-    const dropTarget = $("ig-drop-target");
-    if (!dropTarget) return;
-    dropTarget.classList.remove("ready");
-    const icon = q("i", dropTarget);
-    const label = q("p", dropTarget);
-    if (icon) { icon.className = "ph ph-file-zip"; icon.style.color = ""; }
-    if (label) label.innerHTML = "Drop <strong>.zip</strong> export";
 }

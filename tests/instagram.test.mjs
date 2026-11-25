@@ -63,11 +63,12 @@ describe("instagram/parser helpers", () => {
             { filename: "messages/inbox/a_1/message_2.json" },
             { filename: "messages/inbox/b_2/message_1.json" },
             { filename: "messages/inbox/b_2/photos/x.jpg" },
+            { filename: "messages/message_requests/a_1/message_1.json" },
             { filename: "messages/inbox/", directory: true },
             { filename: "other/message_1.json" }
         ];
         const threads = findThreads(entries);
-        assert.deepEqual(threads.map((t) => [t.folder, t.files.length]), [["a_1", 2], ["b_2", 1]]);
+        assert.deepEqual(threads.map((t) => [t.folder, t.files.length]), [["a_1", 2], ["b_2", 1], ["message_requests/a_1", 1]]);
     });
 
     test("sortMessageFiles orders message_N.json numerically", () => {
@@ -348,10 +349,13 @@ describe("Instagram UI integration contracts", () => {
         const mediaUrls = readFileSync(new URL("../js/shared/media-urls.js", import.meta.url), "utf8");
         assert.doesNotMatch(mediaUrls, /^\s*import\s+.*\sfrom\s+["']https?:/m,
             "the media helper must not statically fetch ZIP.js during viewer startup");
-        assert.match(mediaUrls, /function loadBlobWriter\(\)[\s\S]*?import\(ZIP_JS_URL\)/,
-            "ZIP.js is loaded only when media decoding is requested");
-        assert.match(session, /function loadZipApi\(\)[\s\S]*?import\(ZIP_JS_URL\)[\s\S]*?catch\(\(error\)/,
+        assert.match(mediaUrls, /loadZip\(\)/, "ZIP.js is loaded only when media decoding is requested");
+        const zip = readFileSync(new URL("../js/shared/zip.js", import.meta.url), "utf8");
+        assert.match(zip, /function loadZip\(\)[\s\S]*?import\(ZIP_JS_URL\)[\s\S]*?catch\(\(error\)/,
             "the ZIP library should load lazily and surface fetch failures through the import flow");
+        assert.match(session, /await loadZip\(\)/);
+        const sw = readFileSync(new URL("../sw.js", import.meta.url), "utf8");
+        assert.ok(sw.includes(zip.match(/ZIP_JS_URL = "([^"]+)"/)[1]), "the pinned ZIP.js URL is cached for offline use");
         assert.match(session, /showErrorState\(/);
         assert.match(session, /showEmptyThreadState\(/);
     });

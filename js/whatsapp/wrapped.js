@@ -7,12 +7,12 @@
  * with html2canvas (loaded on first download, not at boot).
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
-import { SITE_URL, state } from "./state.js?v=1.8.6";
-import { formatDateLabel } from "./format.js?v=1.8.6";
-import { getColor } from "./render.js?v=1.8.6";
-import { showToast } from "./ui.js?v=1.8.6";
+import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
+import { SITE_URL, state } from "./state.js?v=1.8.7";
+import { formatDateLabel } from "./format.js?v=1.8.7";
+import { getColor } from "./render.js?v=1.8.7";
+import { showToast } from "./ui.js?v=1.8.7";
 
 const HTML2CANVAS_URL = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 
@@ -33,7 +33,9 @@ export function openWrapped() {
 export function closeWrapped() {
     const modal = $("wrapped-modal");
     modal.classList.remove("open");
-    window.setTimeout(() => modal.hidden = true, 120);
+    window.setTimeout(() => {
+        if (!modal.classList.contains("open")) modal.hidden = true;
+    }, 120);
     popOverlayState();
 }
 
@@ -70,14 +72,14 @@ export function populateWrappedGraphic() {
 
     // Total words
     let totalWords = 0;
-    state.filteredMessages.forEach((m) => {
+    state.messages.forEach((m) => {
         if (m.type === "msg" && m.text) {
             totalWords += m.text.split(/\s+/).filter(Boolean).length;
         }
     });
 
     // Date range
-    const dates = state.filteredMessages.filter((m) => m.type === "date");
+    const dates = state.messages.filter((m) => m.type === "date");
     const firstDate = dates.length > 0 ? formatDateLabel(dates[0].rawDate || dates[0].content) : "Unknown Date";
     const lastDate = dates.length > 0 ? formatDateLabel(dates[dates.length - 1].rawDate || dates[dates.length - 1].content) : "Unknown Date";
     const dateRange = firstDate !== "Unknown Date" && firstDate !== lastDate ? `${firstDate} - ${lastDate}` : firstDate;
@@ -191,7 +193,7 @@ export async function downloadWrappedGraphic() {
         });
 
         const link = document.createElement("a");
-        const safeTitle = state.chatTitle.replace(/[^a-z0-9]/gi, "_").replace(/_+/g, "_");
+        const safeTitle = state.chatTitle.replace(/[^\p{L}\p{N}]/gu, "_").replace(/_+/g, "_");
         link.download = `ChatLume_Wrapped_${safeTitle}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();

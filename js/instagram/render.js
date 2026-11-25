@@ -8,20 +8,22 @@
  * message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { colorForName } from "../shared/colors.js?v=1.8.6";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.6";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.6";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { colorForName } from "../shared/colors.js?v=1.8.7";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.7";
+import { toEmojiPresentation } from "../shared/emoji.js?v=1.8.7";
+import { buildRichText, highlightOutsideTags, safeHttpUrl } from "../shared/text.js?v=1.8.7";
 import {
     clampRenderRange,
+    createBottomPin,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.8.6";
-import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.8.6";
-import { lazyMedia } from "./media.js?v=1.8.6";
-import { closeMenu } from "./ui.js?v=1.8.6";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.6";
+} from "../shared/virtual-list.js?v=1.8.7";
+import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.8.7";
+import { lazyMedia } from "./media.js?v=1.8.7";
+import { closeMenu } from "./ui.js?v=1.8.7";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.7";
 
 export const getColor = (name) => colorForName(name, igState.colorMap);
 
@@ -78,15 +80,19 @@ function renderMessageRow(item, isFirst) {
 
     let textHtml = "";
     if (item.text) {
-        textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink ? "has-meta" : ""}">${linkifyAndHighlight(item.text)}</div>`;
+        textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink && !item.shareText ? "has-meta" : ""}">${linkifyAndHighlight(item.text)}</div>`;
     }
 
     const mediaHtml = item.mediaItems.length ? renderMediaStack(item.mediaItems) : "";
 
     let shareHtml = "";
-    if (item.shareLink) {
-        const label = item.shareText ? escapeHtml(item.shareText) : escapeHtml(item.shareLink);
-        shareHtml = `<div class="ig-share-link has-meta"><i class="ph ph-link-simple"></i><a href="${escapeAttribute(item.shareLink)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+    if (item.shareLink || item.shareText) {
+        const href = safeHttpUrl(item.shareLink);
+        const label = highlight(escapeHtml(item.shareText || item.shareLink));
+        const body = href
+            ? `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+            : `<span>${label}</span>`;
+        shareHtml = `<div class="ig-share-link"><i class="ph ph-link-simple"></i>${body}</div>`;
     }
 
     const reactionsHtml = item.reactions.length ? renderReactions(item.reactions) : "";
@@ -95,8 +101,8 @@ function renderMessageRow(item, isFirst) {
       <article class="${rowClass}" id="${item.id}">
         <div class="bubble">
           ${senderHtml}${textHtml}${mediaHtml}${shareHtml}
-          <div class="meta"><span>${escapeHtml(formatMessageTime(item.ts, igState.settings))}</span></div>
           ${reactionsHtml}
+          <div class="meta"><span>${escapeHtml(formatMessageTime(item.ts, igState.settings))}</span></div>
         </div>
       </article>`;
 }
@@ -105,10 +111,12 @@ function renderMessageRow(item, isFirst) {
 
 /** Links (no WhatsApp-style formatting markers), then the search highlight. */
 export function linkifyAndHighlight(text) {
+    return highlight(buildRichText(escapeHtml(text || ""), { formatting: false }));
+}
+
+function highlight(html) {
     const query = $("ig-live-search")?.value.trim();
-    let html = buildRichText(escapeHtml(text || ""), { formatting: false });
-    if (query) html = highlightOutsideTags(html, query);
-    return html;
+    return query ? highlightOutsideTags(html, query) : html;
 }
 
 // ── Media cards ─────────────────────────────────────────────────────────────
@@ -136,7 +144,7 @@ function renderMediaItem(item) {
 
     if (item.kind === "video") {
         const placeholder = loaded ? "" : `<div class="media-placeholder" aria-hidden="true"><i class="ph-fill ph-play-circle"></i></div>`;
-        return `<div class="media-video">${placeholder}<video controls preload="none" ${srcAttr} data-media-id="${item.id}"></video></div>`;
+        return `<div class="media-video">${placeholder}<video controls playsinline preload="metadata" ${srcAttr} data-media-id="${item.id}"></video></div>`;
     }
 
     if (item.kind === "audio") {
@@ -155,7 +163,7 @@ function renderReactions(reactions) {
         grouped[r.reaction].push(r.actor);
     });
     const pills = Object.entries(grouped).map(([emoji, actors]) =>
-        `<span class="ig-reaction" title="${escapeAttribute(actors.join(", "))}">${escapeHtml(emoji)}${actors.length > 1 ? ` <small>${actors.length}</small>` : ""}</span>`
+        `<span class="ig-reaction" title="${escapeAttribute(actors.join(", "))}">${escapeHtml(toEmojiPresentation(emoji))}${actors.length > 1 ? ` <small>${actors.length}</small>` : ""}</span>`
     ).join("");
     return `<div class="ig-reactions">${pills}</div>`;
 }
@@ -210,9 +218,13 @@ export function handleViewportScroll(event) {
     });
 }
 
+let bottomPin = null;
+
 export function scrollToBottom() {
     const viewport = $("ig-viewport");
     if (!viewport) return;
+    bottomPin ||= createBottomPin(viewport, $("ig-message-list"), igState);
+    bottomPin.pin();
     viewport.scrollTop = viewport.scrollHeight;
     syncScrollLatest(viewport);
 }
@@ -230,5 +242,5 @@ export function resetRenderToBottom() {
 export function jumpToBottom() {
     closeMenu();
     resetRenderToBottom();
-    requestAnimationFrame(scrollToBottom);
+    scrollToBottom();
 }

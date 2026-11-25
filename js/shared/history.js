@@ -15,6 +15,13 @@ export function pushOverlayState(overlayId) {
 }
 
 /**
+ * The overlay the history entry we just landed on belongs to. Back only closes
+ * what sits above it: closing everything also took down the drawer underneath
+ * a modal, leaving that drawer's entry behind to swallow the next Back press.
+ */
+export const overlayOf = (popstateEvent) => popstateEvent.state?.overlay || "";
+
+/**
  * Pops the overlay entry when an overlay is closed by a user gesture (rather
  * than by Back itself). Closing directly used to leave a dead entry that
  * swallowed the next Back press.

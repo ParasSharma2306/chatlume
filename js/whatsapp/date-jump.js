@@ -6,12 +6,12 @@
  * marker, or to the closest earlier one when that day has no messages.
  * ============================================================================
  */
-import { $ } from "../shared/dom.js?v=1.8.6";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.6";
-import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.6";
-import { formatDateLabel, parseExportDateLabel } from "./format.js?v=1.8.6";
-import { renderChatList } from "./render.js?v=1.8.6";
-import { closeMenu, showToast } from "./ui.js?v=1.8.6";
+import { $ } from "../shared/dom.js?v=1.8.7";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
+import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.7";
+import { formatDateLabel, parseExportDateLabel } from "./format.js?v=1.8.7";
+import { renderChatList } from "./render.js?v=1.8.7";
+import { closeMenu, showToast } from "./ui.js?v=1.8.7";
 
 export function handleDateJumpAction(event) {
     event.preventDefault();
@@ -115,13 +115,17 @@ export function handleDateSelection(dateValue) {
         return;
     }
 
-    state.renderRange.start = Math.max(0, bestIndex);
-    state.renderRange.end = Math.min(state.filteredMessages.length, bestIndex + MAX_RENDERED_ITEMS);
+    // Rows above the target too: with the target first in the window there was
+    // nothing to scroll up into, so earlier messages became unreachable.
+    state.renderRange.start = Math.max(0, bestIndex - 40);
+    state.renderRange.end = Math.min(state.filteredMessages.length, state.renderRange.start + MAX_RENDERED_ITEMS);
     renderChatList();
+    const targetEntry = state.filteredMessages[findFirstMessageIndexForDate(bestIndex)];
+    const scrollToTarget = () => $(targetEntry?.id)?.scrollIntoView({ block: "start", behavior: "auto" });
+    scrollToTarget();
 
     window.setTimeout(() => {
-        const targetEntry = state.filteredMessages[findFirstMessageIndexForDate(bestIndex) ?? bestIndex];
-        $(targetEntry?.id)?.scrollIntoView({ block: "start", behavior: "auto" });
+        scrollToTarget();
         const label = formatDateLabel(state.filteredMessages[bestIndex]?.rawDate || state.filteredMessages[bestIndex]?.content);
         showToast(exactIndex !== -1 ? `Jumped to ${label}` : `Closest previous date: ${label}`);
     }, 50);

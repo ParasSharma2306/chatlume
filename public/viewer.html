@@ -29,14 +29,17 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">     
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.8.6">
+    <link rel="stylesheet" href="../css/style.css?v=1.8.7">
     <link rel="manifest" href="../manifest.json">     
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">     
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script type="module" src="../js/script.js?v=1.8.6"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
+    <script type="module" src="../js/script.js?v=1.8.7"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <script>
         // Apply the saved theme before first paint. Without this the viewer
@@ -105,8 +108,8 @@
                         <span>WhatsApp Chat Viewer</span>                     
                     </div>
                     <div class="input-wrapper">                         
-                        <label for="display-name">Display Name</label>                         
-                        <input type="text" id="display-name" placeholder="Exact name in chat (e.g. Paras)" autocomplete="name">                     
+                        <label for="display-name">Your Name <span class="label-optional">Optional</span></label>                         
+                        <input type="text" id="display-name" placeholder="As it appears in the chat" autocomplete="name">                     
                     </div>
                     <button class="drop-target" id="drop-target" type="button" aria-describedby="drop-help">                         
                         <i class="ph ph-file-arrow-up" aria-hidden="true"></i>                         
@@ -119,13 +122,13 @@
                     <button class="btn-primary" id="load-chat" type="button">Load Chat</button>
                     <button class="btn-secondary upload-back" id="upload-back" type="button" hidden><i class="ph ph-arrow-left"></i> Back to open chat</button>
                     <div class="load-hint" id="load-hint">
-                        Your Data Never Leaves Your Device. Large ZIP exports can take a moment to parse.
+                        You can also pick who you are after the chat opens.
                     </div>
                     <div class="stored-list" data-stored-list hidden></div>
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.8.6</div>
+                    <div class="app-version-label" data-app-version>v1.8.7</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -173,9 +176,9 @@
                 </div>                 
                 <div class="drawer-scroll">                     
                     <div class="wrapped-card">                         
-                        <h3>ChatLume Wrapped  </h3>                         
+                        <h3>ChatLume Wrapped</h3>                         
                         <p>Generate a beautiful infographic of your chat personality and trends!</p>                         
-                        <button class="btn-wrapped" id="generate-wrapped">Generate Wrapped</button>                     
+                        <button class="btn-wrapped" id="generate-wrapped" type="button">Generate Wrapped</button>                     
                     </div>                     
                     <div class="stats-overview">                         
                         <div class="stat-box">                             
@@ -297,7 +300,11 @@
                         </label>                     
                     </div>                     
                     <div class="settings-group">                         
-                        <div class="section-label">CHAT DISPLAY</div>                         
+                        <div class="section-label">CHAT DISPLAY</div>
+                        <label class="setting-row" id="identity-row" for="setting-identity" hidden>
+                            <span><strong>You in This Chat</strong><small>Whose messages sit on the right.</small></span>
+                            <select id="setting-identity"><option value="">Not set</option></select>
+                        </label>
                         <label class="setting-row" for="setting-show-senders">                             
                             <span>                                 
                                 <strong>Sender Names</strong>                                 
@@ -350,7 +357,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.8.6 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.8.7 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
@@ -433,7 +440,7 @@
             <section class="search-toolbar" id="search-toolbar">                 
                 <div class="search-input-group">                     
                     <button id="search-close" type="button" aria-label="Close search"><i class="ph ph-arrow-left"></i></button>                     
-                    <input type="search" id="live-search" placeholder="Search messages..." aria-label="Search messages in this chat" autocomplete="off">
+                    <input type="search" id="live-search" enterkeyhint="search" placeholder="Search messages..." aria-label="Search messages in this chat" autocomplete="off">
                 </div>                 
                 <div class="search-nav">                     
                     <span id="search-counter" aria-live="polite"></span>                     
@@ -444,6 +451,12 @@
             <button type="button" class="scroll-latest" id="scroll-latest" hidden aria-label="Jump to the latest message">
                 <i class="ph-bold ph-arrow-down" aria-hidden="true"></i>
             </button>
+            <div class="viewport-wrap">
+                <div class="search-empty" id="search-empty" hidden role="status">
+                    <i class="ph-duotone ph-magnifying-glass"></i>
+                    <h3>No messages matched</h3>
+                    <p>Nothing in this chat contains <span class="query" id="search-empty-query"></span>. Try a shorter word or different spelling.</p>
+                </div>
             <section class="messages-viewport" id="viewport" aria-label="Messages">                 
                 <div class="empty-placeholder" id="empty-state">
                     <div class="illustration">
@@ -460,19 +473,10 @@
                         <i class="ph ph-question"></i> How to export a WhatsApp chat
                     </a>
                 </div>
-                <div class="search-empty" id="search-empty" hidden role="status">
-                    <i class="ph-duotone ph-magnifying-glass"></i>
-                    <h3>No messages matched</h3>
-                    <p>Nothing in this chat contains <span class="query" id="search-empty-query"></span>. Try a shorter word or different spelling.</p>
-                </div>
                 <div class="message-list" id="message-list"></div>             
-            </section>             
-            <footer class="chat-footer">                 
-                <button type="button" aria-label="Emoji picker"><i class="ph ph-smiley"></i></button>                 
-                <button type="button" aria-label="Add attachment"><i class="ph ph-plus"></i></button>                 
-                <div class="fake-input">Type a message</div>                 
-                <button type="button" aria-label="Record voice note"><i class="ph ph-microphone"></i></button>             
-            </footer>         
+            </section>
+            </div>             
+            <footer class="chat-footer" aria-label="About this view"><i class="ph-fill ph-lock-simple" aria-hidden="true"></i> Read-only view · stays on your device</footer>         
         </main>
 
         <div class="date-sheet-backdrop" id="date-sheet" hidden>
@@ -507,7 +511,7 @@
         </div>
 
         <div class="media-modal" id="wrapped-modal" hidden>             
-            <button class="media-modal-backdrop" id="wrapped-modal-backdrop" type="button"></button>             
+            <button class="media-modal-backdrop" id="wrapped-modal-backdrop" type="button" tabindex="-1" aria-label="Close Wrapped"></button>             
             <div class="media-modal-dialog" style="max-width: 600px;" role="dialog" aria-modal="true">                 
                 <div class="media-modal-header">                     
                     <div>                         
@@ -515,7 +519,7 @@
                         <p>Save and share your chat personality.</p>                     
                     </div>                     
                     <div class="media-modal-actions">                         
-                        <button id="close-wrapped" type="button"><i class="ph ph-x"></i></button>                     
+                        <button id="close-wrapped" type="button" aria-label="Close"><i class="ph ph-x"></i></button>                     
                     </div>                 
                 </div>                 
                 <div class="media-modal-body" style="display:block; padding: 20px; background: var(--bg-sidebar); overflow: auto;">
@@ -556,7 +560,7 @@
         </div>                  
         <!-- Media lightbox modal -->
         <div class="media-modal" id="media-modal" hidden>
-            <button class="media-modal-backdrop" id="media-modal-backdrop" type="button"></button>
+            <button class="media-modal-backdrop" id="media-modal-backdrop" type="button" tabindex="-1" aria-label="Close media"></button>
             <div class="media-modal-dialog" role="dialog" aria-modal="true">
                 <div class="media-modal-header">
                     <div>
@@ -564,10 +568,10 @@
                         <p id="media-modal-subtitle"></p>
                     </div>
                     <div class="media-modal-actions">
-                        <a id="media-download-link" download style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);color:var(--text-primary);text-decoration:none" title="Download">
+                        <a id="media-download-link" download style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);color:var(--text-primary);text-decoration:none" title="Download" aria-label="Download">
                             <i class="ph ph-download-simple"></i>
                         </a>
-                        <button id="media-modal-close" type="button"><i class="ph ph-x"></i></button>
+                        <button id="media-modal-close" type="button" aria-label="Close" title="Close"><i class="ph ph-x"></i></button>
                     </div>
                 </div>
                 <div class="media-modal-body" id="media-modal-body"></div>
@@ -581,9 +585,9 @@
                 <p id="processing-copy">Parsing your export locally...</p>             
             </div>         
         </div>         
-        <div id="toast" aria-live="polite">Copied to Clipboard</div>
+        <div id="toast" aria-live="polite"></div>
 
     </div>
-    <script src="../js/site.js?v=1.8.6" defer></script>
+    <script src="../js/site.js?v=1.8.7" defer></script>
 </body>
 </html>

@@ -7,21 +7,22 @@
  * Also produces the normalised message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { colorForName } from "../shared/colors.js?v=1.8.6";
-import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.6";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.6";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.6";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { colorForName } from "../shared/colors.js?v=1.8.7";
+import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.7";
+import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.8.7";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.8.7";
 import {
     clampRenderRange,
+    createBottomPin,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.8.6";
-import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.6";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.6";
-import { lazyMedia } from "./media.js?v=1.8.6";
-import { closeMenu } from "./ui.js?v=1.8.6";
+} from "../shared/virtual-list.js?v=1.8.7";
+import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.7";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.7";
+import { lazyMedia } from "./media.js?v=1.8.7";
+import { closeMenu } from "./ui.js?v=1.8.7";
 
 /** Colour for a sender's name label, stable for the life of the chat. */
 export const getColor = (name) => colorForName(name, state.colorMap);
@@ -111,10 +112,7 @@ function renderCallCard(text) {
     const callText = text === "null" ? "Missed call" : text;
 
     return `
-        <div class="msg-text has-meta" style="display: flex; align-items: center; gap: 6px; font-weight: 500;">
-            <i class="ph-fill ${callIcon}" style="font-size: 18px; color: ${callColor}"></i> 
-            ${escapeHtml(callText)}
-        </div>`;
+        <div class="msg-text call-card has-meta"><i class="ph-fill ${callIcon}" style="color: ${callColor}"></i><span>${escapeHtml(callText)}</span></div>`;
 }
 
 // ── Text ────────────────────────────────────────────────────────────────────
@@ -192,7 +190,7 @@ function renderMediaItem(item) {
         return `
             <div class="media-video">
                 ${placeholder}
-                <video controls preload="none" ${srcAttr} data-media-id="${item.id}"></video>
+                <video controls playsinline preload="metadata" ${srcAttr} data-media-id="${item.id}"></video>
             </div>
         `;
     }
@@ -250,7 +248,7 @@ export function collectExportMessages() {
             time: formatMessageTime(item.rawTime || item.time),
             isMe: item.isMe,
             color: getColor(item.sender),
-            text: item.text,
+            text: item.text === "null" ? "Missed call" : item.text,
             media: (item.mediaItems || []).map((media) => ({ id: media.id, kind: media.kind, name: media.name }))
         };
     });
@@ -277,9 +275,13 @@ export function handleViewportScroll(event) {
     });
 }
 
+let bottomPin = null;
+
 export function scrollToBottom() {
     const viewport = $("viewport");
     if (viewport) {
+        bottomPin ||= createBottomPin(viewport, $("message-list"), state);
+        bottomPin.pin();
         viewport.scrollTop = viewport.scrollHeight;
         syncScrollLatest(viewport);
     }
@@ -298,5 +300,5 @@ export function resetRenderToBottom() {
 export function jumpToBottom() {
     closeMenu();
     resetRenderToBottom();
-    requestAnimationFrame(scrollToBottom);
+    scrollToBottom();
 }

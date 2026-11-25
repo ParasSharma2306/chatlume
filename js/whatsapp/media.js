@@ -13,18 +13,18 @@
  * NFC/NFD spellings and case never keep a file from being found.
  * ============================================================================
  */
-import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.8.6";
-import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.6";
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.8.6";
-import { createMediaModal } from "../shared/media-modal.js?v=1.8.6";
+import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.8.7";
+import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.7";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.8.7";
+import { createMediaModal } from "../shared/media-modal.js?v=1.8.7";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.8.6";
-import { state } from "./state.js?v=1.8.6";
-import { showToast } from "./ui.js?v=1.8.6";
+} from "../shared/media-urls.js?v=1.8.7";
+import { state } from "./state.js?v=1.8.7";
+import { showToast } from "./ui.js?v=1.8.7";
 
 /** Decodes an attachment (once) and returns its blob URL. */
 export const ensureMediaUrl = (media) => ensureUrl(state, media);
@@ -74,7 +74,8 @@ export function buildMediaStore(attachments) {
     attachments.forEach((attachment, index) => {
         const fileName = attachment.name;
         const mediaType = detectMediaType(fileName);
-        const id = `media-${index}-${normalizeLookupKey(fileName)}`;
+        // Never the file name: ids go into attributes and selectors unescaped.
+        const id = `media-${index}`;
 
         const media = {
             id,

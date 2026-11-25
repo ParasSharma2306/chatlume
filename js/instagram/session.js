@@ -7,50 +7,37 @@
  * second pick mid-way can't interleave with the first.
  * ============================================================================
  */
-import { exportChatAsHTML } from "../export.js?v=1.8.6";
-import { showSponsorPrompt } from "../support.js?v=1.8.6";
-import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.6";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.8.6";
-import { fixMojibake } from "./mojibake.js?v=1.8.6";
-import { igState } from "./state.js?v=1.8.6";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.8.6";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.6";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.6";
-import { showThreadSelector } from "./threads.js?v=1.8.6";
-import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.6";
-import { getInstagramSenders } from "./filter.js?v=1.8.6";
-import { initialThreadSelection } from "./threads-model.js?v=1.8.6";
+import { exportChatAsHTML } from "../export.js?v=1.8.7";
+import { resetDropTarget } from "./file-picker.js?v=1.8.7";
+import { showSponsorPrompt } from "../support.js?v=1.8.7";
+import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.7";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.8.7";
+import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.8.7";
+import { loadZip } from "../shared/zip.js?v=1.8.7";
+import { fixMojibake } from "./mojibake.js?v=1.8.7";
+import { tailRange } from "../shared/virtual-list.js?v=1.8.7";
+import { IG_MAX_RENDERED, igState } from "./state.js?v=1.8.7";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.8.7";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.7";
+import { collectExportMessages, renderChatList, scrollToBottom, syncScrollLatest } from "./render.js?v=1.8.7";
+import { isSearchOpen, toggleSearch } from "./search.js?v=1.8.7";
+import { showThreadSelector, syncBackButtons } from "./threads.js?v=1.8.7";
+import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.7";
+import { countBySender, filterMessagesBySender, getInstagramSenderSummary, getInstagramSenders } from "./filter.js?v=1.8.7";
+import { initialThreadSelection } from "./threads-model.js?v=1.8.7";
 import {
     closeMenu,
     generateStats,
     isMobileLayout,
+    restoreEmptyState,
     setLoading,
     setSidebarState,
     showEmptyThreadState,
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.8.6";
-
-const ZIP_JS_URL = "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-let zipApiPromise = null;
-
-/** Loads the ZIP library on demand so its CDN cannot block the viewer boot. */
-function loadZipApi() {
-    if (!zipApiPromise) {
-        zipApiPromise = import(ZIP_JS_URL)
-            .then((api) => {
-                api.configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
-                return api;
-            })
-            .catch((error) => {
-                zipApiPromise = null;
-                throw error;
-            });
-    }
-    return zipApiPromise;
-}
+} from "./ui.js?v=1.8.7";
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
 export async function initViewer({ file: fileOverride = null, record = null } = {}) {
@@ -67,18 +54,24 @@ export async function initViewer({ file: fileOverride = null, record = null } = 
     const gen = ++igState.loadGeneration;
     const isStaleZip = () => igState.loadGeneration !== gen;
 
+    // The old conversation goes with its ZIP: left on screen, its media was dead
+    // and an error for the new file appeared above its messages.
+    resetThreadState();
     cleanupZip();
+    igState.threads = [];
+    resetChatChrome();
     igState.currentFile = file;
     igState.activeImportId = record?.id || "";
     igState.restoreImportId = record?.id || "";
     igState.restoreThreadFolder = record?.threadFolder || "";
+    igState.restoreOwner = record?.ownerName || "";
     if (record?.ownerName && $("ig-my-name") && !$("ig-my-name").value.trim()) $("ig-my-name").value = record.ownerName;
 
     setLoading(true, "Opening ZIP", "Reading your Instagram export...");
     try {
         await yieldToPaint();
         if (isStaleZip()) return;
-        const { BlobReader, ZipReader } = await loadZipApi();
+        const { BlobReader, ZipReader } = await loadZip();
         if (isStaleZip()) return;
         const reader = new ZipReader(new BlobReader(file));
         const entries = await reader.getEntries();
@@ -108,6 +101,7 @@ export async function initViewer({ file: fileOverride = null, record = null } = 
     } catch (err) {
         if (isStaleZip()) return;
         console.error(err);
+        cleanupZip();
         showErrorState("Couldn't load this file", err.message || "Make sure it's a valid Instagram JSON export ZIP.");
         setLoading(false);
     }
@@ -115,12 +109,13 @@ export async function initViewer({ file: fileOverride = null, record = null } = 
 
 /** Returns every per-thread field of `igState` to its default. */
 function resetThreadState() {
+    if (isSearchOpen()) toggleSearch();
     igState.messages = [];
     igState.filteredMessages = [];
     igState.selectedSenders = [];
     igState.messageOnlyCount = 0;
-    igState.colorMap = {};
-    igState.senderStats = {};
+    igState.colorMap = Object.create(null);
+    igState.senderStats = Object.create(null);
     igState.emojiStats = {};
     igState.hourlyStats = Array(24).fill(0);
     igState.mediaCount = 0;
@@ -133,6 +128,8 @@ function resetThreadState() {
     igState.activeMediaId = "";
     $("ig-sender-filter-list")?.replaceChildren();
     $("ig-sender-filter-container")?.setAttribute("hidden", "");
+    igState.renderRange = { start: 0, end: 0 };
+    syncScrollLatest();
     clearMediaStore(igState);
     lazyMedia.disconnect();
     if ($("ig-message-list")) $("ig-message-list").innerHTML = "";
@@ -154,7 +151,7 @@ export async function loadThread(thread) {
     try {
         await yieldToPaint();
         if (isStale()) return;
-        const { TextWriter } = await loadZipApi();
+        const { TextWriter } = await loadZip();
         if (isStale()) return;
         resetThreadState();
 
@@ -176,7 +173,7 @@ export async function loadThread(thread) {
             if (Array.isArray(data.participants) && data.participants.length && !participants.length) {
                 participants = data.participants.map((p) => fixMojibake(String(p?.name || ""))).filter(Boolean);
             }
-            if (Array.isArray(data.messages) && data.messages.length) allRaw.push(...data.messages);
+            if (Array.isArray(data.messages) && data.messages.length) allRaw = allRaw.concat(data.messages);
         }
 
         // Oldest first
@@ -186,7 +183,12 @@ export async function loadThread(thread) {
         // Instagram lists the account owner LAST in `participants`, so falling back
         // to participants[0] labelled the other person's messages as yours and
         // flipped every bubble in the thread.
-        igState.myName = nameInput || participants[participants.length - 1] || "";
+        // A typed name nobody here has would put every message on the left.
+        const known = new Set(participants);
+        allRaw.forEach((raw) => known.add(fixMojibake(String(raw.sender_name || ""))));
+        const inThread = (name) => name && [...known].find((other) => other.toLowerCase() === name.toLowerCase());
+        igState.myName = inThread(igState.restoreOwner) || inThread(nameInput) || inferOwner(participants, threadTitle) || participants[participants.length - 1] || nameInput || "";
+        igState.restoreOwner = "";
         igState.chatTitle = threadTitle;
 
         // Build media store from all non-JSON files in the ZIP
@@ -198,16 +200,21 @@ export async function loadThread(thread) {
         generateStats();
 
         if (igState.messageOnlyCount === 0) {
+            resetChatChrome();
             showEmptyThreadState(igState.threads.length > 1 ? () => showThreadSelector(igState.threads, loadThread) : null);
             showToast("No messages found in this thread", "error");
             setLoading(false);
             return;
         }
 
+        igState.currentThread = thread;
+        igState.selectedFile = null;
+        if ($("ig-file-input")) $("ig-file-input").value = "";
+        resetDropTarget();
         updateUI(threadTitle, participants);
         populateInstagramSenderFilter();
         renderChatList();
-        requestAnimationFrame(scrollToBottom);
+        scrollToBottom();
         showToast(`Loaded ${igState.messageOnlyCount.toLocaleString()} messages`);
         if (isMobileLayout()) setSidebarState(false);
         if (igState.activeImportId) {
@@ -218,6 +225,9 @@ export async function loadThread(thread) {
     } catch (err) {
         if (!isStale()) {
             console.error(err);
+            resetThreadState();
+            resetChatChrome();
+            if (igState.threads.length > 1) showThreadSelector(igState.threads, loadThread);
             showErrorState("Couldn't parse this file", err.message || "Make sure it's a valid Instagram JSON export ZIP.");
         }
     } finally {
@@ -228,9 +238,80 @@ export async function loadThread(thread) {
 function populateInstagramSenderFilter() {
     const list = $("ig-sender-filter-list");
     if (!list) return;
+    const counts = countBySender(igState.messages);
+    const selected = new Set(igState.selectedSenders);
+    const mine = igState.myName.toLowerCase();
     list.innerHTML = getInstagramSenders(igState.messages).map((sender, index) => `
-        <label class="sender-filter-item"><input type="checkbox" value="${escapeAttribute(sender)}" id="ig-sender-${index}"><span>${escapeHtml(sender)}</span></label>
+        <label class="sender-filter-item">
+            <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(sender)}" id="ig-sender-${index}"${selected.has(sender) ? " checked" : ""}>
+            <span class="sender-filter-name">${escapeHtml(sender)}${sender.toLowerCase() === mine ? " (You)" : ""}</span>
+            <span class="sender-filter-count">${counts.get(sender).toLocaleString()}</span>
+        </label>
     `).join("");
+    syncFilterSummary();
+}
+
+/** Applies a sender selection to the list and everything that describes it. */
+export function applySenderSelection(senders) {
+    igState.selectedSenders = senders;
+    igState.filteredMessages = filterMessagesBySender(igState.messages, senders);
+    igState.renderRange = tailRange(igState.filteredMessages.length, IG_MAX_RENDERED);
+    syncFilterSummary();
+}
+
+const visibleMessageCount = () => igState.filteredMessages.reduce((sum, item) => sum + (item.type === "msg" ? 1 : 0), 0);
+
+function syncFilterSummary() {
+    const count = igState.selectedSenders.length;
+    const summary = getInstagramSenderSummary(igState.selectedSenders);
+    $("ig-sender-filter-container")?.classList.toggle("has-filter", count > 0);
+    if ($("ig-sender-filter-summary")) $("ig-sender-filter-summary").textContent = summary;
+    const badge = $("ig-sender-filter-badge");
+    if (badge) { badge.textContent = String(count); badge.hidden = !count; }
+    $("ig-sender-filter-btn")?.setAttribute("aria-label", `Filter by sender, ${summary}`);
+
+    const media = igState.mediaCount ? ` • ${igState.mediaCount.toLocaleString()} media` : "";
+    const total = igState.messageOnlyCount.toLocaleString();
+    if ($("ig-header-meta")) $("ig-header-meta").innerText = `${count ? `${visibleMessageCount().toLocaleString()} of ${total}` : total} messages${media}`;
+}
+
+/** "You in this chat" in Settings. */
+export function setThreadOwner(name) {
+    if (!igState.messageOnlyCount) return;
+    igState.myName = name;
+    igState.messages.forEach((item) => {
+        if (item.type === "msg") item.isMe = Boolean(name) && item.sender.toLowerCase() === name.toLowerCase();
+    });
+    populateInstagramSenderFilter();
+    renderChatList();
+    if (igState.activeImportId) void markInstagramImportOpened(igState.currentThread).catch(() => {});
+    showToast(name ? `Showing ${name}'s messages as yours` : "No participant is marked as you");
+}
+
+/** Header, sidebar and menu as they are with no conversation open. */
+function resetChatChrome() {
+    restoreEmptyState();
+    generateStats();
+    if ($("ig-header-name")) $("ig-header-name").innerText = "Instagram DMs";
+    if ($("ig-header-meta")) $("ig-header-meta").innerText = "ChatLume";
+    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = true; });
+    renderIdentitySelect($("ig-identity-row"), $("ig-setting-identity"), [], "");
+    $("ig-chat-list-panel")?.classList.add("hidden");
+    if (!igState.threads.length) $("ig-upload-panel")?.classList.remove("hidden");
+    syncBackButtons();
+}
+
+/** Puts the viewer back to its just-opened state (its stored copy was deleted). */
+export function closeActiveThread() {
+    igState.loadGeneration += 1;
+    igState.threadGeneration += 1;
+    resetThreadState();
+    cleanupZip();
+    igState.threads = [];
+    igState.activeImportId = "";
+    igState.currentFile = null;
+    $("ig-thread-panel")?.classList.add("hidden");
+    resetChatChrome();
 }
 
 /** Puts the loaded thread's title and counts into the sidebar and header. */
@@ -245,18 +326,18 @@ function updateUI(title, participants) {
     // rather than each message.
     replayClass([$("ig-viewport"), q(".chat-header .header-profile")], "chat-revealed");
 
-    const withMedia = igState.mediaCount ? ` • ${igState.mediaCount.toLocaleString()} media` : "";
-    const missing = igState.mediaMissingCount ? ` • ${igState.mediaMissingCount.toLocaleString()} missing` : "";
     const avatar = q(".chat-item-avatar", $("ig-chat-list-item"));
     if (avatar) avatar.textContent = initialsFor(title);
     if ($("ig-sidebar-title")) $("ig-sidebar-title").innerText = title;
     if ($("ig-header-name")) $("ig-header-name").innerText = title;
-    if ($("ig-header-meta")) $("ig-header-meta").innerText = `${igState.messageOnlyCount.toLocaleString()} messages${withMedia}${missing}`;
     if ($("ig-sidebar-sub")) $("ig-sidebar-sub").innerText = igState.mediaMissingCount
         ? `${igState.mediaMissingCount} missing attachment${igState.mediaMissingCount === 1 ? "" : "s"}`
         : participants.join(", ") || "Direct Message";
 
     ensureExportButton();
+    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = false; });
+    renderIdentitySelect($("ig-identity-row"), $("ig-setting-identity"), getInstagramSenders(igState.messages), igState.myName);
+    syncBackButtons();
 }
 
 /** Adds the two HTML export choices to the header menu. */
@@ -281,13 +362,14 @@ function ensureExportButton() {
                     colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
                     includeAttachments,
                     mediaStore: igState.mediaStore,
-                    title: igState.chatTitle || "Instagram DMs",
-                    messageCount: igState.messageOnlyCount,
+                    title: `${igState.chatTitle || "Instagram DMs"}${igState.selectedSenders.length ? ` (${getInstagramSenderSummary(igState.selectedSenders)})` : ""}`,
+                    messageCount: visibleMessageCount(),
                     messages: collectExportMessages()
                 });
+                const skipped = result.failedCount ? ` (${result.failedCount} couldn't be read)` : "";
                 showToast(includeAttachments
-                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}`
-                    : "Chat exported as HTML");
+                    ? `Chat exported with ${result.attachmentCount} attachment${result.attachmentCount === 1 ? "" : "s"}${skipped}`
+                    : "Chat exported as HTML", skipped ? "warn" : "success");
             } catch (err) {
                 console.error("[ChatLume] Export failed:", err);
                 showToast("Export failed", "error");

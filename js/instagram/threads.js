@@ -7,11 +7,11 @@
  * the user taps.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { folderLabel } from "./parser.js?v=1.8.6";
-import { igState } from "./state.js?v=1.8.6";
-import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.6";
-import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.8.6";
+import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { folderBoxLabel, folderLabel } from "./parser.js?v=1.8.7";
+import { igState } from "./state.js?v=1.8.7";
+import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.7";
+import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.8.7";
 
 /**
  * @param {Array}    threads   From parser.findThreads().
@@ -20,7 +20,6 @@ import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.8
 export function showThreadSelector(threads, onSelect) {
     $("ig-upload-panel")?.classList.add("hidden");
     $("ig-chat-list-panel")?.classList.add("hidden");
-    $("ig-sender-filter-container")?.setAttribute("hidden", "");
     const panel = $("ig-thread-panel");
     const list = $("ig-thread-list");
     if (!panel || !list) return;
@@ -43,7 +42,7 @@ export function showThreadSelector(threads, onSelect) {
       <div class="chat-item-avatar" style="background:linear-gradient(135deg,#833AB4,#C13584,#E1306C)" aria-hidden="true">${escapeHtml(e.label.charAt(0).toUpperCase())}</div>
       <div class="chat-item-info">
         <h4>${escapeHtml(e.label)}</h4>
-        <span>${e.files} file${e.files !== 1 ? "s" : ""}</span>
+        <span>${folderBoxLabel(e.folder) || "Conversation"}${e.files > 1 ? ` · ${e.files} parts` : ""}</span>
       </div>
     </button>`).join("");
 
@@ -75,5 +74,19 @@ export function showThreadSelector(threads, onSelect) {
         });
     }
 
+    syncBackButtons();
     if (isMobileLayout()) setSidebarState(true);
+}
+
+/** "Back to open chat" only makes sense while one is open. */
+export function syncBackButtons() {
+    document.querySelectorAll("[data-ig-back]").forEach((button) => { button.hidden = !igState.messageOnlyCount; });
+}
+
+/** Leaves the picker or import form for the conversation already on screen. */
+export function showOpenThread() {
+    if (!igState.messageOnlyCount) return;
+    $("ig-upload-panel")?.classList.add("hidden");
+    $("ig-thread-panel")?.classList.add("hidden");
+    $("ig-chat-list-panel")?.classList.remove("hidden");
 }

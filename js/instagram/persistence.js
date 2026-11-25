@@ -1,20 +1,22 @@
 /** Opt-in local ZIP storage, isolated from WhatsApp records and preferences. */
-import * as storage from "../storage.js?v=1.8.6";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.6";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.6";
-import { igState } from "./state.js?v=1.8.6";
-import { writeInstagramSettings } from "./settings.js?v=1.8.6";
-import { importsOfKind } from "../shared/import-records.js?v=1.8.6";
-import { showToast } from "./ui.js?v=1.8.6";
+import * as storage from "../storage.js?v=1.8.7";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.7";
+import { igState } from "./state.js?v=1.8.7";
+import { writeInstagramSettings } from "./settings.js?v=1.8.7";
+import { popOverlayState } from "../shared/history.js?v=1.8.7";
+import { importsOfKind } from "../shared/import-records.js?v=1.8.7";
+import { askConfirm, closeAllDrawers, showToast } from "./ui.js?v=1.8.7";
 
 const USED_KEY = "chatlume-instagram-persist-used";
 const LAST_KEY = "chatlume-instagram-last-import";
-const hooks = { openImport: null };
+const hooks = { openImport: null, closeThread: null };
 let copyJob = null;
 let copyingFile = null;
 let pendingThread = null;
 
-export async function initInstagramPersistence({ openImport }) {
+export async function initInstagramPersistence({ openImport, closeThread }) {
+    hooks.closeThread = closeThread;
     hooks.openImport = openImport;
     igState.storageSupported = storage.isSupported();
     const checkbox = $("ig-setting-persistent-storage");
@@ -49,11 +51,25 @@ export function renderInstagramStoredImports() {
             const meta = `${(record.messageCount || 0).toLocaleString()} messages · ${formatBytes(record.size)}`;
             return `<div class="storage-item">
                 <div class="storage-item-info"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(meta)}</span></div>
-                <button type="button" class="chat-item" data-ig-stored-open="${escapeAttribute(record.id)}">Open</button>
+                <button type="button" class="stored-open" data-ig-stored-open="${escapeAttribute(record.id)}">Open</button>
                 <button type="button" class="stored-delete" data-ig-stored-delete="${escapeAttribute(record.id)}" aria-label="Delete ${escapeAttribute(title)}"><i class="ph ph-trash"></i></button>
             </div>`;
         }).join("")
         : `<p class="storage-note">Saved Instagram exports will appear here.</p>`;
+    const sidebarList = $("ig-stored-list");
+    if (sidebarList) {
+        sidebarList.hidden = !igState.storedImports.length;
+        sidebarList.innerHTML = `<div class="stored-list-head"><i class="ph-fill ph-hard-drives"></i> Saved on this device</div>` + igState.storedImports.map((record) => {
+            const title = record.chatTitle || record.fileName || "Instagram export";
+            return `<div class="stored-item${record.id === igState.activeImportId ? " active" : ""}">
+                <button type="button" class="chat-item" data-ig-stored-open="${escapeAttribute(record.id)}">
+                    <div class="chat-item-avatar ig-avatar-gradient" aria-hidden="true">${escapeHtml([...title][0].toUpperCase())}</div>
+                    <div class="chat-item-info"><h4>${escapeHtml(title)}</h4><span>${(record.messageCount || 0).toLocaleString()} messages · ${formatBytes(record.size)}</span></div>
+                </button>
+                <button type="button" class="stored-delete" data-ig-stored-delete="${escapeAttribute(record.id)}" aria-label="Delete ${escapeAttribute(title)}"><i class="ph ph-trash"></i></button>
+            </div>`;
+        }).join("");
+    }
     const manage = $("ig-storage-manage");
     if (manage) manage.hidden = !igState.storedImports.length;
 }
@@ -71,22 +87,24 @@ export async function persistInstagramImport(file, thread) {
         await updateStoredThread(duplicate, thread);
         return;
     }
-    if (copyJob) {
+    if (copyingFile) {
         if (copyingFile === file) pendingThread = threadDetails;
         else showToast("Another export is still being saved. Try again after it finishes.", "warn");
         return;
     }
 
+    // Reserved before anything asynchronous, so a second conversation picked
+    // during the permission prompt can't start a second copy.
+    copyingFile = file;
     try {
         await storage.requestPersistence();
         const estimate = await storage.estimateStorage();
-        if (estimate && estimate.available < storage.requiredSpace(file.size)) {
+        if (estimate && estimate.quota > 0 && estimate.available < storage.requiredSpace(file.size)) {
             showToast("Not enough device storage to save this export", "warn");
             return;
         }
         const id = storage.generateId();
         setStorageStatus("Saving this export on your device…");
-        copyingFile = file;
         copyJob = storage.copyFileToStorage(file, id, {
             onProgress(copied, total) { setStorageStatus(`Saving… ${Math.floor((copied / Math.max(1, total)) * 100)}%`); }
         });
@@ -106,11 +124,21 @@ export async function persistInstagramImport(file, thread) {
             createdAt: Date.now(),
             lastOpenedAt: Date.now()
         };
-        await storage.putImport(record);
+        try {
+            await storage.putImport(record);
+        } catch (error) {
+            // No record means no import — don't leave the copy behind.
+            await storage.removeStoredFile(storedName);
+            throw error;
+        }
         igState.storedImports = storage.sortByRecency([...igState.storedImports, record]);
-        igState.activeImportId = id;
         writeStored(USED_KEY, "1");
-        writeStored(LAST_KEY, id);
+        // Another export may have been opened during the copy; it must not
+        // inherit this record.
+        if (igState.currentFile === file) {
+            igState.activeImportId = id;
+            writeStored(LAST_KEY, id);
+        }
         renderInstagramStoredImports();
         showToast("Instagram export saved on this device");
     } catch (error) {
@@ -149,7 +177,7 @@ async function openInstagramStoredImport(record) {
         await hooks.openImport?.(file, record);
     } catch (error) {
         if (storage.isUnrecoverable(error)) {
-            await deleteInstagramImport(record.id);
+            await removeImport(record).catch(() => {});
             showToast("That saved export is no longer available", "warn");
         } else {
             showToast("Couldn't open this saved Instagram export", "error");
@@ -161,7 +189,9 @@ export async function handleInstagramStorageClick(event) {
     const open = event.target.closest("[data-ig-stored-open]");
     if (open) {
         const record = igState.storedImports.find((item) => item.id === open.dataset.igStoredOpen);
-        if (record) await openInstagramStoredImport(record);
+        if (!record || igState.isLoading) return;
+        if (closeAllDrawers()) popOverlayState();
+        await openInstagramStoredImport(record);
         return;
     }
     const remove = event.target.closest("[data-ig-stored-delete]");
@@ -171,7 +201,26 @@ export async function handleInstagramStorageClick(event) {
 export async function deleteInstagramImport(id) {
     const record = igState.storedImports.find((item) => item.id === id);
     if (!record) return;
-    if (!window.confirm(`Delete the saved export “${record.chatTitle || record.fileName}” from this device?`)) return;
+    const isOpen = igState.activeImportId === id;
+    const confirmed = await askConfirm({
+        title: "Delete saved export?",
+        body: `"${record.chatTitle || record.fileName}" will be removed from this device.${isOpen ? " It's open right now and will be closed." : ""} Your original export file is not affected.`
+    });
+    if (!confirmed) return;
+    try {
+        await removeImport(record);
+    } catch (error) {
+        console.warn("Saved Instagram export could not be deleted:", error);
+        showToast("Couldn't delete this saved export", "error");
+        return;
+    }
+    // Its media is read from the copy that was just deleted.
+    if (isOpen) hooks.closeThread?.();
+    showToast("Saved export deleted");
+}
+
+async function removeImport(record) {
+    const { id } = record;
     await storage.deleteImport(record);
     igState.storedImports = igState.storedImports.filter((item) => item.id !== id);
     if (readStored(LAST_KEY) === id) removeStored(LAST_KEY);
@@ -182,7 +231,14 @@ export async function deleteInstagramImport(id) {
 
 export async function deleteAllInstagramImports() {
     if (!igState.storedImports.length) return;
-    if (!window.confirm(`Delete all ${igState.storedImports.length} saved Instagram export${igState.storedImports.length === 1 ? "" : "s"} from this device?`)) return;
+    const count = igState.storedImports.length;
+    const isOpen = Boolean(igState.activeImportId);
+    const confirmed = await askConfirm({
+        title: "Delete all saved exports?",
+        body: `${count} saved Instagram export${count === 1 ? "" : "s"} will be removed from this device${isOpen ? ", and the open conversation will be closed" : ""}. Your original export files are not affected.`,
+        confirmLabel: "Delete all"
+    });
+    if (!confirmed) return;
     try {
         await storage.deleteImportsByKind("instagram");
     } catch (error) {
@@ -191,6 +247,7 @@ export async function deleteAllInstagramImports() {
         return;
     }
     igState.storedImports = [];
+    if (isOpen) hooks.closeThread?.();
     igState.activeImportId = "";
     removeStored(LAST_KEY);
     removeStored(USED_KEY);

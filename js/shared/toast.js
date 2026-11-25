@@ -9,10 +9,10 @@
  * classes in the stylesheet.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.8.6";
+import { $ } from "./dom.js?v=1.8.7";
 
 /** Errors carry more text than a confirmation, so give them longer to read. */
-const TOAST_MS = { default: 2200, error: 4200 };
+const TOAST_MS = { default: 2400, info: 4200, warn: 3400, error: 4600 };
 
 export function createToast(elementId) {
     let timer = null;
@@ -30,6 +30,6 @@ export function createToast(elementId) {
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
             toast.classList.remove("show");
-        }, tone === "error" ? TOAST_MS.error : TOAST_MS.default);
+        }, TOAST_MS[tone] || TOAST_MS.default);
     };
 }

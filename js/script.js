@@ -22,17 +22,16 @@
  * scripts/bump-version.mjs.
  * ============================================================================
  */
-import { configure } from "https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm";
-import { $, isVisible } from "./shared/dom.js?v=1.8.6";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.6";
-import { popOverlayState } from "./shared/history.js?v=1.8.6";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.6";
-import { createThemeController } from "./shared/theme.js?v=1.8.6";
-import { state } from "./whatsapp/state.js?v=1.8.6";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.6";
-import { handleViewportScroll, jumpToBottom, resetRenderToBottom } from "./whatsapp/render.js?v=1.8.6";
-import { handleSearch, handleSearchInput, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.6";
-import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.6";
+import { $, isVisible } from "./shared/dom.js?v=1.8.7";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.7";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.8.7";
+import { runSplashLoader } from "./shared/splash.js?v=1.8.7";
+import { createThemeController } from "./shared/theme.js?v=1.8.7";
+import { state } from "./whatsapp/state.js?v=1.8.7";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.7";
+import { handleViewportScroll, jumpToBottom } from "./whatsapp/render.js?v=1.8.7";
+import { handleSearch, handleSearchInput, handleSearchKeydown, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.7";
+import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.7";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -41,24 +40,24 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.8.6";
+} from "./whatsapp/filter.js?v=1.8.7";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.8.6";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.6";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.6";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.6";
-import { closeActiveChat, initViewer, loadChatFile } from "./whatsapp/session.js?v=1.8.6";
+} from "./whatsapp/date-jump.js?v=1.8.7";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.7";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.7";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.7";
+import { closeActiveChat, initViewer, loadChatFile, setChatOwner } from "./whatsapp/session.js?v=1.8.7";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.8.6";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.6";
+} from "./whatsapp/persistence.js?v=1.8.7";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.7";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -74,11 +73,9 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.8.6";
+} from "./whatsapp/ui.js?v=1.8.7";
 
-configure({ useDecompressionStream: typeof DecompressionStream !== "undefined" });
-
-const APP_VERSION = "1.8.6";
+const APP_VERSION = "1.8.7";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -117,12 +114,18 @@ window.addEventListener("resize", () => {
     if (!isMobileLayout()) { setSidebarState(false); }
 });
 
-window.addEventListener("beforeunload", (event) => {
+// Not "beforeunload": that also fires for mailto: links and for a leave the user
+// then cancels, which left the open chat with every attachment dead.
+window.addEventListener("pagehide", (event) => {
+    if (event.persisted) return;
     cleanupMediaStore();
     if (state.profileObjectUrl) {
         URL.revokeObjectURL(state.profileObjectUrl);
         state.profileObjectUrl = "";
     }
+});
+
+window.addEventListener("beforeunload", (event) => {
     // Closing mid-copy leaves a .part file that the next start-up sweeps away,
     // but the user probably wants to know the save didn't finish.
     if (state.persistJob) {
@@ -131,15 +134,16 @@ window.addEventListener("beforeunload", (event) => {
     }
 });
 
-/** Back button: close whatever overlay is open (its history entry is already gone). */
-window.addEventListener("popstate", () => {
-    if (state.activeMediaId) closeMediaModal();
-    closeWrappedFromHistory();
-    closeDateSheet();
-    resolveConfirmSheet(false, { fromHistory: true });
+/** Back button: close whatever sits above the entry we landed on. */
+window.addEventListener("popstate", (event) => {
+    const keep = overlayOf(event);
+    if (state.activeMediaId && keep !== "media") closeMediaModal();
+    if (keep !== "wrapped") closeWrappedFromHistory();
+    if (keep !== "date-sheet") closeDateSheet();
+    if (keep !== "confirm") resolveConfirmSheet(false, { fromHistory: true });
     closeMenu();
     closeSenderFilterDropdown();
-    closeAllDrawers();
+    closeAllDrawers(keep);
 });
 
 // ── Event wiring ────────────────────────────────────────────────────────────
@@ -174,10 +178,11 @@ function bindUI() {
     $("search-up")?.addEventListener("click", () => navSearch("up"));
     $("search-down")?.addEventListener("click", () => navSearch("down"));
     $("live-search")?.addEventListener("input", handleSearchInput);
+    $("live-search")?.addEventListener("keydown", handleSearchKeydown);
 
     // Sender filter
     const filterOptions = {
-        onRender: resetRenderToBottom,
+        onRender: jumpToBottom,
         onSearch: handleSearch,
         onToast: showToast
     };
@@ -250,6 +255,13 @@ function bindUI() {
     // Sheets
     $("date-sheet-cancel")?.addEventListener("click", cancelDateSheet);
     $("date-sheet-apply")?.addEventListener("click", applyDateSheetSelection);
+    $("date-sheet-input")?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        applyDateSheetSelection();
+    });
+    $("date-sheet")?.addEventListener("click", (event) => { if (event.target === event.currentTarget) cancelDateSheet(); });
+    $("confirm-sheet")?.addEventListener("click", (event) => { if (event.target === event.currentTarget) resolveConfirmSheet(false); });
     $("confirm-sheet-cancel")?.addEventListener("click", () => resolveConfirmSheet(false));
     $("confirm-sheet-apply")?.addEventListener("click", () => resolveConfirmSheet(true));
 
@@ -288,6 +300,7 @@ function bindUI() {
     document.querySelectorAll("[data-setting]").forEach((control) => {
         control.addEventListener("change", handleSettingChange);
     });
+    $("setting-identity")?.addEventListener("change", (event) => setChatOwner(event.target.value));
     $("reset-settings")?.addEventListener("click", resetSettings);
 
     // Message list
@@ -333,7 +346,7 @@ function handleEscape() {
         return;
     }
     if (state.activeMediaId) {
-        closeMediaModal();
+        $("media-modal-close")?.click();
         return;
     }
     if (isVisible($("wrapped-modal"))) {
@@ -341,7 +354,7 @@ function handleEscape() {
         return;
     }
     if (isVisible($("date-sheet"))) {
-        closeDateSheet();
+        cancelDateSheet();
         return;
     }
     if (isVisible($("confirm-sheet"))) {
@@ -354,8 +367,11 @@ function handleEscape() {
     }
     const wasMenuOpen = $("header-menu")?.classList.contains("show");
     closeMenu();
-    if (wasMenuOpen) $("menu-toggle")?.focus();
-    closeAllDrawers();
+    if (wasMenuOpen) {
+        $("menu-toggle")?.focus();
+        return;
+    }
+    if (closeAllDrawers()) popOverlayState();
 }
 
 // ── PWA install ─────────────────────────────────────────────────────────────

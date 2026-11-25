@@ -11,8 +11,8 @@
  * must expose `activeMediaId` (also read by the blob-URL release logic).
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.6";
-import { pushOverlayState } from "./history.js?v=1.8.6";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.7";
+import { pushOverlayState } from "./history.js?v=1.8.7";
 
 /**
  * @param {Object}   options
@@ -41,12 +41,15 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
         modal.hidden = false;
         requestAnimationFrame(() => modal.classList.add("open"));
         pushOverlayState(overlayId);
+        // Never offer the previous attachment's file while this one decodes.
+        downloadLink?.removeAttribute("href");
 
         let url = "";
         try {
             url = await ensureUrl(media);
         } catch (error) {
             console.error(error);
+            if (state.activeMediaId !== mediaId) return;
             body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-warning-circle"></i><div><strong>Unable to load media</strong><span>${escapeHtml(media.name)}</span></div></div></div>`;
             return;
         }
@@ -78,6 +81,10 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
                 </div>
             `;
         }
+        body.querySelector("img, video, audio")?.addEventListener("error", () => {
+            if (state.activeMediaId !== mediaId) return;
+            body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-file-x"></i><div><strong>${escapeHtml(media.name)}</strong><span>This browser can't preview this file. Use the download button above.</span></div></div></div>`;
+        }, { once: true });
     }
 
     function close() {

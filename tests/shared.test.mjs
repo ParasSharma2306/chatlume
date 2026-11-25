@@ -3,11 +3,12 @@ import { describe, test } from "node:test";
 import { versioned } from "./versioned.mjs";
 
 const { escapeAttribute, escapeHtml, escapeRegExp } = await versioned("../js/shared/dom.js");
-const { applyTextFormatting, buildRichText, highlightOutsideTags } = await versioned("../js/shared/text.js");
+const { applyTextFormatting, buildRichText, highlightOutsideTags, safeHttpUrl } = await versioned("../js/shared/text.js");
 const { baseName, detectMediaType, formatBytes, inferMimeType, labelForMediaKind } = await versioned("../js/shared/media-types.js");
 const { SENDER_COLORS, colorForName } = await versioned("../js/shared/colors.js");
 const { countEmojis } = await versioned("../js/shared/emoji.js");
-const { clampRenderRange, syncScrollLatestButton, tailRange } = await versioned("../js/shared/virtual-list.js");
+const { inferOwner } = await versioned("../js/shared/identity.js");
+const { clampRenderRange, getScrollAnchor, syncScrollLatestButton, tailRange } = await versioned("../js/shared/virtual-list.js");
 
 /**
  * The utilities both viewers share. These used to be duplicated (with small
@@ -50,6 +51,31 @@ describe("shared/text", () => {
     test("highlightOutsideTags never touches attributes", () => {
         const html = highlightOutsideTags('<a href="http://a">http://a</a>', "http");
         assert.equal(html, '<a href="http://a"><span class="hl">http</span>://a</a>');
+    });
+
+    test("markers need word edges, and code is left alone", () => {
+        assert.equal(applyTextFormatting("snake_case_name 2 * 3 * 4"), "snake_case_name 2 * 3 * 4");
+        assert.equal(applyTextFormatting("*a* *b*"), "<strong>a</strong> <strong>b</strong>");
+        assert.equal(applyTextFormatting("`*x*` ```_y_```"), "<code>*x*</code> <code>_y_</code>");
+    });
+
+    test("links leave the sentence's punctuation out", () => {
+        const href = (text) => buildRichText(text).match(/href="([^"]+)"/)[1];
+        assert.equal(href("(https://x.y/a)."), "https://x.y/a");
+        assert.equal(href("https://en.wikipedia.org/wiki/A_(b)"), "https://en.wikipedia.org/wiki/A_(b)");
+        assert.equal(href(escapeHtml('"https://x.y"')), "https://x.y");
+        assert.equal(href(escapeHtml("https://x.y/?a=1&b=2")), "https://x.y/?a=1&amp;b=2");
+    });
+
+    test("highlight matches escaped characters without splitting entities", () => {
+        assert.equal(highlightOutsideTags("a &amp; b", "amp"), "a &amp; b");
+        assert.equal(highlightOutsideTags("a &amp; b", "&"), 'a <span class="hl">&amp;</span> b');
+        assert.equal(highlightOutsideTags("&lt;3", "<3"), '<span class="hl">&lt;3</span>');
+    });
+
+    test("only http(s) links are followed", () => {
+        assert.equal(safeHttpUrl("javascript:alert(1)"), "");
+        assert.equal(safeHttpUrl(" https://x.y "), "https://x.y");
     });
 
     test("highlight is case-insensitive and regex-safe", () => {
@@ -125,7 +151,35 @@ describe("shared/emoji", () => {
     });
 });
 
+describe("shared/emoji sequences", () => {
+    test("counts whole sequences and gives hearts colour", () => {
+        const stats = {};
+        countEmojis("👍🏽 👨‍👩‍👧 🇮🇳 ❤️ ❤ © 1", stats);
+        assert.deepEqual(stats, { "👍🏽": 1, "👨‍👩‍👧": 1, "🇮🇳": 1, "❤️": 2 });
+    });
+});
+
+describe("shared/identity", () => {
+    test("a one-to-one chat is titled after the other person", () => {
+        assert.equal(inferOwner(["Alice", "Bob"], "alice"), "Bob");
+        assert.equal(inferOwner(["Alice", "Bob"], "Trip"), "");
+        assert.equal(inferOwner(["Alice", "Bob", "Cy"], "Alice"), "");
+    });
+});
+
 describe("shared/virtual-list", () => {
+    test("a range left over from a longer list still renders the tail", () => {
+        const state = { filteredMessages: new Array(50), renderRange: { start: 400, end: 580 } };
+        clampRenderRange(state, 180);
+        assert.deepEqual(state.renderRange, { start: 0, end: 50 });
+    });
+
+    test("sticky day chips are never scroll anchors", () => {
+        let selector = "";
+        getScrollAnchor({ getBoundingClientRect: () => ({ top: 0 }), querySelectorAll: (value) => { selector = value; return []; } });
+        assert.match(selector, /:not\(\.sticky-date\)/);
+    });
+
     test("tailRange shows the newest window", () => {
         assert.deepEqual(tailRange(1000, 180), { start: 820, end: 1000 });
         assert.deepEqual(tailRange(50, 180), { start: 0, end: 50 });

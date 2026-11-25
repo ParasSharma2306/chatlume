@@ -7,14 +7,14 @@
  * and is routed to persistence.js.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS, sanitizeSettings } from "../settings.js?v=1.8.6";
-import { state } from "./state.js?v=1.8.6";
-import { reinferDateOrder } from "./format.js?v=1.8.6";
-import { handlePersistentStorageToggle, refreshStorageSettingsUI } from "./persistence.js?v=1.8.6";
-import { renderChatList } from "./render.js?v=1.8.6";
-import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.8.6";
-import { generateStats } from "./stats.js?v=1.8.6";
-import { showToast } from "./ui.js?v=1.8.6";
+import { DEFAULT_SETTINGS, sanitizeSettings } from "../settings.js?v=1.8.7";
+import { state } from "./state.js?v=1.8.7";
+import { reinferDateOrder } from "./format.js?v=1.8.7";
+import { handlePersistentStorageToggle, refreshStorageSettingsUI } from "./persistence.js?v=1.8.7";
+import { renderChatList } from "./render.js?v=1.8.7";
+import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.8.7";
+import { generateStats } from "./stats.js?v=1.8.7";
+import { showToast } from "./ui.js?v=1.8.7";
 
 export function handleSettingChange(event) {
     const control = event.currentTarget;
@@ -33,7 +33,10 @@ export function handleSettingChange(event) {
 }
 
 export function resetSettings() {
+    // Same path as switching the toggle off, so a copy in progress is cancelled.
+    const wasStoring = state.settings.persistentStorage;
     state.settings = { ...DEFAULT_SETTINGS };
+    if (wasStoring) handlePersistentStorageToggle();
     saveSettings();
     syncSettingsControls();
     refreshStorageSettingsUI();

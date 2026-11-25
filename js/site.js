@@ -1,6 +1,6 @@
 /**
- * Shared chrome for the static (non-app) pages: theme sync, scroll reveals,
- * back-to-top and the dynamic year. The viewer pages have their own copies of
+ * Shared chrome for the static (non-app) pages: theme sync, scroll reveals
+ * and back-to-top. The viewer pages have their own copies of
  * the theme logic, so this only owns the pages that previously had none.
  */
 (function () {
@@ -93,11 +93,6 @@
         btn.addEventListener("click", function () {
             window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
         });
-    }
-
-    function setupYear() {
-        var year = String(new Date().getFullYear());
-        document.querySelectorAll(".dynamic-year").forEach(function (el) { el.textContent = year; });
     }
 
     /** Give touch and pen input a short, consistent point of contact. */
@@ -346,7 +341,6 @@
         setupTheme();
         setupReveals();
         setupToTop();
-        setupYear();
         setupTapFeedback();
         setupHeroVideo();
         setupActiveNav();

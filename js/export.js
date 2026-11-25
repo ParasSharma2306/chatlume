@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.8.6)
+ * ChatLume HTML Export (v1.8.7)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Exports can be downloaded as a standalone HTML file or as a ZIP
@@ -22,7 +22,8 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-import { buildRichText } from './shared/text.js?v=1.8.6';
+import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.8.7';
+import { loadZip } from './shared/zip.js?v=1.8.7';
 
 export async function exportChatAsHTML({
   filename,
@@ -36,57 +37,73 @@ export async function exportChatAsHTML({
 } = {}) {
   const today = new Date();
   const dateStamp = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
-  const fname = filename || `chatlume-export-${dateStamp}.html`;
-  const mediaPaths = includeAttachments ? await collectExportMedia(messages, mediaStore) : new Map();
-  const html = buildExportDocument({ theme, colorScheme, title, messageCount, messages, today, mediaPaths });
+  const baseFilename = `chatlume-${filenameSlug(title) || 'export'}-${dateStamp}`;
+  const buildDocument = (mediaPaths) =>
+    buildExportDocument({ theme, colorScheme, title, messageCount, messages, today, mediaPaths });
 
   if (!includeAttachments) {
-    triggerDownload(new Blob([html], { type: 'text/html;charset=utf-8' }), fname);
-    return { attachmentCount: 0 };
+    const html = buildDocument(new Map());
+    triggerDownload(new Blob([html], { type: 'text/html;charset=utf-8' }), filename || `${baseFilename}.html`);
+    return { attachmentCount: 0, failedCount: 0 };
   }
 
-  const zip = await import('https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm');
+  const zip = await loadZip();
   const zipWriter = new zip.ZipWriter(new zip.BlobWriter('application/zip'));
   try {
-    await zipWriter.add('index.html', new zip.TextReader(html));
-    for (const media of mediaPaths.values()) {
-      if (media.blob) {
-        await zipWriter.add(media.archivePath, new zip.BlobReader(media.blob), { level: 0 });
-      }
-    }
+    // The page is written last so it only links attachments that made it in.
+    const { mediaPaths, failedCount } = await addExportMedia(zip, zipWriter, messages, mediaStore);
+    await zipWriter.add('index.html', new zip.TextReader(buildDocument(mediaPaths)));
     const archive = await zipWriter.close();
-    triggerDownload(archive, filename || `chatlume-export-${dateStamp}.zip`);
-    return { attachmentCount: [...mediaPaths.values()].filter((media) => media.blob).length };
+    triggerDownload(archive, filename || `${baseFilename}.zip`);
+    return { attachmentCount: mediaPaths.size, failedCount };
   } catch (error) {
     await zipWriter.close().catch(() => {});
     throw error;
   }
 }
 
-async function collectExportMedia(messages, mediaStore) {
-  const { BlobWriter } = await import('https://cdn.jsdelivr.net/npm/@zip.js/zip.js/+esm');
+/**
+ * Copies every referenced attachment into the archive, one at a time so they
+ * aren't all held in memory. A damaged attachment is skipped (and counted)
+ * rather than failing the whole export.
+ */
+async function addExportMedia(zip, zipWriter, messages, mediaStore) {
   const mediaPaths = new Map();
+  const failed = new Set();
   let index = 0;
 
   for (const item of messages) {
     for (const attachment of item?.media || []) {
-      if (!attachment.id || mediaPaths.has(attachment.id)) continue;
+      if (!attachment.id || mediaPaths.has(attachment.id) || failed.has(attachment.id)) continue;
       const media = mediaStore.get(attachment.id);
       if (!media?.entry) continue;
 
       const filename = safeArchiveFilename(media.name || attachment.name || `attachment-${index + 1}`);
       const archivePath = `attachments/${String(++index).padStart(4, '0')}-${filename}`;
-      const blob = await media.entry.getData(new BlobWriter(media.mime || 'application/octet-stream'));
+      const mime = media.mime || 'application/octet-stream';
+      let blob;
+      try {
+        blob = await media.entry.getData(new zip.BlobWriter(mime));
+      } catch (error) {
+        console.warn('[ChatLume] Skipped an attachment that could not be read:', error);
+        failed.add(attachment.id);
+        continue;
+      }
+      await zipWriter.add(archivePath, new zip.BlobReader(blob), { level: 0 });
       mediaPaths.set(attachment.id, {
         archivePath,
         href: archivePath.split('/').map(encodeURIComponent).join('/'),
-        blob,
-        mime: media.mime || blob.type || 'application/octet-stream',
+        mime,
       });
     }
   }
 
-  return mediaPaths;
+  return { mediaPaths, failedCount: failed.size };
+}
+
+/** A chat title reduced to something every file system accepts. */
+function filenameSlug(title) {
+  return String(title || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 60).toLowerCase();
 }
 
 function safeArchiveFilename(name) {
@@ -136,7 +153,8 @@ function buildExportDocument({ theme, colorScheme, title, messageCount, messages
   });
 
   const body = renderMessages(messages, theme, mediaPaths);
-  const includedCount = [...mediaPaths.values()].filter((media) => media.blob).length;
+  const includedCount = mediaPaths.size;
+  const hasMedia = messages.some((item) => item?.media?.length);
   const mediaNotice = includedCount
     ? `Attachments are included in the <code>attachments</code> folder (${includedCount.toLocaleString()}). Keep that folder beside this HTML file.`
     : MEDIA_NOTICE;
@@ -157,7 +175,7 @@ function buildExportDocument({ theme, colorScheme, title, messageCount, messages
       <div class="ce-sub">${escapeHtml(exportedAt)} · ${Number(messageCount).toLocaleString()} messages</div>
     </header>
 
-    <div class="ce-notice">${mediaNotice}</div>
+    ${hasMedia ? `<div class="ce-notice">${mediaNotice}</div>` : ''}
 
     <main class="ce-list">
 ${body}
@@ -199,7 +217,7 @@ function renderMessages(messages, theme, mediaPaths) {
       : '';
     const textHtml = item.text ? `<div class="ce-text">${renderText(item.text, theme)}</div>` : '';
     const mediaHtml = (item.media && item.media.length) ? renderMediaCards(item.media, mediaPaths) : '';
-    const shareHtml = item.shareLink ? renderShare(item.shareLink, item.shareText) : '';
+    const shareHtml = item.shareLink || item.shareText ? renderShare(item.shareLink, item.shareText) : '';
     const reactionsHtml = (item.reactions && item.reactions.length) ? renderReactions(item.reactions) : '';
     const timeHtml = item.time ? `<div class="ce-time">${escapeHtml(item.time)}</div>` : '';
 
@@ -239,8 +257,10 @@ function renderMediaCards(media, mediaPaths) {
 }
 
 function renderShare(link, text) {
-  const label = text ? escapeHtml(text) : escapeHtml(link);
-  return `<div class="ce-share">🔗 <a href="${escapeAttr(link)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
+  const label = escapeHtml(text || link);
+  const href = safeHttpUrl(link);
+  if (!href) return `<div class="ce-share">🔗 <span>${label}</span></div>`;
+  return `<div class="ce-share">🔗 <a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
 }
 
 function renderReactions(reactions) {
@@ -274,6 +294,8 @@ function exportStyles(isIg, isLight) {
         muted: isLight ? '#737373' : '#a8a8a8',
         sentBg: 'linear-gradient(135deg, #405DE6 0%, #833AB4 55%, #C13584 100%)',
         sentText: '#ffffff',
+        sentMuted: 'rgba(255,255,255,0.78)',
+        sentLink: '#ffffff',
         recvBg: isLight ? '#efefef' : '#262626',
         recvText: isLight ? '#262626' : '#f5f5f5',
         accent: '#C13584',
@@ -291,6 +313,8 @@ function exportStyles(isIg, isLight) {
         muted: isLight ? '#667781' : '#8696a0',
         sentBg: isLight ? '#d9fdd3' : '#005c4b',
         sentText: isLight ? '#111b21' : '#e9edef',
+        sentMuted: isLight ? 'rgba(17,27,33,0.62)' : 'rgba(255,255,255,0.7)',
+        sentLink: isLight ? '#027eb5' : '#aef',
         recvBg: isLight ? '#ffffff' : '#202c33',
         recvText: isLight ? '#111b21' : '#e9edef',
         accent: '#00a884',
@@ -345,7 +369,10 @@ a{color:${t.link};}
 .ce-text a{color:${t.textLink};text-decoration:underline;}
 .ce-text{white-space:normal;}
 .ce-time{font-size:10.5px;color:${t.muted};opacity:0.7;text-align:right;margin-top:3px;}
-.ce-row.sent .ce-time{color:rgba(255,255,255,0.7);}
+.ce-row.sent .ce-time{color:${t.sentMuted};opacity:1;}
+.ce-row.sent .ce-media-label,.ce-row.sent .ce-media-name{color:${t.sentMuted};}
+.ce-row.sent a{color:${t.sentLink};}
+.ce-text code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.92em;}
 .ce-media{
   margin-top:6px;padding:9px 11px;
   background:${t.media};border:1px solid ${t.border};border-radius:10px;

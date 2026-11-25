@@ -8,26 +8,30 @@
  * and message helpers are covered by tests/instagram.test.mjs.
  * ============================================================================
  */
-import { countEmojis } from "../shared/emoji.js?v=1.8.6";
-import { baseName, detectMediaType } from "../shared/media-types.js?v=1.8.6";
-import { tailRange } from "../shared/virtual-list.js?v=1.8.6";
-import { fixMojibake } from "./mojibake.js?v=1.8.6";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.6";
-import { IG_MAX_RENDERED, igState } from "./state.js?v=1.8.6";
+import { countEmojis } from "../shared/emoji.js?v=1.8.7";
+import { baseName, detectMediaType } from "../shared/media-types.js?v=1.8.7";
+import { tailRange } from "../shared/virtual-list.js?v=1.8.7";
+import { initialsFor } from "../shared/text.js?v=1.8.7";
+import { fixMojibake } from "./mojibake.js?v=1.8.7";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.8.7";
+import { IG_MAX_RENDERED, igState } from "./state.js?v=1.8.7";
 
 // ── Thread discovery ────────────────────────────────────────────────────────
 
 /**
- * Groups `messages/inbox/<folder>/message_N.json` entries by folder.
+ * Groups `messages/<box>/<folder>/message_N.json` entries by folder. Message
+ * requests and archived chats sit beside the inbox; their folder keeps the box
+ * name ("message_requests/jane_123") so it can't collide with an inbox one.
  * @returns {Array<{ folder: string, files: Object[] }>}
  */
 export function findThreads(entries) {
     const map = new Map();
     entries.forEach((entry) => {
         if (entry.directory) return;
-        const m = entry.filename.match(/messages\/inbox\/([^/]+)\/(message_\d+\.json)$/i);
+        const m = entry.filename.match(/messages\/(inbox|message_requests|archived_threads|filtered_threads)\/([^/]+)\/message_\d+\.json$/i);
         if (!m) return;
-        const folder = m[1];
+        const box = m[1].toLowerCase();
+        const folder = box === "inbox" ? m[2] : `${box}/${m[2]}`;
         if (!map.has(folder)) map.set(folder, { folder, files: [] });
         map.get(folder).files.push(entry);
     });
@@ -46,7 +50,13 @@ export function parseMessageFile(text) {
 
 /** "jane_doe_1234567890" → "jane doe": drops Instagram's numeric suffix. */
 export function folderLabel(folder) {
-    return folder.replace(/_[a-z0-9]{6,}$/i, "").replace(/_/g, " ").trim() || folder;
+    const name = baseName(folder);
+    return name.replace(/_[a-z0-9]{6,}$/i, "").replace(/_/g, " ").trim() || name;
+}
+
+/** Where a conversation lives when it isn't the inbox ("Request", "Archived", …). */
+export function folderBoxLabel(folder) {
+    return { message_requests: "Message request", archived_threads: "Archived", filtered_threads: "Filtered" }[folder.split("/")[0]] || "";
 }
 
 /** message_1.json, message_2.json, … in numeric order. */
@@ -64,13 +74,7 @@ export function sortMessagesChronologically(messages) {
         .map(({ message }) => message);
 }
 
-/** Up to two initials for the avatar circle. */
-export function initialsFor(name) {
-    const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
+export { initialsFor };
 
 // ── Media store ─────────────────────────────────────────────────────────────
 
@@ -88,7 +92,8 @@ export function buildMediaStore(entries) {
         const name = baseName(entry.filename);
         // Instagram photos can be .webp; they must stay images, not stickers.
         const mediaType = detectMediaType(name, { stickers: false });
-        const id = `igm-${index++}-${normalizeKey(entry.filename).slice(-20)}`;
+        // Never the file name: ids go into attributes and selectors unescaped.
+        const id = `igm-${index++}`;
         const media = {
             id,
             name,
@@ -180,7 +185,7 @@ export function parseMessages(rawMessages) {
         });
 
         // Skip truly empty/unsupported messages (no text, media, share, or reactions)
-        if (!content.trim() && !mediaItems.length && !shareLink && !reactions.length) {
+        if (!content.trim() && !mediaItems.length && !shareLink && !shareText && !reactions.length) {
             idx++;
             return;
         }
