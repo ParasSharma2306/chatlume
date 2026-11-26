@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.8.7)
+ * ChatLume HTML Export (v1.9.0)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Exports can be downloaded as a standalone HTML file or as a ZIP
@@ -22,8 +22,8 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.8.7';
-import { loadZip } from './shared/zip.js?v=1.8.7';
+import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.9.0';
+import { loadZip } from './shared/zip.js?v=1.9.0';
 
 export async function exportChatAsHTML({
   filename,
@@ -78,7 +78,8 @@ async function addExportMedia(zip, zipWriter, messages, mediaStore) {
       const media = mediaStore.get(attachment.id);
       if (!media?.entry) continue;
 
-      const filename = safeArchiveFilename(media.name || attachment.name || `attachment-${index + 1}`);
+      // The message's own name first: in Anonymize mode it is the masked one.
+      const filename = safeArchiveFilename(attachment.name || media.name || `attachment-${index + 1}`);
       const archivePath = `attachments/${String(++index).padStart(4, '0')}-${filename}`;
       const mime = media.mime || 'application/octet-stream';
       let blob;

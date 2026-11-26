@@ -7,12 +7,13 @@
  * with html2canvas (loaded on first download, not at boot).
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
-import { SITE_URL, state } from "./state.js?v=1.8.7";
-import { formatDateLabel } from "./format.js?v=1.8.7";
-import { getColor } from "./render.js?v=1.8.7";
-import { showToast } from "./ui.js?v=1.8.7";
+import { $, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.9.0";
+import { SITE_URL, state } from "./state.js?v=1.9.0";
+import { formatDateLabel } from "./format.js?v=1.9.0";
+import { getColor } from "./render.js?v=1.9.0";
+import { showToast } from "./ui.js?v=1.9.0";
+import { display, shownTitle } from "./anonymize.js?v=1.9.0";
 
 const HTML2CANVAS_URL = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 
@@ -58,7 +59,7 @@ export function populateWrappedGraphic() {
     if (!graphic) return;
 
     const total = state.messageOnlyCount;
-    const chatTitle = state.chatTitle || "Chat History";
+    const chatTitle = shownTitle();
 
     // Peak hour
     let peakHour = 0, maxMsgs = 0;
@@ -99,7 +100,7 @@ export function populateWrappedGraphic() {
         const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
         const color = getColor(name);
         barHtml += `<div class="wg-split-segment" style="width: ${pct}%; background-color: ${color};"></div>`;
-        labelsHtml += `<div class="wg-split-label"><span class="wg-split-dot" style="color: ${color}">●</span> <span class="wg-name">${escapeHtml(name)}</span> <span class="wg-pct">${pct}%</span></div>`;
+        labelsHtml += `<div class="wg-split-label"><span class="wg-split-dot" style="color: ${color}">●</span> <span class="wg-name">${escapeHtml(display.name(name))}</span> <span class="wg-pct">${pct}%</span></div>`;
     });
 
     graphic.innerHTML = `
@@ -193,7 +194,7 @@ export async function downloadWrappedGraphic() {
         });
 
         const link = document.createElement("a");
-        const safeTitle = state.chatTitle.replace(/[^\p{L}\p{N}]/gu, "_").replace(/_+/g, "_");
+        const safeTitle = shownTitle().replace(/[^\p{L}\p{N}]/gu, "_").replace(/_+/g, "_");
         link.download = `ChatLume_Wrapped_${safeTitle}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();

@@ -12,7 +12,7 @@
  *   lazyMedia.disconnect();  // before re-rendering or resetting
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.7";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.9.0";
 
 /**
  * @param {Object}   options
@@ -22,8 +22,9 @@ import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.7";
  * @param {Function} [options.onDetached] Called with the media when the element
  *                                        left the DOM before its URL arrived,
  *                                        so the caller can release it again.
+ * @param {Function} [options.nameFor]    media → name shown on the fallback card.
  */
-export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached }) {
+export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached, nameFor = (media) => media.name }) {
     let observer = null;
 
     async function loadElement(element) {
@@ -101,7 +102,7 @@ export function createLazyMediaLoader({ rootId, getMedia, ensureUrl, onDetached 
         card.className = "media-doc";
         card.innerHTML = `
             <div class="media-doc-head"><i class="ph-fill ph-file-x"></i><div>
-                <strong>${escapeHtml(media.name)}</strong><span>Can't be previewed in this browser</span>
+                <strong>${escapeHtml(nameFor(media))}</strong><span>Can't be previewed in this browser</span>
             </div></div>
             <div class="media-doc-actions"><button type="button" class="media-doc-link" data-download-media="${escapeAttribute(media.id)}">Download</button></div>`;
         host.replaceWith(card);

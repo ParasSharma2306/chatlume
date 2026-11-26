@@ -13,14 +13,15 @@
  * the dependency pointing one way (session → persistence).
  * ============================================================================
  */
-import * as storage from "../storage.js?v=1.8.7";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { formatBytes } from "../shared/media-types.js?v=1.8.7";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.7";
-import { STORAGE_KEYS, state } from "./state.js?v=1.8.7";
-import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.8.7";
-import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.8.7";
-import { filterSidebarChats } from "./sidebar-search.js?v=1.8.7";
+import * as storage from "../storage.js?v=1.9.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { formatBytes } from "../shared/media-types.js?v=1.9.0";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.9.0";
+import { STORAGE_KEYS, state } from "./state.js?v=1.9.0";
+import { display, shownTitle } from "./anonymize.js?v=1.9.0";
+import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.9.0";
+import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.9.0";
+import { filterSidebarChats } from "./sidebar-search.js?v=1.9.0";
 
 /**
  * Callbacks supplied by session.js:
@@ -184,7 +185,15 @@ export function renderStoredImports() {
     filterSidebarChats($("sidebar-chat-search")?.value || "");
 }
 
+/**
+ * Saved chats are named after people, so Anonymize mode shows the open one
+ * by its anonymized title and the rest by position.
+ */
 function storedImportTitle(record) {
+    if (display.isOn()) {
+        if (record.id === state.activeImportId && state.messageOnlyCount) return shownTitle();
+        return `Saved chat ${state.storedImports.findIndex((item) => item.id === record.id) + 1}`;
+    }
     return record.chatTitle || record.fileName || "Chat";
 }
 

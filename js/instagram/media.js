@@ -6,16 +6,20 @@
  * read out of the export ZIP. The store itself is built in parser.js.
  * ============================================================================
  */
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.8.7";
-import { createMediaModal } from "../shared/media-modal.js?v=1.8.7";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.9.0";
+import { createMediaModal } from "../shared/media-modal.js?v=1.9.0";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.8.7";
-import { igState } from "./state.js?v=1.8.7";
-import { showToast } from "./ui.js?v=1.8.7";
+} from "../shared/media-urls.js?v=1.9.0";
+import { igState } from "./state.js?v=1.9.0";
+import { showToast } from "./ui.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
+
+/** An attachment's name as shown (and downloaded) — masked in Anonymize mode. */
+const shownMediaName = (media) => display.fileName(media.name);
 
 export const ensureMediaUrl = (media) => ensureUrl(igState, media);
 
@@ -23,7 +27,8 @@ export const lazyMedia = createLazyMediaLoader({
     rootId: "ig-viewport",
     getMedia: (id) => igState.mediaStore.get(id),
     ensureUrl: ensureMediaUrl,
-    onDetached: (media) => releaseMediaUrlIfUnused(igState, media)
+    onDetached: (media) => releaseMediaUrlIfUnused(igState, media),
+    nameFor: shownMediaName
 });
 
 export const mediaModal = createMediaModal({
@@ -32,9 +37,10 @@ export const mediaModal = createMediaModal({
     overlayId: "igmedia",
     getMedia: (id) => igState.mediaStore.get(id),
     ensureUrl: ensureMediaUrl,
-    subtitleFor: (media) => media.name,
+    subtitleFor: shownMediaName,
     documentNoteFor: () => "This file type can't be previewed in the browser.",
-    onClosed: (media) => releaseMediaUrlIfUnused(igState, media)
+    onClosed: (media) => releaseMediaUrlIfUnused(igState, media),
+    nameFor: shownMediaName
 });
 
 export const openMediaModal = mediaModal.open;
@@ -44,7 +50,7 @@ export async function downloadMedia(id) {
     const media = igState.mediaStore.get(id);
     if (!media) return;
     try {
-        await downloadMediaItem(igState, media);
+        await downloadMediaItem(igState, media, shownMediaName(media));
     } catch {
         showToast("Unable to download media", "error");
     }

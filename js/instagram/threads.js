@@ -7,11 +7,12 @@
  * the user taps.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { folderBoxLabel, folderLabel } from "./parser.js?v=1.8.7";
-import { igState } from "./state.js?v=1.8.7";
-import { isMobileLayout, setSidebarState } from "./ui.js?v=1.8.7";
-import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.8.7";
+import { $, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { folderBoxLabel, folderLabel } from "./parser.js?v=1.9.0";
+import { igState } from "./state.js?v=1.9.0";
+import { isMobileLayout, setSidebarState } from "./ui.js?v=1.9.0";
+import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
 
 /**
  * @param {Array}    threads   From parser.findThreads().
@@ -26,8 +27,14 @@ export function showThreadSelector(threads, onSelect) {
     panel.classList.remove("hidden");
 
     // Sort by folder label so a long export is scannable, and remember the
-    // original index — selection indexes into igState.threads.
-    const entries = makeThreadOptions(threads, folderLabel);
+    // original index — selection indexes into igState.threads. Folder names are
+    // people's names, so Anonymize mode lists them by position instead.
+    const sorted = makeThreadOptions(threads, folderLabel);
+    const entries = display.isOn()
+        ? sorted.map((entry, position) => ({ ...entry, label: `Conversation ${position + 1}` }))
+        : sorted;
+    const hint = $("ig-thread-anon-hint");
+    if (hint) hint.hidden = !display.isOn();
 
     const filterInput = $("ig-thread-filter");
     const countEl = $("ig-thread-count");

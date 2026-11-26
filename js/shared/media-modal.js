@@ -11,8 +11,8 @@
  * must expose `activeMediaId` (also read by the blob-URL release logic).
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.8.7";
-import { pushOverlayState } from "./history.js?v=1.8.7";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.9.0";
+import { pushOverlayState } from "./history.js?v=1.9.0";
 
 /**
  * @param {Object}   options
@@ -24,8 +24,10 @@ import { pushOverlayState } from "./history.js?v=1.8.7";
  * @param {Function} options.subtitleFor       media → header text.
  * @param {Function} options.documentNoteFor   media → secondary line on the document card.
  * @param {Function} [options.onClosed]        Called with the media that was open.
+ * @param {Function} [options.nameFor]         media → the name shown and downloaded
+ *                                             (anonymized in Anonymize mode).
  */
-export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, subtitleFor, documentNoteFor, onClosed }) {
+export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, subtitleFor, documentNoteFor, onClosed, nameFor = (media) => media.name }) {
     async function open(mediaId) {
         const media = getMedia(mediaId);
         const modal = $(ids.modal);
@@ -35,6 +37,7 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
 
         if (!modal || !body || !media) return;
 
+        const name = nameFor(media);
         state.activeMediaId = mediaId;
         if (subtitle) subtitle.innerText = subtitleFor(media);
         body.innerHTML = `<div class="media-placeholder" aria-hidden="true"><i class="ph-fill ph-spinner-gap processing-spinner"></i></div>`;
@@ -50,7 +53,7 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
         } catch (error) {
             console.error(error);
             if (state.activeMediaId !== mediaId) return;
-            body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-warning-circle"></i><div><strong>Unable to load media</strong><span>${escapeHtml(media.name)}</span></div></div></div>`;
+            body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-warning-circle"></i><div><strong>Unable to load media</strong><span>${escapeHtml(name)}</span></div></div></div>`;
             return;
         }
         // The user may have closed this and opened something else meanwhile.
@@ -58,11 +61,11 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
 
         if (downloadLink) {
             downloadLink.href = url;
-            downloadLink.download = media.name;
+            downloadLink.download = name;
         }
 
         if (media.kind === "image" || media.kind === "sticker") {
-            body.innerHTML = `<img src="${escapeAttribute(url)}" alt="${escapeAttribute(media.name)}" decoding="async">`;
+            body.innerHTML = `<img src="${escapeAttribute(url)}" alt="${escapeAttribute(name)}" decoding="async">`;
         } else if (media.kind === "video") {
             body.innerHTML = `<video controls autoplay src="${escapeAttribute(url)}"></video>`;
         } else if (media.kind === "audio") {
@@ -73,17 +76,17 @@ export function createMediaModal({ state, ids, overlayId, getMedia, ensureUrl, s
                     <div class="media-doc-head">
                         <i class="ph-fill ph-file"></i>
                         <div>
-                            <strong>${escapeHtml(media.name)}</strong>
+                            <strong>${escapeHtml(name)}</strong>
                             <span>${escapeHtml(documentNoteFor(media))}</span>
                         </div>
                     </div>
-                    <a class="media-doc-link" href="${escapeAttribute(url)}" download="${escapeAttribute(media.name)}">Download file</a>
+                    <a class="media-doc-link" href="${escapeAttribute(url)}" download="${escapeAttribute(name)}">Download file</a>
                 </div>
             `;
         }
         body.querySelector("img, video, audio")?.addEventListener("error", () => {
             if (state.activeMediaId !== mediaId) return;
-            body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-file-x"></i><div><strong>${escapeHtml(media.name)}</strong><span>This browser can't preview this file. Use the download button above.</span></div></div></div>`;
+            body.innerHTML = `<div class="media-missing"><div class="media-missing-head"><i class="ph-fill ph-file-x"></i><div><strong>${escapeHtml(name)}</strong><span>This browser can't preview this file. Use the download button above.</span></div></div></div>`;
         }, { once: true });
     }
 

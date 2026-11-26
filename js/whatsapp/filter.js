@@ -9,9 +9,10 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { tailRange } from "../shared/virtual-list.js?v=1.8.7";
-import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.8.7";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { tailRange } from "../shared/virtual-list.js?v=1.9.0";
+import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).
@@ -120,7 +121,8 @@ export function getSenderFilterSummary(selectedSenders = state.selectedSenders) 
     }
     if (list.length === 1) {
         const sender = list[0];
-        return isMeSender(sender) && sender !== "You" ? `${sender} (You)` : sender;
+        const shown = display.name(sender);
+        return isMeSender(sender) && sender !== "You" ? `${shown} (You)` : shown;
     }
     return `${list.length} participants`;
 }
@@ -157,13 +159,16 @@ export function populateSenderFilter() {
 
     for (const sender of senders) {
         const isMe = isMeSender(sender);
-        const label = isMe && sender !== "You" ? `${sender} (You)` : sender;
+        // In Anonymize mode the checkbox value is the alias too, so no real
+        // name sits in the DOM; toggleSender() maps it back.
+        const shown = display.name(sender);
+        const label = isMe && sender !== "You" ? `${shown} (You)` : shown;
         const count = state.senderStats[sender] || 0;
         const checked = currentSelected.has(sender) ? "checked" : "";
 
         html += `
             <label class="sender-filter-item">
-                <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(sender)}" ${checked}>
+                <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(shown)}" ${checked}>
                 <span class="sender-filter-name" title="${escapeAttribute(label)}">${escapeHtml(label)}</span>
                 <span class="sender-filter-count">${count.toLocaleString()}</span>
             </label>
@@ -277,7 +282,7 @@ export function applySenderFilter(senders, { onRender, onSearch, onToast, silent
             if (cb.value === "") {
                 cb.checked = isAll;
             } else {
-                cb.checked = selectedSet.has(cb.value);
+                cb.checked = selectedSet.has(display.realName(cb.value));
             }
         });
     }
@@ -300,7 +305,7 @@ export function applySenderFilter(senders, { onRender, onSearch, onToast, silent
         if (list.length === 0) {
             onToast("Showing all participants");
         } else if (list.length === 1) {
-            onToast(`Showing messages from ${list[0]}`);
+            onToast(`Showing messages from ${display.name(list[0])}`);
         } else {
             onToast(`Showing messages from ${list.length} participants`);
         }
@@ -321,11 +326,12 @@ export function toggleSender(senderValue, isChecked, options = {}) {
         return;
     }
 
+    const sender = display.realName(senderValue);
     const current = new Set(state.selectedSenders || []);
     if (isChecked) {
-        current.add(senderValue);
+        current.add(sender);
     } else {
-        current.delete(senderValue);
+        current.delete(sender);
     }
 
     applySenderFilter(Array.from(current), options);

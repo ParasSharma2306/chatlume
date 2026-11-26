@@ -1,15 +1,21 @@
-/** Searchable words from one normalized Instagram message. */
-export function searchableMessageText(message) {
-    const mediaNames = (message.mediaItems || []).map((media) => media.name).join(" ");
-    const reactions = (message.reactions || []).map((reaction) => `${reaction.reaction || ""} ${reaction.actor || ""}`).join(" ");
-    return `${message.sender || ""} ${message.text || ""} ${mediaNames} ${message.shareText || ""} ${message.shareLink || ""} ${reactions}`.toLowerCase();
+/** Pure search helpers for the Instagram viewer: what a message matches on, and result stepping. */
+const AS_IS = { name: (value) => value, text: (value) => value, fileName: (value) => value };
+
+/**
+ * Searchable words from one normalized Instagram message, as displayed:
+ * pass the anonymize view so a hidden name can't be found by searching it.
+ */
+export function searchableMessageText(message, display = AS_IS) {
+    const mediaNames = (message.mediaItems || []).map((media) => display.fileName(media.name || "")).join(" ");
+    const reactions = (message.reactions || []).map((reaction) => `${reaction.reaction || ""} ${display.name(reaction.actor || "")}`).join(" ");
+    return `${display.name(message.sender || "")} ${display.text(message.text || "")} ${mediaNames} ${display.text(message.shareText || "")} ${display.text(message.shareLink || "")} ${reactions}`.toLowerCase();
 }
 
-export function findMessageSearchResults(messages, query) {
+export function findMessageSearchResults(messages, query, display = AS_IS) {
     const normalized = String(query || "").trim().toLowerCase();
     if (!normalized) return [];
     return messages
-        .filter((message) => message.type === "msg" && searchableMessageText(message).includes(normalized))
+        .filter((message) => message.type === "msg" && searchableMessageText(message, display).includes(normalized))
         .map((message) => message.id);
 }
 

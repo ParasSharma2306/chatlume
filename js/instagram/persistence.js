@@ -1,12 +1,25 @@
 /** Opt-in local ZIP storage, isolated from WhatsApp records and preferences. */
-import * as storage from "../storage.js?v=1.8.7";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.8.7";
-import { igState } from "./state.js?v=1.8.7";
-import { writeInstagramSettings } from "./settings.js?v=1.8.7";
-import { popOverlayState } from "../shared/history.js?v=1.8.7";
-import { importsOfKind } from "../shared/import-records.js?v=1.8.7";
-import { askConfirm, closeAllDrawers, showToast } from "./ui.js?v=1.8.7";
+import * as storage from "../storage.js?v=1.9.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.9.0";
+import { igState } from "./state.js?v=1.9.0";
+import { writeInstagramSettings } from "./settings.js?v=1.9.0";
+import { popOverlayState } from "../shared/history.js?v=1.9.0";
+import { importsOfKind } from "../shared/import-records.js?v=1.9.0";
+import { askConfirm, closeAllDrawers, showToast } from "./ui.js?v=1.9.0";
+import { display, shownTitle } from "./anonymize.js?v=1.9.0";
+
+/**
+ * Saved exports are named after people, so Anonymize mode shows the open one
+ * by its anonymized title and the rest by position.
+ */
+function storedTitle(record) {
+    if (display.isOn()) {
+        if (record.id === igState.activeImportId && igState.messageOnlyCount) return shownTitle();
+        return `Saved export ${igState.storedImports.findIndex((item) => item.id === record.id) + 1}`;
+    }
+    return record.chatTitle || record.fileName || "Instagram export";
+}
 
 const USED_KEY = "chatlume-instagram-persist-used";
 const LAST_KEY = "chatlume-instagram-last-import";
@@ -47,7 +60,7 @@ export function renderInstagramStoredImports() {
     if (!list) return;
     list.innerHTML = igState.storedImports.length
         ? igState.storedImports.map((record) => {
-            const title = record.chatTitle || record.fileName || "Instagram export";
+            const title = storedTitle(record);
             const meta = `${(record.messageCount || 0).toLocaleString()} messages · ${formatBytes(record.size)}`;
             return `<div class="storage-item">
                 <div class="storage-item-info"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(meta)}</span></div>
@@ -60,7 +73,7 @@ export function renderInstagramStoredImports() {
     if (sidebarList) {
         sidebarList.hidden = !igState.storedImports.length;
         sidebarList.innerHTML = `<div class="stored-list-head"><i class="ph-fill ph-hard-drives"></i> Saved on this device</div>` + igState.storedImports.map((record) => {
-            const title = record.chatTitle || record.fileName || "Instagram export";
+            const title = storedTitle(record);
             return `<div class="stored-item${record.id === igState.activeImportId ? " active" : ""}">
                 <button type="button" class="chat-item" data-ig-stored-open="${escapeAttribute(record.id)}">
                     <div class="chat-item-avatar ig-avatar-gradient" aria-hidden="true">${escapeHtml([...title][0].toUpperCase())}</div>
@@ -204,7 +217,7 @@ export async function deleteInstagramImport(id) {
     const isOpen = igState.activeImportId === id;
     const confirmed = await askConfirm({
         title: "Delete saved export?",
-        body: `"${record.chatTitle || record.fileName}" will be removed from this device.${isOpen ? " It's open right now and will be closed." : ""} Your original export file is not affected.`
+        body: `"${storedTitle(record)}" will be removed from this device.${isOpen ? " It's open right now and will be closed." : ""} Your original export file is not affected.`
     });
     if (!confirmed) return;
     try {

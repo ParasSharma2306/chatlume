@@ -13,18 +13,22 @@
  * NFC/NFD spellings and case never keep a file from being found.
  * ============================================================================
  */
-import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.8.7";
-import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.8.7";
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.8.7";
-import { createMediaModal } from "../shared/media-modal.js?v=1.8.7";
+import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.9.0";
+import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.9.0";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.9.0";
+import { createMediaModal } from "../shared/media-modal.js?v=1.9.0";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.8.7";
-import { state } from "./state.js?v=1.8.7";
-import { showToast } from "./ui.js?v=1.8.7";
+} from "../shared/media-urls.js?v=1.9.0";
+import { state } from "./state.js?v=1.9.0";
+import { showToast } from "./ui.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
+
+/** An attachment's name as shown (and downloaded) — masked in Anonymize mode. */
+const shownMediaName = (media) => display.fileName(media.name);
 
 /** Decodes an attachment (once) and returns its blob URL. */
 export const ensureMediaUrl = (media) => ensureUrl(state, media);
@@ -33,7 +37,8 @@ export const lazyMedia = createLazyMediaLoader({
     rootId: "viewport",
     getMedia: (id) => state.mediaStore.get(id),
     ensureUrl: ensureMediaUrl,
-    onDetached: (media) => releaseMediaUrlIfUnused(state, media)
+    onDetached: (media) => releaseMediaUrlIfUnused(state, media),
+    nameFor: shownMediaName
 });
 
 export const mediaModal = createMediaModal({
@@ -42,9 +47,10 @@ export const mediaModal = createMediaModal({
     overlayId: "media",
     getMedia: (id) => state.mediaStore.get(id),
     ensureUrl: ensureMediaUrl,
-    subtitleFor: (media) => `${labelForMediaKind(media.kind)} • ${media.name}`,
+    subtitleFor: (media) => `${labelForMediaKind(media.kind)} • ${shownMediaName(media)}`,
     documentNoteFor: (media) => `${labelForMediaKind(media.kind)}${media.size ? ` • ${formatBytes(media.size)}` : ""}`,
-    onClosed: (media) => releaseMediaUrlIfUnused(state, media)
+    onClosed: (media) => releaseMediaUrlIfUnused(state, media),
+    nameFor: shownMediaName
 });
 
 export const openMediaModal = mediaModal.open;
@@ -160,7 +166,7 @@ export async function downloadMedia(mediaId) {
     if (!media) return;
 
     try {
-        await downloadMediaItem(state, media);
+        await downloadMediaItem(state, media, shownMediaName(media));
     } catch (error) {
         console.error(error);
         showToast("Unable to download media", "error");

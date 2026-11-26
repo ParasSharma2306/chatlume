@@ -4879,3 +4879,70 @@ body.light-theme .received .meta { color: #667781; }
 .call-card i { font-size: 18px; }
 .btn-secondary[hidden],
 .btn-primary[hidden] { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v1.9 — Anonymize mode
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+    --anon-accent: #b49cff;
+    --anon-bg: rgba(124, 92, 255, 0.16);
+    --anon-border: rgba(150, 122, 255, 0.4);
+}
+body.light-theme {
+    --anon-accent: #5b3fd6;
+    --anon-bg: rgba(124, 92, 255, 0.1);
+    --anon-border: rgba(91, 63, 214, 0.32);
+}
+
+.anonymize-banner {
+    position: relative;
+    z-index: 19;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 6px 12px 6px 16px;
+    background: var(--anon-bg);
+    border-bottom: 1px solid var(--anon-border);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+.anonymize-banner[hidden] { display: none; }
+.anonymize-banner > i { color: var(--anon-accent); font-size: 18px; flex: 0 0 auto; }
+.anonymize-banner p { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.anonymize-banner strong { color: var(--anon-accent); font-weight: 600; }
+.anonymize-banner-detail { color: var(--text-secondary); }
+.anonymize-banner-off {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--anon-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--anon-accent);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.anonymize-banner-off:hover { background: var(--anon-bg); }
+
+/* Toggle items in the header menu show their state with a trailing pill. */
+.menu-item-toggle[aria-pressed="true"] { color: var(--anon-accent); }
+.menu-item-toggle[aria-pressed="true"]::after {
+    content: "On";
+    margin-left: auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--anon-bg);
+    border: 1px solid var(--anon-border);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+@media (max-width: 520px) {
+    .anonymize-banner { padding-left: 12px; gap: 8px; }
+    .anonymize-banner-detail { display: none; }
+}

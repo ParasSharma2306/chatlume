@@ -17,7 +17,7 @@
  *   renderRange / filteredMessages  the virtual window (see virtual-list.js)
  * ============================================================================
  */
-import { loadZip } from "./zip.js?v=1.8.7";
+import { loadZip } from "./zip.js?v=1.9.0";
 
 /** Decodes the entry (once) and returns its blob URL. */
 export async function ensureMediaUrl(state, media) {
@@ -103,12 +103,12 @@ export function clearMediaStore(state) {
     state.mediaLookup.clear();
 }
 
-/** Triggers a browser download of one media item. */
-export async function downloadMediaItem(state, media) {
+/** Triggers a browser download of one media item, saved as `name`. */
+export async function downloadMediaItem(state, media, name = media.name) {
     const url = await ensureMediaUrl(state, media);
     const link = document.createElement("a");
     link.href = url;
-    link.download = media.name;
+    link.download = name;
     link.click();
     // Downloading an off-screen attachment otherwise kept its blob resident
     // for the rest of the session; the render window never claims it back.

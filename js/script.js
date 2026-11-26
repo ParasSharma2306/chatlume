@@ -22,16 +22,16 @@
  * scripts/bump-version.mjs.
  * ============================================================================
  */
-import { $, isVisible } from "./shared/dom.js?v=1.8.7";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.8.7";
-import { overlayOf, popOverlayState } from "./shared/history.js?v=1.8.7";
-import { runSplashLoader } from "./shared/splash.js?v=1.8.7";
-import { createThemeController } from "./shared/theme.js?v=1.8.7";
-import { state } from "./whatsapp/state.js?v=1.8.7";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.8.7";
-import { handleViewportScroll, jumpToBottom } from "./whatsapp/render.js?v=1.8.7";
-import { handleSearch, handleSearchInput, handleSearchKeydown, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.8.7";
-import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.8.7";
+import { $, isVisible } from "./shared/dom.js?v=1.9.0";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.9.0";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.9.0";
+import { runSplashLoader } from "./shared/splash.js?v=1.9.0";
+import { createThemeController } from "./shared/theme.js?v=1.9.0";
+import { state } from "./whatsapp/state.js?v=1.9.0";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.9.0";
+import { handleViewportScroll, jumpToBottom } from "./whatsapp/render.js?v=1.9.0";
+import { handleSearch, handleSearchInput, handleSearchKeydown, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.9.0";
+import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.9.0";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -40,24 +40,26 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.8.7";
+} from "./whatsapp/filter.js?v=1.9.0";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.8.7";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.8.7";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.8.7";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.8.7";
-import { closeActiveChat, initViewer, loadChatFile, setChatOwner } from "./whatsapp/session.js?v=1.8.7";
+} from "./whatsapp/date-jump.js?v=1.9.0";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.9.0";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.9.0";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.9.0";
+import { closeActiveChat, initViewer, loadChatFile, setChatOwner } from "./whatsapp/session.js?v=1.9.0";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.8.7";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.8.7";
+} from "./whatsapp/persistence.js?v=1.9.0";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.9.0";
+import { syncAnonymizeControls } from "./whatsapp/anonymize.js?v=1.9.0";
+import { toggleAnonymize } from "./whatsapp/anonymize-toggle.js?v=1.9.0";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -73,9 +75,9 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.8.7";
+} from "./whatsapp/ui.js?v=1.9.0";
 
-const APP_VERSION = "1.8.7";
+const APP_VERSION = "1.9.0";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -98,6 +100,7 @@ if (visualViewport) {
 document.addEventListener("DOMContentLoaded", async () => {
     loadSavedSettings();
     bindUI();
+    syncAnonymizeControls();
     theme.applySaved();
     syncSettingsControls();
     document.querySelectorAll("[data-app-version]").forEach((el) => { el.textContent = `v${APP_VERSION}`; });
@@ -250,6 +253,8 @@ function bindUI() {
         }
     });
     $("date-jump-action")?.addEventListener("click", handleDateJumpAction);
+    $("anonymize-toggle")?.addEventListener("click", () => toggleAnonymize());
+    $("anonymize-banner-off")?.addEventListener("click", () => toggleAnonymize(false));
     $("scroll-latest")?.addEventListener("click", jumpToBottom);
 
     // Sheets

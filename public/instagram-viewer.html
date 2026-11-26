@@ -29,7 +29,7 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.8.7">
+    <link rel="stylesheet" href="../css/style.css?v=1.9.0">
     <link rel="manifest" href="../manifest.json">
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
-    <script type="module" src="../js/instagram.js?v=1.8.7"></script>
+    <script type="module" src="../js/instagram.js?v=1.9.0"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <style>
         /* ── Instagram accent overrides ── */
@@ -291,7 +291,7 @@
                             <i class="ph ph-question"></i> How to export Instagram DMs
                         </a>
                     </div>
-                    <div class="app-version-label" data-app-version>v1.8.7</div>
+                    <div class="app-version-label" data-app-version>v1.9.0</div>
                 </section>
 
                 <!-- Thread selector -->
@@ -304,6 +304,7 @@
                         <input type="text" id="ig-thread-filter" placeholder="Filter conversations" autocomplete="off" aria-label="Filter conversations">
                     </label>
                     <p class="thread-count" id="ig-thread-count"></p>
+                    <p class="storage-note" id="ig-thread-anon-hint" hidden><i class="ph-fill ph-mask-happy" aria-hidden="true"></i> Conversation names are hidden while Anonymize is on.</p>
                     <div id="ig-thread-list"></div>
                     <div class="thread-empty" id="ig-thread-empty" hidden>
                         <i class="ph-duotone ph-user-list" aria-hidden="true"></i>
@@ -441,7 +442,7 @@
                     <button id="ig-search-toggle" type="button" aria-label="Search messages" aria-controls="ig-search-toolbar" aria-expanded="false" title="Search messages (Ctrl+F or /)"><i class="ph ph-magnifying-glass"></i></button>
                     <div class="menu-container">
                         <button id="ig-menu-toggle" type="button" aria-label="Open chat actions" aria-controls="ig-header-menu" aria-expanded="false"><i class="ph ph-dots-three-vertical"></i></button>
-                        <div class="dropdown-menu" id="ig-header-menu"><button type="button" class="menu-item" id="ig-date-jump-action"><i class="ph ph-calendar-blank"></i> Go to Date</button></div>
+                        <div class="dropdown-menu" id="ig-header-menu"><button type="button" class="menu-item" id="ig-date-jump-action"><i class="ph ph-calendar-blank"></i> Go to Date</button><button type="button" class="menu-item menu-item-toggle" id="ig-anonymize-toggle" aria-pressed="false"><i class="ph ph-mask-happy" aria-hidden="true"></i> Anonymize names</button></div>
                     </div>
                 </div>
             </header>
@@ -458,6 +459,11 @@
                 </div>
             </section>
 
+            <div class="anonymize-banner" id="ig-anonymize-banner" role="status" hidden>
+                <i class="ph-fill ph-mask-happy" aria-hidden="true"></i>
+                <p><strong>Anonymized</strong><span class="anonymize-banner-detail"> · names, numbers and emails hidden. Review before sharing.</span></p>
+                <button type="button" class="anonymize-banner-off" id="ig-anonymize-banner-off">Show names</button>
+            </div>
             <button type="button" class="scroll-latest" id="ig-scroll-latest" hidden aria-label="Jump to the latest message">
                 <i class="ph-bold ph-arrow-down" aria-hidden="true"></i>
             </button>
@@ -562,6 +568,6 @@
 
     
 
-    <script src="../js/site.js?v=1.8.7" defer></script>
+    <script src="../js/site.js?v=1.9.0" defer></script>
 </body>
 </html>

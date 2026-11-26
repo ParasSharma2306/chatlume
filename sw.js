@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chatlume-v1.8.7';
+const CACHE_NAME = 'chatlume-v1.9.0';
 const OFFLINE_FALLBACK = 'index.html';
 // Scripts, modules and styles are addressed with a release token (`?v=`).
 // A page from one release therefore only ever asks for that release's files,
@@ -22,6 +22,8 @@ const ASSETS_TO_CACHE = [
     versioned('css/style.css'),
     versioned('js/export.js'),
     versioned('js/instagram.js'),
+    versioned('js/instagram/anonymize-toggle.js'),
+    versioned('js/instagram/anonymize.js'),
     versioned('js/instagram/date-jump-model.js'),
     versioned('js/instagram/date-jump.js'),
     versioned('js/instagram/file-picker.js'),
@@ -44,6 +46,7 @@ const ASSETS_TO_CACHE = [
     versioned('js/instagram/wrapped.js'),
     versioned('js/script.js'),
     versioned('js/settings.js'),
+    versioned('js/shared/anonymize.js'),
     versioned('js/shared/colors.js'),
     versioned('js/shared/compat.js'),
     versioned('js/shared/confirm-sheet.js'),
@@ -71,6 +74,8 @@ const ASSETS_TO_CACHE = [
     versioned('js/storage.js'),
     versioned('js/support.js'),
     versioned('js/whatsapp-parser.js'),
+    versioned('js/whatsapp/anonymize-toggle.js'),
+    versioned('js/whatsapp/anonymize.js'),
     versioned('js/whatsapp/date-jump.js'),
     versioned('js/whatsapp/file-picker.js'),
     versioned('js/whatsapp/filter.js'),

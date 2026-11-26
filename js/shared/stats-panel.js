@@ -7,15 +7,16 @@
  * the empty-state copy ("chat" vs "conversation") differ.
  * ============================================================================
  */
-import { $, escapeHtml, prefersReducedMotion } from "./dom.js?v=1.8.7";
+import { $, escapeHtml, prefersReducedMotion } from "./dom.js?v=1.9.0";
 
 /**
  * @param {Object} options
  * @param {Object} options.ids     { total, media, list, grid }
  * @param {Object} options.stats   { messageCount, mediaCount, senderStats, emojiStats }
  * @param {string} [options.noun]  "chat" or "conversation" for the empty copy.
+ * @param {Function} [options.nameFor]  Display name for a sender (Anonymize mode).
  */
-export function renderStatsPanel({ ids, stats, noun = "chat" }) {
+export function renderStatsPanel({ ids, stats, noun = "chat", nameFor = (name) => name }) {
     const { messageCount, mediaCount, senderStats, emojiStats } = stats;
 
     const totalEl = $(ids.total);
@@ -37,7 +38,7 @@ export function renderStatsPanel({ ids, stats, noun = "chat" }) {
             return `
                 <div class="stat-row">
                     <div class="stat-header">
-                        <span class="stat-name">${escapeHtml(name)}</span>
+                        <span class="stat-name">${escapeHtml(nameFor(name))}</span>
                         <span class="stat-pct">${pct}% (${count})</span>
                     </div>
                     <div class="progress-bg">

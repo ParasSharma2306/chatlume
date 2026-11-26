@@ -7,25 +7,26 @@
  * second pick mid-way can't interleave with the first.
  * ============================================================================
  */
-import { exportChatAsHTML } from "../export.js?v=1.8.7";
-import { resetDropTarget } from "./file-picker.js?v=1.8.7";
-import { showSponsorPrompt } from "../support.js?v=1.8.7";
-import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.7";
-import { clearMediaStore } from "../shared/media-urls.js?v=1.8.7";
-import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.8.7";
-import { loadZip } from "../shared/zip.js?v=1.8.7";
-import { fixMojibake } from "./mojibake.js?v=1.8.7";
-import { tailRange } from "../shared/virtual-list.js?v=1.8.7";
-import { IG_MAX_RENDERED, igState } from "./state.js?v=1.8.7";
-import { cleanupZip, lazyMedia } from "./media.js?v=1.8.7";
-import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.8.7";
-import { collectExportMessages, renderChatList, scrollToBottom, syncScrollLatest } from "./render.js?v=1.8.7";
-import { isSearchOpen, toggleSearch } from "./search.js?v=1.8.7";
-import { showThreadSelector, syncBackButtons } from "./threads.js?v=1.8.7";
-import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.8.7";
-import { countBySender, filterMessagesBySender, getInstagramSenderSummary, getInstagramSenders } from "./filter.js?v=1.8.7";
-import { initialThreadSelection } from "./threads-model.js?v=1.8.7";
+import { exportChatAsHTML } from "../export.js?v=1.9.0";
+import { resetDropTarget } from "./file-picker.js?v=1.9.0";
+import { showSponsorPrompt } from "../support.js?v=1.9.0";
+import { $, q, replayClass, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.9.0";
+import { clearMediaStore } from "../shared/media-urls.js?v=1.9.0";
+import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.9.0";
+import { loadZip } from "../shared/zip.js?v=1.9.0";
+import { fixMojibake } from "./mojibake.js?v=1.9.0";
+import { tailRange } from "../shared/virtual-list.js?v=1.9.0";
+import { IG_MAX_RENDERED, igState } from "./state.js?v=1.9.0";
+import { cleanupZip, lazyMedia } from "./media.js?v=1.9.0";
+import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.9.0";
+import { collectExportMessages, renderChatList, scrollToBottom, syncScrollLatest } from "./render.js?v=1.9.0";
+import { isSearchOpen, toggleSearch } from "./search.js?v=1.9.0";
+import { showThreadSelector, syncBackButtons } from "./threads.js?v=1.9.0";
+import { persistInstagramImport, markInstagramImportOpened } from "./persistence.js?v=1.9.0";
+import { countBySender, filterMessagesBySender, getInstagramSenderSummary, getInstagramSenders } from "./filter.js?v=1.9.0";
+import { initialThreadSelection } from "./threads-model.js?v=1.9.0";
+import { display, shownTitle, syncAnonymizeControls } from "./anonymize.js?v=1.9.0";
 import {
     closeMenu,
     generateStats,
@@ -37,7 +38,7 @@ import {
     showErrorState,
     showToast,
     yieldToPaint
-} from "./ui.js?v=1.8.7";
+} from "./ui.js?v=1.9.0";
 
 /** "Load DMs" button: validates the picked file, then scans the ZIP. */
 export async function initViewer({ file: fileOverride = null, record = null } = {}) {
@@ -112,6 +113,7 @@ function resetThreadState() {
     if (isSearchOpen()) toggleSearch();
     igState.messages = [];
     igState.filteredMessages = [];
+    igState.participants = [];
     igState.selectedSenders = [];
     igState.messageOnlyCount = 0;
     igState.colorMap = Object.create(null);
@@ -190,6 +192,7 @@ export async function loadThread(thread) {
         igState.myName = inThread(igState.restoreOwner) || inThread(nameInput) || inferOwner(participants, threadTitle) || participants[participants.length - 1] || nameInput || "";
         igState.restoreOwner = "";
         igState.chatTitle = threadTitle;
+        igState.participants = participants;
 
         // Build media store from all non-JSON files in the ZIP
         buildMediaStore(igState.zipEntries);
@@ -211,7 +214,7 @@ export async function loadThread(thread) {
         igState.selectedFile = null;
         if ($("ig-file-input")) $("ig-file-input").value = "";
         resetDropTarget();
-        updateUI(threadTitle, participants);
+        updateUI();
         populateInstagramSenderFilter();
         renderChatList();
         scrollToBottom();
@@ -241,19 +244,21 @@ function populateInstagramSenderFilter() {
     const counts = countBySender(igState.messages);
     const selected = new Set(igState.selectedSenders);
     const mine = igState.myName.toLowerCase();
+    // In Anonymize mode the value is the alias too, so no real name is in the
+    // DOM; applySenderSelection() maps it back.
     list.innerHTML = getInstagramSenders(igState.messages).map((sender, index) => `
         <label class="sender-filter-item">
-            <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(sender)}" id="ig-sender-${index}"${selected.has(sender) ? " checked" : ""}>
-            <span class="sender-filter-name">${escapeHtml(sender)}${sender.toLowerCase() === mine ? " (You)" : ""}</span>
+            <input type="checkbox" class="sender-filter-checkbox" value="${escapeAttribute(display.name(sender))}" id="ig-sender-${index}"${selected.has(sender) ? " checked" : ""}>
+            <span class="sender-filter-name">${escapeHtml(display.name(sender))}${sender.toLowerCase() === mine ? " (You)" : ""}</span>
             <span class="sender-filter-count">${counts.get(sender).toLocaleString()}</span>
         </label>
     `).join("");
     syncFilterSummary();
 }
 
-/** Applies a sender selection to the list and everything that describes it. */
+/** Applies a sender selection (checkbox values: aliases in Anonymize mode). */
 export function applySenderSelection(senders) {
-    igState.selectedSenders = senders;
+    igState.selectedSenders = senders.map((value) => display.realName(value));
     igState.filteredMessages = filterMessagesBySender(igState.messages, senders);
     igState.renderRange = tailRange(igState.filteredMessages.length, IG_MAX_RENDERED);
     syncFilterSummary();
@@ -263,7 +268,7 @@ const visibleMessageCount = () => igState.filteredMessages.reduce((sum, item) =>
 
 function syncFilterSummary() {
     const count = igState.selectedSenders.length;
-    const summary = getInstagramSenderSummary(igState.selectedSenders);
+    const summary = getInstagramSenderSummary(igState.selectedSenders.map(display.name));
     $("ig-sender-filter-container")?.classList.toggle("has-filter", count > 0);
     if ($("ig-sender-filter-summary")) $("ig-sender-filter-summary").textContent = summary;
     const badge = $("ig-sender-filter-badge");
@@ -275,9 +280,10 @@ function syncFilterSummary() {
     if ($("ig-header-meta")) $("ig-header-meta").innerText = `${count ? `${visibleMessageCount().toLocaleString()} of ${total}` : total} messages${media}`;
 }
 
-/** "You in this chat" in Settings. */
-export function setThreadOwner(name) {
+/** "You in this chat" in Settings. `value` is the select's value (an alias in Anonymize mode). */
+export function setThreadOwner(value) {
     if (!igState.messageOnlyCount) return;
+    const name = value ? display.realName(value) : "";
     igState.myName = name;
     igState.messages.forEach((item) => {
         if (item.type === "msg") item.isMe = Boolean(name) && item.sender.toLowerCase() === name.toLowerCase();
@@ -285,7 +291,7 @@ export function setThreadOwner(name) {
     populateInstagramSenderFilter();
     renderChatList();
     if (igState.activeImportId) void markInstagramImportOpened(igState.currentThread).catch(() => {});
-    showToast(name ? `Showing ${name}'s messages as yours` : "No participant is marked as you");
+    showToast(name ? `Showing ${display.name(name)}'s messages as yours` : "No participant is marked as you");
 }
 
 /** Header, sidebar and menu as they are with no conversation open. */
@@ -296,6 +302,7 @@ function resetChatChrome() {
     if ($("ig-header-meta")) $("ig-header-meta").innerText = "ChatLume";
     document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = true; });
     renderIdentitySelect($("ig-identity-row"), $("ig-setting-identity"), [], "");
+    syncAnonymizeControls();
     $("ig-chat-list-panel")?.classList.add("hidden");
     if (!igState.threads.length) $("ig-upload-panel")?.classList.remove("hidden");
     syncBackButtons();
@@ -315,7 +322,7 @@ export function closeActiveThread() {
 }
 
 /** Puts the loaded thread's title and counts into the sidebar and header. */
-function updateUI(title, participants) {
+function updateUI() {
     $("ig-upload-panel")?.classList.add("hidden");
     $("ig-thread-panel")?.classList.add("hidden");
     $("ig-chat-list-panel")?.classList.remove("hidden");
@@ -326,19 +333,32 @@ function updateUI(title, participants) {
     // rather than each message.
     replayClass([$("ig-viewport"), q(".chat-header .header-profile")], "chat-revealed");
 
+    ensureExportButton();
+    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = false; });
+    refreshThreadChrome();
+    syncBackButtons();
+}
+
+/**
+ * Title, avatar initials, participant line and identity select, written
+ * through `display`. Called on load and whenever Anonymize is switched.
+ */
+export function refreshThreadChrome() {
+    syncAnonymizeControls();
+    if (!igState.messageOnlyCount) return;
+    const title = shownTitle();
     const avatar = q(".chat-item-avatar", $("ig-chat-list-item"));
     if (avatar) avatar.textContent = initialsFor(title);
     if ($("ig-sidebar-title")) $("ig-sidebar-title").innerText = title;
     if ($("ig-header-name")) $("ig-header-name").innerText = title;
     if ($("ig-sidebar-sub")) $("ig-sidebar-sub").innerText = igState.mediaMissingCount
         ? `${igState.mediaMissingCount} missing attachment${igState.mediaMissingCount === 1 ? "" : "s"}`
-        : participants.join(", ") || "Direct Message";
-
-    ensureExportButton();
-    document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = false; });
-    renderIdentitySelect($("ig-identity-row"), $("ig-setting-identity"), getInstagramSenders(igState.messages), igState.myName);
-    syncBackButtons();
+        : igState.participants.map(display.name).join(", ") || "Direct Message";
+    renderIdentitySelect($("ig-identity-row"), $("ig-setting-identity"), getInstagramSenders(igState.messages), igState.myName, display.name);
+    syncFilterSummary();
 }
+
+export { populateInstagramSenderFilter };
 
 /** Adds the two HTML export choices to the header menu. */
 function ensureExportButton() {
@@ -362,7 +382,7 @@ function ensureExportButton() {
                     colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
                     includeAttachments,
                     mediaStore: igState.mediaStore,
-                    title: `${igState.chatTitle || "Instagram DMs"}${igState.selectedSenders.length ? ` (${getInstagramSenderSummary(igState.selectedSenders)})` : ""}`,
+                    title: `${shownTitle()}${igState.selectedSenders.length ? ` (${getInstagramSenderSummary(igState.selectedSenders.map(display.name))})` : ""}`,
                     messageCount: visibleMessageCount(),
                     messages: collectExportMessages()
                 });

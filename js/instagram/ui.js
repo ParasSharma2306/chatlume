@@ -7,12 +7,13 @@
  * messages.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.8.7";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
-import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.8.7";
-import { createToast } from "../shared/toast.js?v=1.8.7";
-import { igState } from "./state.js?v=1.8.7";
+import { $, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.9.0";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.9.0";
+import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.9.0";
+import { createToast } from "../shared/toast.js?v=1.9.0";
+import { igState } from "./state.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
 
 export const showToast = createToast("ig-toast");
 
@@ -128,7 +129,8 @@ export function generateStats() {
             senderStats: igState.senderStats,
             emojiStats: igState.emojiStats
         },
-        noun: "conversation"
+        noun: "conversation",
+        nameFor: display.name
     });
 }
 

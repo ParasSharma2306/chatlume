@@ -1,11 +1,12 @@
 /** Presents Instagram conversation statistics and exports a local image. */
-import { $, escapeHtml } from "../shared/dom.js?v=1.8.7";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.8.7";
-import { formatDateLabel } from "./format.js?v=1.8.7";
-import { getColor } from "./render.js?v=1.8.7";
-import { igState } from "./state.js?v=1.8.7";
-import { showToast } from "./ui.js?v=1.8.7";
-import { summarizeInstagramThread } from "./wrapped-model.js?v=1.8.7";
+import { $, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.9.0";
+import { formatDateLabel } from "./format.js?v=1.9.0";
+import { getColor } from "./render.js?v=1.9.0";
+import { igState } from "./state.js?v=1.9.0";
+import { showToast } from "./ui.js?v=1.9.0";
+import { summarizeInstagramThread } from "./wrapped-model.js?v=1.9.0";
+import { display, shownTitle } from "./anonymize.js?v=1.9.0";
 
 const HTML2CANVAS_URL = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
 
@@ -46,9 +47,9 @@ export function renderInstagramWrapped() {
     for (const [name, count] of summary.topSenders) {
         const pct = summary.messageCount ? ((count / summary.messageCount) * 100).toFixed(1) : "0.0";
         barHtml += `<div class="wg-split-segment" style="width:${pct}%;background:${getColor(name)}"></div>`;
-        labelsHtml += `<div class="wg-split-label"><span class="wg-split-dot" style="color:${getColor(name)}">●</span> <span class="wg-name">${escapeHtml(name)}</span> <span class="wg-pct">${pct}%</span></div>`;
+        labelsHtml += `<div class="wg-split-label"><span class="wg-split-dot" style="color:${getColor(name)}">●</span> <span class="wg-name">${escapeHtml(display.name(name))}</span> <span class="wg-pct">${pct}%</span></div>`;
     }
-    graphic.innerHTML = `<div class="wg-header"><div class="wg-brand-tag">ChatLume Wrapped · Instagram</div><h2>${escapeHtml(igState.chatTitle)}</h2><p>${escapeHtml(dateRange)}</p></div>
+    graphic.innerHTML = `<div class="wg-header"><div class="wg-brand-tag">ChatLume Wrapped · Instagram</div><h2>${escapeHtml(shownTitle())}</h2><p>${escapeHtml(dateRange)}</p></div>
         <div class="wg-divider"></div><div class="wg-stats-grid">
         <div class="wg-stat-card"><span>Messages</span><h3>${summary.messageCount.toLocaleString()}</h3></div>
         <div class="wg-stat-card"><span>Words</span><h3>${summary.totalWords.toLocaleString()}</h3></div>
@@ -71,7 +72,7 @@ export async function downloadInstagramWrapped() {
         await Promise.all([...graphic.querySelectorAll("img")].map((img) => img.complete || img.decode().catch(() => {})));
         const canvas = await html2canvas(graphic, { backgroundColor: "#000", scale: 2, useCORS: true, logging: false });
         const link = document.createElement("a");
-        link.download = `ChatLume_Instagram_Wrapped_${igState.chatTitle.replace(/[^\p{L}\p{N}]/gu, "_")}.png`;
+        link.download = `ChatLume_Instagram_Wrapped_${shownTitle().replace(/[^\p{L}\p{N}]/gu, "_")}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
         showToast("Instagram Wrapped downloaded");

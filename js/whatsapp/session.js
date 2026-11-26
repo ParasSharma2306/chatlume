@@ -8,28 +8,29 @@
  * the empty viewer.
  * ============================================================================
  */
-import { exportChatAsHTML } from "../export.js?v=1.8.7";
-import { showSponsorPrompt } from "../support.js?v=1.8.7";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.8.7";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.8.7";
-import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.8.7";
-import { initialsFor } from "../shared/text.js?v=1.8.7";
-import { loadZip } from "../shared/zip.js?v=1.8.7";
-import { baseName } from "../shared/media-types.js?v=1.8.7";
-import { clearSelectedFile } from "./file-picker.js?v=1.8.7";
-import { ISSUES_URL, state } from "./state.js?v=1.8.7";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.8.7";
-import { isMeSender, parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.8.7";
-import { getChatSenders, populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.8.7";
+import { exportChatAsHTML } from "../export.js?v=1.9.0";
+import { showSponsorPrompt } from "../support.js?v=1.9.0";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.9.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.9.0";
+import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.9.0";
+import { initialsFor } from "../shared/text.js?v=1.9.0";
+import { loadZip } from "../shared/zip.js?v=1.9.0";
+import { baseName } from "../shared/media-types.js?v=1.9.0";
+import { clearSelectedFile } from "./file-picker.js?v=1.9.0";
+import { ISSUES_URL, state } from "./state.js?v=1.9.0";
+import { display, shownTitle, syncAnonymizeControls } from "./anonymize.js?v=1.9.0";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.9.0";
+import { isMeSender, parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.9.0";
+import { getChatSenders, populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.9.0";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.8.7";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.8.7";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.8.7";
-import { generateStats } from "./stats.js?v=1.8.7";
+} from "./persistence.js?v=1.9.0";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.9.0";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.9.0";
+import { generateStats } from "./stats.js?v=1.9.0";
 import {
     closeMenu,
     isMobileLayout,
@@ -41,7 +42,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.8.7";
+} from "./ui.js?v=1.9.0";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
@@ -292,15 +293,21 @@ function applyOwner(name) {
     });
 }
 
-/** "You in this chat" in Settings. */
-export function setChatOwner(name) {
+/** "You in this chat" in Settings. `name` is the select's value (an alias in Anonymize mode). */
+export function setChatOwner(value) {
     if (!state.messageOnlyCount) return;
+    const name = value ? display.realName(value) : "";
     applyOwner(name);
     populateSenderFilter();
-    if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
+    refreshProfileName();
     renderChatList();
     if (state.activeImportId) markStoredImportOpened(state.activeImportId);
-    showToast(name ? `Showing ${name}'s messages as yours` : "No participant is marked as you");
+    showToast(name ? `Showing ${display.name(name)}'s messages as yours` : "No participant is marked as you");
+}
+
+/** In Anonymize mode the profile just says "You": it is the reader's own view. */
+function refreshProfileName() {
+    if ($("profile-display-name")) $("profile-display-name").innerText = display.isOn() ? "You" : (state.myName || "You");
 }
 
 /** Puts the loaded chat's name and counts into the sidebar and header. */
@@ -311,22 +318,33 @@ function updateUIState() {
     // A freshly picked file replaces whichever stored chat was highlighted.
     renderStoredImports();
 
-    const avatar = document.querySelector("#chat-list-item .chat-item-avatar");
-    if (avatar) avatar.textContent = initialsFor(state.chatTitle);
     document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = false; });
-    renderIdentitySelect($("identity-row"), $("setting-identity"), getChatSenders(), state.myName);
     const withMedia = state.mediaCount ? ` • ${state.mediaCount.toLocaleString()} media` : "";
-
-    if ($("sidebar-title")) $("sidebar-title").innerText = state.chatTitle;
-    if ($("header-name")) $("header-name").innerText = state.chatTitle;
     if ($("header-meta")) $("header-meta").innerText = `${state.messageOnlyCount.toLocaleString()} messages${withMedia}`;
     if ($("sidebar-sub")) $("sidebar-sub").innerText = state.mediaMissingCount
         ? `${state.mediaMissingCount} missing attachment${state.mediaMissingCount === 1 ? "" : "s"}`
         : `${state.messageOnlyCount.toLocaleString()} messages`;
-    if ($("profile-display-name")) $("profile-display-name").innerText = state.myName || "You";
 
     ensureExportButton();
+    refreshChatChrome();
     populateSenderFilter();
+}
+
+/**
+ * Every name-bearing piece of chrome — title, avatar initials, identity
+ * select, profile — rewritten from `state` through `display`. Called on load
+ * and whenever Anonymize is switched.
+ */
+export function refreshChatChrome() {
+    syncAnonymizeControls();
+    if (!state.messageOnlyCount) return;
+    const title = shownTitle();
+    const avatar = document.querySelector("#chat-list-item .chat-item-avatar");
+    if (avatar) avatar.textContent = initialsFor(title);
+    if ($("sidebar-title")) $("sidebar-title").innerText = title;
+    if ($("header-name")) $("header-name").innerText = title;
+    renderIdentitySelect($("identity-row"), $("setting-identity"), getChatSenders(), state.myName, display.name);
+    refreshProfileName();
 }
 
 /** Adds the two HTML export choices to the header menu. */
@@ -349,7 +367,7 @@ function ensureExportButton() {
                 const exportedCount = exportedMessages.filter((m) => m.type === "msg").length;
                 const isFiltered = Boolean(state.selectedSenders && state.selectedSenders.length > 0);
                 const filterSuffix = isFiltered
-                    ? ` (${state.selectedSenders.length === 1 ? state.selectedSenders[0] : `${state.selectedSenders.length} participants`})`
+                    ? ` (${state.selectedSenders.length === 1 ? display.name(state.selectedSenders[0]) : `${state.selectedSenders.length} participants`})`
                     : "";
                 if (includeAttachments) showToast("Preparing chat and attachments…");
                 const result = await exportChatAsHTML({
@@ -357,7 +375,7 @@ function ensureExportButton() {
                     colorScheme: document.body.classList.contains("light-theme") ? "light" : "dark",
                     includeAttachments,
                     mediaStore: state.mediaStore,
-                    title: `${state.chatTitle || "WhatsApp Chat"}${filterSuffix}`,
+                    title: `${state.chatTitle ? shownTitle() : "WhatsApp Chat"}${filterSuffix}`,
                     messageCount: exportedCount,
                     messages: exportedMessages
                 });
@@ -408,6 +426,7 @@ function resetChatChrome() {
     if ($("sidebar-sub")) $("sidebar-sub").innerText = "Active now";
     // updateUIState() shows these again on the next load.
     document.querySelectorAll("[data-export-btn]").forEach((button) => { button.hidden = true; });
+    syncAnonymizeControls();
     generateStats();
     setUploadPanelVisible(true);
 }

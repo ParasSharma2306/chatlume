@@ -8,16 +8,20 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.8.7";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.8.7";
-import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.8.7";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.9.0";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.9.0";
+import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.9.0";
+import { display } from "./anonymize.js?v=1.9.0";
 
-/** The text a message is matched against. */
+/**
+ * The text a message is matched against — what is on screen, so in Anonymize
+ * mode "Person A" finds Person A and a hidden name can't be probed for.
+ */
 function getSearchableText(entry) {
     // Defensive: one message without mediaItems would otherwise throw and take
     // down search for the whole chat.
-    const mediaNames = (entry.mediaItems || []).map((item) => item.name).join(" ");
-    return `${entry.sender || ""} ${entry.text || ""} ${mediaNames}`.toLowerCase();
+    const mediaNames = (entry.mediaItems || []).map((item) => display.fileName(item.name)).join(" ");
+    return `${display.name(entry.sender || "")} ${display.text(entry.text || "")} ${mediaNames}`.toLowerCase();
 }
 
 /** Opens or closes the search toolbar; closing clears the query and results. */
