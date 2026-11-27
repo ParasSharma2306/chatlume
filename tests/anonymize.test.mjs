@@ -342,7 +342,7 @@ describe("anonymize: Instagram export leaks nothing, reactions included", () => 
 
     test("reaction emojis and actors are mojibake-repaired by the parser", () => {
         const first = messages.find((item) => item.type === "msg");
-        assert.deepEqual(first.reactions, [{ reaction: "❤", actor: "Bob Jones" }, { reaction: "😂", actor: "Carol Dave" }]);
+        assert.deepEqual(first.reactions.map(({ reaction, actor }) => ({ reaction, actor })), [{ reaction: "❤", actor: "Bob Jones" }, { reaction: "😂", actor: "Carol Dave" }]);
         assert.equal(first.sender, "Alice Smith");
         assert.equal(first.text, "Hi Bob ❤️ alice@example.com");
     });

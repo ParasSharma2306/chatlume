@@ -11,7 +11,8 @@
 import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
 import { colorForName } from "../shared/colors.js?v=1.10.0";
 import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.10.0";
-import { toEmojiPresentation } from "../shared/emoji.js?v=1.10.0";
+import { describeReactionGroup, groupReactions } from "../shared/reactions.js?v=1.10.0";
+import { closeReactionPopover } from "./reactions.js?v=1.10.0";
 import { buildMaskedRichText, buildRichText, highlightOutsideTags, maskTextForSharing, maskUrlLabel, safeHttpUrl } from "../shared/text.js?v=1.10.0";
 import {
     clampRenderRange,
@@ -39,6 +40,8 @@ export function renderChatList() {
     if (!list) return;
 
     clampRenderRange(igState, IG_MAX_RENDERED);
+    // Its pill is about to be replaced.
+    closeReactionPopover();
     lazyMedia.disconnect();
     releaseOffscreenMediaUrls(igState);
 
@@ -93,15 +96,14 @@ function renderMessageRow(item, isFirst) {
         shareHtml = renderShare(item);
     }
 
-    const reactionsHtml = item.reactions.length ? renderReactions(item.reactions) : "";
+    const reactionsHtml = item.reactions.length ? renderReactions(item) : "";
 
     return `
-      <article class="${rowClass}" id="${item.id}">
+      <article class="${rowClass}${reactionsHtml ? " has-reactions" : ""}" id="${item.id}">
         <div class="bubble">
           ${senderHtml}${textHtml}${mediaHtml}${shareHtml}
-          ${reactionsHtml}
           <div class="meta"><span>${escapeHtml(formatMessageTime(item.ts, igState.settings))}</span></div>
-        </div>
+        </div>${reactionsHtml}
       </article>`;
 }
 
@@ -207,17 +209,27 @@ function renderMediaItem(item) {
     return `<div class="media-doc"><div class="media-doc-head"><i class="ph-fill ph-file"></i><div><strong>${escapeHtml(name)}</strong></div></div><div class="media-doc-actions"><button type="button" class="media-doc-link" data-open-media="${item.id}">Preview</button><button type="button" class="media-doc-link" data-download-media="${item.id}">Download</button></div></div>`;
 }
 
-/** Groups reactions by emoji; hovering a pill lists who reacted. */
-function renderReactions(reactions) {
-    const grouped = {};
-    reactions.forEach((r) => {
-        if (!grouped[r.reaction]) grouped[r.reaction] = [];
-        grouped[r.reaction].push(display.name(r.actor));
-    });
-    const pills = Object.entries(grouped).map(([emoji, actors]) =>
-        `<span class="ig-reaction" title="${escapeAttribute(actors.join(", "))}">${escapeHtml(toEmojiPresentation(emoji))}${actors.length > 1 ? ` <small>${actors.length}</small>` : ""}</span>`
-    ).join("");
-    return `<div class="ig-reactions">${pills}</div>`;
+/** Pills shown before the rest fold into a "+N" pill. */
+export const MAX_REACTION_PILLS = 5;
+
+/**
+ * The pill row under a bubble: one button per emoji (❤ and ❤️ are one),
+ * most-used first, with a count. Tapping one lists who reacted (see
+ * reactions.js). A message with many different reactions shows the first few
+ * and a "+N" pill that lists them all. Names go through Anonymize.
+ */
+function renderReactions(item) {
+    const groups = groupReactions(item.reactions, display.name);
+    if (!groups.length) return "";
+    const folded = groups.length > MAX_REACTION_PILLS + 1;
+    const visible = folded ? groups.slice(0, MAX_REACTION_PILLS) : groups;
+    const pills = visible.map((group, index) => `<button type="button" class="ig-reaction" data-reaction-group="${index}" aria-haspopup="dialog" aria-expanded="false" aria-label="${escapeAttribute(describeReactionGroup(group))}"><span class="ig-reaction-emoji" aria-hidden="true">${escapeHtml(group.emoji)}</span>${group.count > 1 ? `<small aria-hidden="true">${group.count}</small>` : ""}</button>`).join("");
+    const rest = folded ? groups.slice(MAX_REACTION_PILLS) : [];
+    const more = rest.length
+        ? `<button type="button" class="ig-reaction ig-reaction-more" data-reaction-group="all" aria-haspopup="dialog" aria-expanded="false" aria-label="${escapeAttribute(`${rest.length} more kinds of reaction; show everyone who reacted`)}">+${rest.length}</button>`
+        : "";
+    const total = groups.reduce((sum, group) => sum + group.count, 0);
+    return `<div class="ig-reactions" role="group" aria-label="${total} ${total === 1 ? "reaction" : "reactions"}" data-reactions-for="${item.id}">${pills}${more}</div>`;
 }
 
 // ── Export ──────────────────────────────────────────────────────────────────
@@ -244,7 +256,10 @@ export function collectExportMessages() {
             text: exportText(item.text),
             media: (item.mediaItems || []).map((m) => ({ id: m.id, kind: m.kind, name: display.fileName(m.name) })),
             ...(({ link, text }) => ({ shareLink: link, shareText: text }))(shownShare(item)),
-            reactions: (item.reactions || []).map((reaction) => ({ reaction: reaction.reaction, actor: display.name(reaction.actor) }))
+            // Already one per person and keyed (see shared/reactions.js); the
+            // export groups them the same way. Names are masked here, so the
+            // file never sees a real one.
+            reactions: (item.reactions || []).map((reaction) => ({ reaction: reaction.reaction, actor: reaction.actor ? display.name(reaction.actor) : "" }))
         };
     });
 }

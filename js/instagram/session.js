@@ -20,6 +20,7 @@ import { tailRange } from "../shared/virtual-list.js?v=1.10.0";
 import { IG_MAX_RENDERED, igState } from "./state.js?v=1.10.0";
 import { cleanupZip, lazyMedia } from "./media.js?v=1.10.0";
 import { gallery } from "./gallery.js?v=1.10.0";
+import { closeReactionPopover } from "./reactions.js?v=1.10.0";
 import { buildMediaStore, findThreads, folderLabel, initialsFor, parseMessageFile, parseMessages, sortMessageFiles, sortMessagesChronologically } from "./parser.js?v=1.10.0";
 import { collectExportMessages, renderChatList, scrollToBottom, syncScrollLatest } from "./render.js?v=1.10.0";
 import { isSearchOpen, toggleSearch } from "./search.js?v=1.10.0";
@@ -131,6 +132,7 @@ function resetThreadState() {
     igState.activeMediaId = "";
     igState.flashMessageId = "";
     gallery.reset();
+    closeReactionPopover();
     $("ig-sender-filter-list")?.replaceChildren();
     $("ig-sender-filter-container")?.setAttribute("hidden", "");
     igState.renderRange = { start: 0, end: 0 };

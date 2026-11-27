@@ -22,6 +22,7 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
+import { describeReactionGroup, groupReactions } from './shared/reactions.js?v=1.10.0';
 import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.10.0';
 import { loadZip } from './shared/zip.js?v=1.10.0';
 
@@ -264,17 +265,21 @@ function renderShare(link, text) {
   return `<div class="ce-share">🔗 <a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${label}</a></div>`;
 }
 
+// Reaction pills under the bubble, grouped like the viewer (❤ and ❤️ are
+// one). The pills are the <summary> of a <details>, so tapping or pressing
+// Enter on them lists who reacted — no script needed in the exported file.
+// Actor names arrive already masked when Anonymize is on.
 function renderReactions(reactions) {
-  const grouped = {};
-  reactions.forEach((r) => {
-    const emoji = r.reaction || '';
-    if (!emoji) return;
-    grouped[emoji] = (grouped[emoji] || 0) + 1;
-  });
-  const pills = Object.entries(grouped)
-    .map(([emoji, count]) => `<span class="ce-react">${escapeHtml(emoji)}${count > 1 ? ` ${count}` : ''}</span>`)
+  const groups = groupReactions(reactions);
+  if (!groups.length) return '';
+  const total = groups.reduce((sum, group) => sum + group.count, 0);
+  const pills = groups
+    .map((group) => `<span class="ce-react" title="${escapeAttr(describeReactionGroup(group))}">${escapeHtml(group.emoji)}${group.count > 1 ? ` <small>${group.count}</small>` : ''}</span>`)
     .join('');
-  return pills ? `<div class="ce-reactions">${pills}</div>` : '';
+  const who = groups
+    .map((group) => `<li><span class="ce-react-emoji">${escapeHtml(group.emoji)}</span> ${group.actors.map((actor) => `<bdi>${escapeHtml(actor)}</bdi>`).join(', ')}</li>`)
+    .join('');
+  return `<details class="ce-reactions"><summary aria-label="${escapeAttr(`${total} ${total === 1 ? 'reaction' : 'reactions'} — show who reacted`)}">${pills}</summary><ul class="ce-reactors">${who}</ul></details>`;
 }
 
 // Escape, linkify, and apply WhatsApp-style formatting. Newlines → <br>.
@@ -395,11 +400,20 @@ a{color:${t.link};}
   background:${t.share};border:1px solid ${t.border};border-radius:10px;font-size:13px;
 }
 .ce-share a{word-break:break-all;}
-.ce-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.ce-reactions{margin-top:-4px;max-width:100%;position:relative;z-index:1;}
+.ce-reactions summary{display:flex;flex-wrap:wrap;gap:4px;list-style:none;cursor:pointer;}
+.ce-reactions summary::-webkit-details-marker{display:none;}
+.ce-reactions summary:focus-visible{outline:2px solid ${t.link};outline-offset:2px;border-radius:12px;}
 .ce-react{
   background:${t.surface};border:1px solid ${t.border};border-radius:12px;
-  padding:2px 8px;font-size:13px;
+  padding:2px 8px;font-size:13px;line-height:1.4;
 }
+.ce-react small{font-size:11px;opacity:.75;}
+.ce-reactors{
+  list-style:none;margin:6px 0 2px;padding:8px 11px;border-radius:10px;
+  background:${t.surface};border:1px solid ${t.border};font-size:12.5px;line-height:1.6;
+}
+.ce-react-emoji{display:inline-block;min-width:1.4em;}
 .ce-footer{
   text-align:center;padding:24px 16px 12px;margin-top:12px;border-top:1px solid ${t.border};
   font-size:12px;color:${t.muted};line-height:1.7;

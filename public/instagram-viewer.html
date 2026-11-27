@@ -152,26 +152,44 @@
             line-height: 1;
         }
 
-        /* ── Reaction pills ── */
+        /* ── Reaction pills: a row just under the bubble (clear of its timestamp) ── */
         .ig-reactions {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
-            margin-top: 4px;
-            margin-bottom: 2px;
+            max-width: 100%;
+            margin: 3px 6px 2px;
         }
         .ig-reaction {
             display: inline-flex;
             align-items: center;
             gap: 3px;
+            min-height: 28px;
+            min-width: 32px;
+            justify-content: center;
             background: var(--ig-recv-bg);
             border: 1px solid var(--ig-recv-border);
-            border-radius: 12px;
-            padding: 2px 7px;
+            border-radius: 14px;
+            padding: 1px 8px;
+            font: inherit;
             font-size: 14px;
-            cursor: default;
+            line-height: 1;
+            color: var(--text-primary);
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         }
-        .ig-reaction small { font-size: 11px; color: var(--text-secondary); }
+        .ig-reaction:hover, .ig-reaction.is-open { border-color: #C13584; }
+        .ig-reaction:focus-visible { outline: 2px solid #C13584; outline-offset: 2px; }
+        .ig-reaction small { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+        .ig-reaction-more { font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+        .msg-row.has-reactions { margin-bottom: 6px; }
 
         /* ── Shared link ── */
         .ig-share-link {
@@ -190,9 +208,9 @@
         .msg-row.sent .ig-share-link { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.24); }
         .msg-row.sent .ig-share-link :is(a, i), .msg-row.sent .msg-text a { color: #fff; }
         .msg-row.sent .media-doc-link { color: #fff; }
-        .bubble:has(.ig-share-link, .ig-reactions, .msg-media-stack) { padding-bottom: 20px; }
+        .bubble:has(.ig-share-link, .ig-share-card, .msg-media-stack) { padding-bottom: 20px; }
         .bubble .msg-media-stack { padding-bottom: 0; }
-        .ig-reaction { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+        .ig-reaction-emoji, .reaction-popover-emoji { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
         .ig-share-link a:hover { text-decoration: underline; }
 
         /* ── Thread selector panel ── */

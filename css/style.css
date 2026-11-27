@@ -5444,3 +5444,84 @@ body.light-theme {
 .ig-share-open { margin-top: auto; padding-top: 4px; font-size: 12px; font-weight: 600; color: var(--primary); }
 .msg-row.sent .ig-share-card { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.24); color: #fff; }
 .msg-row.sent .ig-share-card :is(.ig-share-kind, .ig-share-caption, .ig-share-open) { color: rgba(255, 255, 255, 0.92); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v1.10 — Instagram "who reacted" popover
+   ══════════════════════════════════════════════════════════════════════════ */
+.reaction-popover {
+    position: fixed;
+    z-index: 1450;
+    width: min(280px, calc(100vw - 16px));
+    max-height: min(360px, calc(100dvh - 32px));
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--popover-radius);
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    color: var(--text-primary);
+    animation: scaleIn 0.12s ease-out;
+}
+.reaction-popover[hidden] { display: none; }
+.reaction-popover-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 8px 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 15px;
+}
+.reaction-popover-close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.reaction-popover-close:hover { background: var(--bg-input); color: var(--text-primary); }
+.reaction-popover-close:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.reaction-popover-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.reaction-popover-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 4px 14px;
+}
+.reaction-popover-avatar {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    font-weight: 700;
+}
+.reaction-popover-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+}
+.reaction-popover-emoji { flex: 0 0 auto; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .reaction-popover { animation: none; } }

@@ -166,6 +166,22 @@ dm.append({"sender_name": None, "timestamp_ms": "garbage", "content": "missing s
 dm.append({"timestamp_ms": t0 + 14 * 60000})  # empty message, skipped
 dm.append(ig_msg("Bob Jones", t0 + 15 * 60000, "photo that is missing", photos=[{"uri": f"{base}/bobjones_123456789/photos/missing.jpg"}]))
 dm.append(ig_msg("Bob Jones", t0 + 16 * 60000, "unsent", is_unsent=True))
+# Reactions (Phase 3). Times are seconds, as in real exports.
+crowd = ["Ann Lee", "Raj Patel", "Kim Ode", "Lena Fox", "Omar Haddad", "Mei Chen", "Ivan Petrov", "Sara Cohen", "Tomás Ruiz", "Yuki Sato", "Nia Brown", "Ola Berg"]
+many = ["😀", "😂", "😍", "🔥", "😮", "😢", "😡", "👍", "🙏🏽", "🎉", "💯", "👏"]
+dm.append(ig_msg("Zoë Ångström", t0 + 17 * 60000, "many reactions here",
+                 reactions=[react(e, a) for e, a in zip(many, crowd)]))
+dm.append(ig_msg("Bob Jones", t0 + 18 * 60000, "reaction edge cases",
+                 reactions=[
+                     {"reaction": mangle("<img src=x onerror=alert(7)>"), "actor": mangle("Zoë Ångström"), "timestamp": 1700000001},
+                     {"reaction": mangle("😂"), "actor": mangle('"><svg onload=alert(8)>'), "timestamp": 1700000001},
+                     {"reaction": mangle("😂"), "timestamp": 1700000001},
+                     {"reaction": 42, "actor": mangle("Number Field"), "timestamp": 1700000001},
+                     {"reaction": mangle("👍"), "actor": mangle("Bob Jones"), "timestamp": 1700000001},
+                     {"reaction": mangle("👍"), "actor": mangle("Bob Jones"), "timestamp": 1700000002},
+                 ]))
+dm.append(ig_msg("Zoë Ångström", t0 + 19 * 60000, "my own message, reacted to",
+                 reactions=[react("❤", "Bob Jones"), react("❤️", "Zoë Ångström")]))
 dm_json = {"participants": [{"name": mangle("Bob Jones")}, {"name": mangle("Zoë Ångström")}], "messages": list(reversed(dm)), "title": mangle("Bob Jones"), "is_still_participant": True, "thread_path": "inbox/bobjones_123456789"}
 
 grp = [ig_msg(["Ann Lee", "Raj Patel", "Kim Ode", "Zoë Ångström"][i % 4], t0 + i * 1000, f"group msg {i} hi Raj, ping Kim", **({"reactions": [react("👍", n) for n in ["Ann Lee", "Raj Patel", "Kim Ode", "Ghost Member"]]} if i % 5 == 0 else {})) for i in range(40)]
@@ -195,6 +211,8 @@ with zipfile.ZipFile(os.path.join(OUT, "instagram-big.zip"), "w") as z:
         extra = {"photos": [{"uri": f"{base}/bigthread_555555555/photos/{i % 6}.jpg"}]} if i % 10 == 0 else {}
         if i % 25 == 0:
             extra["share"] = {"link": f"https://www.instagram.com/reel/R{i}/", "share_text": f"reel {i}", "original_content_owner": "creator"}
+        if i % 7 == 0:
+            extra["reactions"] = [react("❤", "Big One"), react("❤️" if i % 2 else "😂", "Big Two")]
         big.append(ig_msg(["Big One", "Big Two"][i % 2], t0 + i * 30000, f"big msg {i}", **extra))
     z.writestr(f"{base}/bigthread_555555555/message_1.json", json.dumps({"participants": [{"name": "Big One"}, {"name": "Big Two"}], "messages": list(reversed(big)), "title": "Big Thread"}))
 

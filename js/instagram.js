@@ -40,6 +40,7 @@ import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram
 import { syncAnonymizeControls } from "./instagram/anonymize.js?v=1.10.0";
 import { onAnonymizeChange, toggleAnonymize } from "./instagram/anonymize-toggle.js?v=1.10.0";
 import { gallery } from "./instagram/gallery.js?v=1.10.0";
+import { closeReactionPopover, handleReactionClick, isReactionPopoverOpen } from "./instagram/reactions.js?v=1.10.0";
 import {
     closeAllDrawers,
     closeMenu,
@@ -88,6 +89,7 @@ window.addEventListener("pagehide", (event) => {
 window.addEventListener("popstate", (event) => {
     const keep = overlayOf(event);
     if (keep !== "igmedia") closeMediaModal();
+    closeReactionPopover();
     // Back from the lightbox (or a drawer) over the gallery keeps it open.
     gallery.handlePopState(event);
     closeMenu();
@@ -136,6 +138,8 @@ function bindUI() {
     });
     document.addEventListener("chatlume:show-chat", () => gallery.dismiss({ restoreFocus: false }));
     onAnonymizeChange(() => gallery.refresh());
+    // The list re-renders (and the pill with it); the names in it change too.
+    onAnonymizeChange(() => closeReactionPopover());
     $("ig-anonymize-toggle")?.addEventListener("click", () => toggleAnonymize());
     $("ig-anonymize-banner-off")?.addEventListener("click", () => toggleAnonymize(false));
     $("ig-date-sheet-cancel")?.addEventListener("click", () => closeDateSheet());
@@ -243,7 +247,11 @@ function bindUI() {
 
     // Message list
     $("ig-viewport")?.addEventListener("scroll", handleViewportScroll);
-    $("ig-message-list")?.addEventListener("click", handleMessageListClick);
+    // Reaction pills first: they never sit inside a media button.
+    $("ig-message-list")?.addEventListener("click", (event) => {
+        if (handleReactionClick(event)) return;
+        handleMessageListClick(event);
+    });
 
     document.addEventListener("keydown", handleGlobalKeydown);
 }
@@ -297,6 +305,7 @@ function handleGlobalKeydown(event) {
 /** Closes the topmost overlay. */
 function handleEscape() {
     if (gallery.isMenuOpen()) { gallery.closeMenu({ restoreFocus: true }); return; }
+    if (isReactionPopoverOpen()) { closeReactionPopover({ restoreFocus: true }); return; }
     if (igState.activeMediaId) { $("ig-media-modal-close")?.click(); return; }
     if ($("ig-confirm-sheet") && !$("ig-confirm-sheet").hidden) { resolveConfirmSheet(false); return; }
     if (!$("ig-date-sheet")?.hidden) { closeDateSheet(); return; }

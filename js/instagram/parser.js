@@ -12,6 +12,7 @@ import { countEmojis } from "../shared/emoji.js?v=1.10.0";
 import { baseName, detectMediaType } from "../shared/media-types.js?v=1.10.0";
 import { tailRange } from "../shared/virtual-list.js?v=1.10.0";
 import { initialsFor } from "../shared/text.js?v=1.10.0";
+import { normalizeReactions } from "../shared/reactions.js?v=1.10.0";
 import { fixMojibake } from "./mojibake.js?v=1.10.0";
 import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
 import { IG_MAX_RENDERED, igState } from "./state.js?v=1.10.0";
@@ -198,10 +199,13 @@ export function parseMessages(rawMessages) {
         const shareOwner = typeof raw.share?.original_content_owner === "string" && raw.share.original_content_owner.trim()
             ? fixMojibake(raw.share.original_content_owner.trim().replace(/^@/, ""))
             : null;
-        const reactions = (Array.isArray(raw.reactions) ? raw.reactions : []).map((r) => ({
-            reaction: fixMojibake(String(r?.reaction || "")),
-            actor: fixMojibake(String(r?.actor || ""))
-        })).filter((reaction) => reaction.reaction);
+        // Emoji and names get the same latin1 repair as message text; only
+        // strings count (a number or object in the field is not a reaction).
+        const reactions = normalizeReactions((Array.isArray(raw.reactions) ? raw.reactions : []).map((r) => (r && typeof r === "object" ? {
+            reaction: typeof r.reaction === "string" ? fixMojibake(r.reaction) : "",
+            actor: typeof r.actor === "string" ? fixMojibake(r.actor) : "",
+            timestamp: r.timestamp ?? r.timestamp_ms
+        } : null)));
 
         const mediaItems = [];
         const addMediaItem = (uri, kindHint) => {
