@@ -12,3 +12,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+# Browser-test output and generated fixtures (rebuilt by npm run test:e2e)
+tests/e2e/out/
+tests/e2e/fixtures/out/

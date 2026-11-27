@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/",
+    "test:e2e": "node tests/e2e/run.mjs",
     "check": "node scripts/check-syntax.mjs",
     "bump": "node scripts/bump-version.mjs"
   },
