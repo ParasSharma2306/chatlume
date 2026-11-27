@@ -7,13 +7,13 @@
  * messages.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.9.0";
-import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.9.0";
-import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.9.0";
-import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.9.0";
-import { createToast } from "../shared/toast.js?v=1.9.0";
-import { igState } from "./state.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+import { $, escapeHtml } from "../shared/dom.js?v=1.10.0";
+import { createConfirmSheet } from "../shared/confirm-sheet.js?v=1.10.0";
+import { pushOverlayState, popOverlayState } from "../shared/history.js?v=1.10.0";
+import { animateStatsIn, renderStatsPanel } from "../shared/stats-panel.js?v=1.10.0";
+import { createToast } from "../shared/toast.js?v=1.10.0";
+import { igState } from "./state.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
 
 export const showToast = createToast("ig-toast");
 

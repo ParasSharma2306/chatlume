@@ -9,7 +9,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/chatlume?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/chatlume?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/chatlume?style=flat-square)
-![Version](https://img.shields.io/badge/version-v1.9.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.10.0-blue?style=flat-square)
 
 ---
 
@@ -68,6 +68,7 @@ It turned out better than I expected, so I cleaned it up and put it online. It n
 ### Keeping and sharing
 | Feature | Details |
 |---------|---------|
+| Media, links and docs | Chat menu → *Media, links and docs* (WhatsApp) or *Media and docs* (Instagram). Photos and videos open in a swipeable lightbox, links open in a new tab, documents open in the viewer and voice notes play inline. Long-press or right-click any item to jump to its message. Built from the already-parsed chat; paged and lazy-loaded for very long chats |
 | Anonymize mode | One switch in the chat menu replaces every participant with "Person A", "Person B", … and masks phone numbers, emails and @handles — in the view, search, analytics, Wrapped and HTML exports. Reversible instantly; lasts for the browser session |
 | HTML export | Save a standalone `.html` without attachments, or a `.zip` with `index.html` and referenced attachments for offline viewing |
 | Persistent Storage | Optional and **off by default** in both viewers: keep imported exports on your device so you don't have to pick the file again after closing ChatLume. Copies the original export into the browser's private storage, chunked and off the main thread, with progress, cancel and quota checks. Each viewer manages only its own saved imports. |

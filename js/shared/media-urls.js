@@ -14,10 +14,12 @@
  *   mediaLookup  Map<key, media>
  *   mediaUrls    Set<string>        every live blob URL, for bulk revocation
  *   activeMediaId                   media open in the full-screen viewer
+ *   pinnedMediaIds Set<string>      media shown outside the chat (the gallery's
+ *                                   thumbnails, its playing voice note)
  *   renderRange / filteredMessages  the virtual window (see virtual-list.js)
  * ============================================================================
  */
-import { loadZip } from "./zip.js?v=1.9.0";
+import { loadZip } from "./zip.js?v=1.10.0";
 
 /** Decodes the entry (once) and returns its blob URL. */
 export async function ensureMediaUrl(state, media) {
@@ -69,9 +71,12 @@ export function isMediaInRenderRange(state, mediaId) {
     return false;
 }
 
-/** Revokes a blob URL unless it is on screen or open in the media viewer. */
+/** Whether something outside the message list (the gallery) is showing this media. */
+const isPinned = (state, mediaId) => Boolean(state.pinnedMediaIds?.has(mediaId));
+
+/** Revokes a blob URL unless it is on screen, open in the media viewer or pinned. */
 export function releaseMediaUrlIfUnused(state, media) {
-    if (!media || media.id === state.activeMediaId || isMediaInRenderRange(state, media.id)) return;
+    if (!media || media.id === state.activeMediaId || isPinned(state, media.id) || isMediaInRenderRange(state, media.id)) return;
     releaseMediaUrl(state, media);
 }
 
@@ -89,7 +94,7 @@ export function releaseOffscreenMediaUrls(state) {
     }
 
     state.mediaStore.forEach((media) => {
-        if (media.id !== state.activeMediaId && !visibleMediaIds.has(media.id)) {
+        if (media.id !== state.activeMediaId && !visibleMediaIds.has(media.id) && !isPinned(state, media.id)) {
             releaseMediaUrl(state, media);
         }
     });
@@ -99,6 +104,7 @@ export function releaseOffscreenMediaUrls(state) {
 export function clearMediaStore(state) {
     state.mediaUrls.forEach((url) => URL.revokeObjectURL(url));
     state.mediaUrls.clear();
+    state.pinnedMediaIds?.clear();
     state.mediaStore.clear();
     state.mediaLookup.clear();
 }

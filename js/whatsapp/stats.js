@@ -5,9 +5,9 @@
  * Thin binding of the shared stats panel to this viewer's element ids.
  * ============================================================================
  */
-import { renderStatsPanel } from "../shared/stats-panel.js?v=1.9.0";
-import { state } from "./state.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+import { renderStatsPanel } from "../shared/stats-panel.js?v=1.10.0";
+import { state } from "./state.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
 
 /** Repaints the totals, sender bars and emoji grid from `state`. */
 export function generateStats() {

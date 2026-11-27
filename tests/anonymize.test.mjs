@@ -272,7 +272,8 @@ describe("anonymize: WhatsApp export leaks nothing", () => {
             "01/02/2024, 10:03 - Carol: on it",
             "01/02/2024, 10:04 - +91 98765 43210: hello from 98765 43210 <script>alert('Alice')</script>",
             "01/02/2024, 10:05 - Bob Jones: Bob Jones.vcf (file attached)",
-            "01/02/2024, 10:06 - Dave left"
+            "01/02/2024, 10:06 - Dave left",
+            "01/02/2024, 10:07 - Bob Jones: profile https://example.com/u/Alice%20Smith/919876543210 and https://example.com/people/Bob_Jones plus https://example.com/ok"
         ].join("\n"));
         state.chatTitle = "Weekend Hikers";
         display.setOn(true);
@@ -297,6 +298,14 @@ describe("anonymize: WhatsApp export leaks nothing", () => {
         assert.match(html, /\[phone\]/);
         assert.match(html, /&lt;script&gt;/);
         assert.doesNotMatch(html, /<script>alert/);
+    });
+
+    test("a link with a hidden name becomes masked text, never a half-masked link", () => {
+        assert.match(html, /<a href="https:\/\/example\.com\/ok"/, "a link with nothing to hide still links");
+        assert.doesNotMatch(html, /href="https:\/\/example\.com\/(u|people)\//, "no link to a masked address");
+        // The number is a participant's, so it becomes their alias, as everywhere else.
+        assert.match(html, /example\.com\/u\/Person A\/Person [A-Z]\b/);
+        assert.doesNotMatch(html, /Bob_Jones|919876543210/);
     });
 });
 

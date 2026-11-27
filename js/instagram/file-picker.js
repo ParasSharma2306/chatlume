@@ -5,7 +5,7 @@
  * The "Ready to load" state of the sidebar's drop target.
  * ============================================================================
  */
-import { $, q, escapeHtml } from "../shared/dom.js?v=1.9.0";
+import { $, q, escapeHtml } from "../shared/dom.js?v=1.10.0";
 
 /** Turns the drop target into a "Ready to load" confirmation. */
 export function reflectSelectedFile(file) {

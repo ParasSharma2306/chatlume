@@ -8,17 +8,17 @@
  * without reloading the conversation.
  * ============================================================================
  */
-import { $ } from "../shared/dom.js?v=1.9.0";
-import { getScrollAnchor, restoreScrollAnchor } from "../shared/virtual-list.js?v=1.9.0";
-import { igState } from "./state.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
-import { renderInstagramStoredImports } from "./persistence.js?v=1.9.0";
-import { renderChatList } from "./render.js?v=1.9.0";
-import { isSearchOpen, runSearch } from "./search.js?v=1.9.0";
-import { populateInstagramSenderFilter, refreshThreadChrome, loadThread } from "./session.js?v=1.9.0";
-import { showThreadSelector } from "./threads.js?v=1.9.0";
-import { closeMenu, generateStats, showToast } from "./ui.js?v=1.9.0";
-import { renderInstagramWrapped } from "./wrapped.js?v=1.9.0";
+import { $ } from "../shared/dom.js?v=1.10.0";
+import { getScrollAnchor, restoreScrollAnchor } from "../shared/virtual-list.js?v=1.10.0";
+import { igState } from "./state.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
+import { renderInstagramStoredImports } from "./persistence.js?v=1.10.0";
+import { renderChatList } from "./render.js?v=1.10.0";
+import { isSearchOpen, runSearch } from "./search.js?v=1.10.0";
+import { populateInstagramSenderFilter, refreshThreadChrome, loadThread } from "./session.js?v=1.10.0";
+import { showThreadSelector } from "./threads.js?v=1.10.0";
+import { closeMenu, generateStats, showToast } from "./ui.js?v=1.10.0";
+import { renderInstagramWrapped } from "./wrapped.js?v=1.10.0";
 
 const listeners = new Set();
 

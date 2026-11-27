@@ -8,13 +8,13 @@
  * and message helpers are covered by tests/instagram.test.mjs.
  * ============================================================================
  */
-import { countEmojis } from "../shared/emoji.js?v=1.9.0";
-import { baseName, detectMediaType } from "../shared/media-types.js?v=1.9.0";
-import { tailRange } from "../shared/virtual-list.js?v=1.9.0";
-import { initialsFor } from "../shared/text.js?v=1.9.0";
-import { fixMojibake } from "./mojibake.js?v=1.9.0";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.9.0";
-import { IG_MAX_RENDERED, igState } from "./state.js?v=1.9.0";
+import { countEmojis } from "../shared/emoji.js?v=1.10.0";
+import { baseName, detectMediaType } from "../shared/media-types.js?v=1.10.0";
+import { tailRange } from "../shared/virtual-list.js?v=1.10.0";
+import { initialsFor } from "../shared/text.js?v=1.10.0";
+import { fixMojibake } from "./mojibake.js?v=1.10.0";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
+import { IG_MAX_RENDERED, igState } from "./state.js?v=1.10.0";
 
 // ── Thread discovery ────────────────────────────────────────────────────────
 
@@ -113,6 +113,22 @@ export function buildMediaStore(entries) {
     });
 }
 
+/**
+ * Lets the message structure correct a classification made from the file name
+ * alone. Instagram voice notes are .mp4 files listed under `audio_files`; the
+ * store (built from ZIP names) calls them videos, so they rendered as a black
+ * video player and never reached the Voice notes gallery.
+ */
+export function applyKindHint(media, hint) {
+    if (!media || hint !== "audio" || media.kind === "audio") return media;
+    const type = detectMediaType(media.name, { stickers: false, hint });
+    if (type.kind === "audio") {
+        media.kind = "audio";
+        media.mime = type.mime;
+    }
+    return media;
+}
+
 /** Finds the record for a message's media URI, trying looser keys in turn. */
 export function findMedia(uri) {
     if (!uri) return null;
@@ -130,6 +146,27 @@ export function findMedia(uri) {
 }
 
 // ── Messages ────────────────────────────────────────────────────────────────
+
+/**
+ * What a shared Instagram link points at: "reel", "post", "story", "video"
+ * (IGTV) or "" for anything else. The export has no thumbnail for a shared
+ * reel or post, so the viewer draws a card from this, the owner and caption.
+ */
+export function shareKindOf(link) {
+    let url;
+    try {
+        url = new URL(String(link || ""));
+    } catch {
+        return "";
+    }
+    if (!/^https?:$/.test(url.protocol) || !/(^|\.)instagram\.com$/i.test(url.hostname)) return "";
+    const [first, second] = url.pathname.split("/").filter(Boolean).map((part) => part.toLowerCase());
+    if ((first === "reel" || first === "reels") && second) return "reel";
+    if (first === "p" && second) return "post";
+    if (first === "tv" && second) return "video";
+    if (first === "stories" && second) return "story";
+    return "";
+}
 
 /** "10:42 PM" in the browser's locale. */
 export function formatTime(date) {
@@ -158,6 +195,9 @@ export function parseMessages(rawMessages) {
         const content = typeof raw.content === "string" && raw.content ? fixMojibake(raw.content) : "";
         const shareLink = raw.share?.link || null;
         const shareText = raw.share?.share_text ? fixMojibake(raw.share.share_text) : null;
+        const shareOwner = typeof raw.share?.original_content_owner === "string" && raw.share.original_content_owner.trim()
+            ? fixMojibake(raw.share.original_content_owner.trim().replace(/^@/, ""))
+            : null;
         const reactions = (Array.isArray(raw.reactions) ? raw.reactions : []).map((r) => ({
             reaction: fixMojibake(String(r?.reaction || "")),
             actor: fixMojibake(String(r?.actor || ""))
@@ -165,7 +205,7 @@ export function parseMessages(rawMessages) {
 
         const mediaItems = [];
         const addMediaItem = (uri, kindHint) => {
-            const media = findMedia(uri);
+            const media = applyKindHint(findMedia(uri), kindHint);
             const name = baseName(uri || kindHint);
             if (media) {
                 mediaItems.push({ id: media.id, status: "available", name: media.name, kind: media.kind, mime: media.mime });
@@ -213,7 +253,8 @@ export function parseMessages(rawMessages) {
             mediaItems,
             reactions,
             shareLink,
-            shareText
+            shareText,
+            shareOwner
         });
 
         idx++;

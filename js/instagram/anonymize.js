@@ -9,9 +9,9 @@
  * placeholder. Free of render imports so any module can use it.
  * ============================================================================
  */
-import { $ } from "../shared/dom.js?v=1.9.0";
-import { createAnonymizeView } from "../shared/anonymize.js?v=1.9.0";
-import { igState } from "./state.js?v=1.9.0";
+import { $ } from "../shared/dom.js?v=1.10.0";
+import { createAnonymizeView } from "../shared/anonymize.js?v=1.10.0";
+import { igState } from "./state.js?v=1.10.0";
 
 export const display = createAnonymizeView(() => ({
     messages: igState.messages,

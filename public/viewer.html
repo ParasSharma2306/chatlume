@@ -29,7 +29,7 @@
     <meta name="twitter:image" content="https://chatlume.app/assets/og-image.png">     
     <link rel="icon" href="../assets/favicon.ico" sizes="any">
     <link rel="icon" href="../assets/logo-192.png" type="image/png">
-    <link rel="stylesheet" href="../css/style.css?v=1.9.0">
+    <link rel="stylesheet" href="../css/style.css?v=1.10.0">
     <link rel="manifest" href="../manifest.json">     
     <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">     
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
-    <script type="module" src="../js/script.js?v=1.9.0"></script>
+    <script type="module" src="../js/script.js?v=1.10.0"></script>
     <script defer src="https://umami.parassharma.in/script.js" data-website-id="f3047984-3a15-4f29-8410-82a6d68f0746"></script>
     <script>
         // Apply the saved theme before first paint. Without this the viewer
@@ -128,7 +128,7 @@
                     <div class="privacy-pill">
                         <i class="ph-fill ph-shield-check"></i> 100% Local Processing. No Uploads.
                     </div>
-                    <div class="app-version-label" data-app-version>v1.9.0</div>
+                    <div class="app-version-label" data-app-version>v1.10.0</div>
                 </section>
                 <section class="chat-list hidden" id="chat-list-skeleton" aria-hidden="true">
                     <div class="chat-skeleton">
@@ -357,7 +357,7 @@
                     <div class="info-block">
                         <h3>About ChatLume</h3>
                         <p>ChatLume is a privacy-first WhatsApp chat viewer and analytics tool. It turns exported chats into a familiar interface with deep analytics while keeping processing fully inside your browser.</p>
-                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.9.0 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
+                        <p style="margin-top:8px;font-size:13px;color:var(--text-secondary)">Version 1.10.0 &nbsp;&middot;&nbsp; by <a href="https://parassharma.com" target="_blank" rel="noopener noreferrer" style="color:var(--primary)">Paras Sharma</a></p>
                         <p style="font-size:13px;color:var(--text-secondary);margin-top:4px"><a href="mailto:hello@parassharma.com" style="color:var(--primary)">hello@parassharma.com</a></p>
                         <div class="ph-badge-wrap" style="justify-content:flex-start;margin-top:16px">
                             <a href="https://www.producthunt.com/products/chatlume?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chatlume" target="_blank" rel="noopener noreferrer">
@@ -374,6 +374,7 @@
                             <li><i class="ph-fill ph-arrows-out-line-horizontal"></i> <strong>Sliding Message Window:</strong> Adds nearby messages as you scroll and drops older rendered content from the opposite side.</li>                             
                             <li><i class="ph-fill ph-sparkle"></i> <strong>ChatLume Wrapped:</strong> Extract emojis and hourly patterns to generate a personalized, shareable graphic.</li>                             
                             <li><i class="ph-fill ph-chart-bar"></i> <strong>Analytics:</strong> View total counts, media usage, and per-sender conversation shares.</li>
+                            <li><i class="ph-fill ph-images"></i> <strong>Media, Links and Docs:</strong> Photos, videos, links, documents and voice notes in one place (chat menu → Media, links and docs). Tap to open or play; long-press or right-click to jump to the message.</li>
                             <li><i class="ph-fill ph-mask-happy"></i> <strong>Anonymize:</strong> Swap names for "Person A", "Person B"… and hide numbers and emails before you screenshot or export (chat menu → Anonymize names).</li>                         
                         </ul>                     
                     </div>                                          
@@ -433,6 +434,7 @@
                     <div class="menu-container">                         
                         <button id="menu-toggle" type="button" aria-label="Open chat actions" aria-controls="header-menu" aria-expanded="false"><i class="ph ph-dots-three-vertical"></i></button>
                         <div class="dropdown-menu" id="header-menu">                             
+                            <button type="button" class="menu-item" id="gallery-action"><i class="ph ph-images" aria-hidden="true"></i> Media, links and docs</button>
                             <button type="button" class="menu-item" id="date-jump-action"><i class="ph ph-calendar-blank"></i> Go to Date</button>
                             <button type="button" class="menu-item menu-item-toggle" id="anonymize-toggle" aria-pressed="false"><i class="ph ph-mask-happy" aria-hidden="true"></i> Anonymize names</button>
                         </div>                     
@@ -595,6 +597,6 @@
         <div id="toast" aria-live="polite"></div>
 
     </div>
-    <script src="../js/site.js?v=1.9.0" defer></script>
+    <script src="../js/site.js?v=1.10.0" defer></script>
 </body>
 </html>

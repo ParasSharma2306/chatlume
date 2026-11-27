@@ -54,25 +54,51 @@ export function inferMimeType(ext) {
 }
 
 /**
+ * The audio MIME type for a file that is known to be audio whatever its
+ * extension says. Voice notes often come in a video container (.mp4, .3gp,
+ * .webm); handed to the browser as video/mp4 they'd get a video player.
+ */
+export function audioMimeFor(ext) {
+    if (AUDIO_EXTENSIONS.has(ext)) return MIME_BY_EXTENSION[ext] || `audio/${ext}`;
+    return { mp4: "audio/mp4", m4v: "audio/mp4", "3gp": "audio/3gpp", "3gpp": "audio/3gpp", webm: "audio/webm", mov: "audio/mp4" }[ext] || "audio/mp4";
+}
+
+/**
+ * WhatsApp's own names for audio: Android "PTT-20240101-WA0001" (voice note)
+ * and "AUD-…" (audio file), iOS "00000012-AUDIO-2024-01-01-10-00-00". These
+ * stay audio even when the container is .mp4 / .3gp / .webm.
+ */
+const WHATSAPP_AUDIO_NAME = /^(?:(?:PTT|AUD)-\d{8}-WA\d+|\d+-AUDIO-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})\.[a-z0-9]+$/i;
+
+/**
  * @param {string}  fileName
  * @param {Object}  [options]
  * @param {string}  [options.mimeType]   Known MIME type, if the source has one.
  * @param {boolean} [options.stickers]   Treat .webp / "STK-" files as stickers
  *                                       (WhatsApp does; Instagram photos can be
  *                                       .webp and must stay images).
+ * @param {string}  [options.hint]       What the source says the file is
+ *                                       ("audio" for Instagram's `audio_files`).
+ *                                       An audio hint wins over a video or
+ *                                       unknown extension.
  * @returns {{ kind: string, mime: string, ext: string }}
  */
-export function detectMediaType(fileName, { mimeType = "", stickers = true } = {}) {
-    const ext = fileName.split(".").pop()?.toLowerCase() || "";
+export function detectMediaType(fileName, { mimeType = "", stickers = true, hint = "" } = {}) {
+    const ext = String(fileName || "").split(".").pop()?.toLowerCase() || "";
 
     // Explicit audio guard: known voice-note extensions are always audio,
     // regardless of MIME (e.g. m4a → audio/mp4 must never be treated as video).
     if (AUDIO_EXTENSIONS.has(ext)) {
-        const known = MIME_BY_EXTENSION[ext];
-        return { kind: "audio", mime: known || `audio/${ext}`, ext };
+        return { kind: "audio", mime: audioMimeFor(ext), ext };
     }
 
     const mime = mimeType || inferMimeType(ext);
+
+    // The message says it's audio (Instagram voice notes are .mp4 in
+    // `audio_files`), or the name is one WhatsApp only gives audio.
+    if ((hint === "audio" || WHATSAPP_AUDIO_NAME.test(String(fileName || ""))) && !mime.startsWith("image/")) {
+        return { kind: "audio", mime: mime.startsWith("audio/") ? mime : audioMimeFor(ext), ext };
+    }
 
     if (mime.startsWith("image/")) {
         const isSticker = stickers && (/^sticker|webp$/i.test(ext) || /^stk-/i.test(fileName));

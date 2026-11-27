@@ -8,10 +8,10 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.9.0";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.9.0";
-import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.10.0";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.10.0";
+import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
 
 /**
  * The text a message is matched against — what is on screen, so in Anonymize
@@ -35,6 +35,8 @@ export function toggleSearch() {
     $("search-toggle")?.setAttribute("aria-expanded", String(state.isSearchOpen));
 
     if (state.isSearchOpen) {
+        // Search results live in the chat, so anything covering it steps aside.
+        document.dispatchEvent(new CustomEvent("chatlume:show-chat"));
         input.focus();
         return;
     }
@@ -131,10 +133,29 @@ export function updateSearchCounter(fallback = "") {
         : "";
 }
 
-/** Re-centres the virtual window on a message and scrolls it into view. */
-export function jumpToMessage(messageId) {
+/** How long a message stays highlighted after "Jump to message". */
+const FLASH_MS = 1800;
+let flashTimer = 0;
+
+/**
+ * Re-centres the virtual window on a message and scrolls it into view.
+ * `flash` briefly highlights it and `focus` moves keyboard focus to it — the
+ * gallery's "Jump to message" uses both. Returns false if it isn't listed.
+ */
+export function jumpToMessage(messageId, { flash = false, focus = false } = {}) {
     const index = state.filteredMessages.findIndex((entry) => entry.id === messageId);
-    if (index === -1) return;
+    if (index === -1) return false;
+
+    if (flash) {
+        // Read by the renderer, so the highlight survives a re-render.
+        state.flashMessageId = messageId;
+        window.clearTimeout(flashTimer);
+        flashTimer = window.setTimeout(() => {
+            if (state.flashMessageId !== messageId) return;
+            state.flashMessageId = "";
+            $(messageId)?.classList.remove("msg-flash");
+        }, FLASH_MS);
+    }
 
     state.renderRange.start = Math.max(0, index - 40);
     state.renderRange.end = Math.min(state.filteredMessages.length, state.renderRange.start + MAX_RENDERED_ITEMS);
@@ -144,7 +165,19 @@ export function jumpToMessage(messageId) {
     // edge: waiting let the list page away and drop the match from the DOM.
     const scrollToMatch = () => $(messageId)?.scrollIntoView({ block: "center", behavior: "auto" });
     scrollToMatch();
-    window.setTimeout(scrollToMatch, 40);
+    if (focus) focusMessage(messageId);
+    window.setTimeout(() => {
+        scrollToMatch();
+        if (focus) focusMessage(messageId);
+    }, 40);
+    return true;
+}
+
+function focusMessage(messageId) {
+    const row = $(messageId);
+    if (!row) return;
+    row.tabIndex = -1;
+    row.focus({ preventScroll: true });
 }
 
 /** Enter / Shift+Enter step through the matches. */

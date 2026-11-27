@@ -9,6 +9,7 @@
  *   instagram/parser.js     thread discovery, media index, message parsing
  *   instagram/threads.js    conversation picker
  *   instagram/media.js      lazy loading, media viewer, downloads
+ *   instagram/gallery.js    Media, links and voice notes gallery
  *   instagram/render.js     the virtualised message list
  *   instagram/search.js     in-thread search
  *   instagram/mojibake.js   repairs Instagram's latin1-mangled UTF-8
@@ -18,26 +19,27 @@
  * All processing is client-side; nothing is uploaded.
  * ============================================================================
  */
-import { $ } from "./shared/dom.js?v=1.9.0";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.9.0";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.9.0";
-import { overlayOf, popOverlayState } from "./shared/history.js?v=1.9.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.9.0";
-import { createThemeController } from "./shared/theme.js?v=1.9.0";
-import { igState } from "./instagram/state.js?v=1.9.0";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.9.0";
-import { handleViewportScroll, jumpToBottom, renderChatList } from "./instagram/render.js?v=1.9.0";
-import { handleSearchInput, handleSearchKeydown, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.9.0";
-import { reflectSelectedFile } from "./instagram/file-picker.js?v=1.9.0";
-import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.9.0";
-import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.9.0";
-import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.9.0";
-import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.9.0";
-import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.9.0";
-import { applySenderSelection, closeActiveThread, initViewer, loadThread, setThreadOwner } from "./instagram/session.js?v=1.9.0";
-import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram/threads.js?v=1.9.0";
-import { syncAnonymizeControls } from "./instagram/anonymize.js?v=1.9.0";
-import { toggleAnonymize } from "./instagram/anonymize-toggle.js?v=1.9.0";
+import { $ } from "./shared/dom.js?v=1.10.0";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.10.0";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.10.0";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.10.0";
+import { runSplashLoader } from "./shared/splash.js?v=1.10.0";
+import { createThemeController } from "./shared/theme.js?v=1.10.0";
+import { igState } from "./instagram/state.js?v=1.10.0";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.10.0";
+import { handleViewportScroll, jumpToBottom, renderChatList } from "./instagram/render.js?v=1.10.0";
+import { handleSearchInput, handleSearchKeydown, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.10.0";
+import { reflectSelectedFile } from "./instagram/file-picker.js?v=1.10.0";
+import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.10.0";
+import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.10.0";
+import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.10.0";
+import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.10.0";
+import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.10.0";
+import { applySenderSelection, closeActiveThread, initViewer, loadThread, setThreadOwner } from "./instagram/session.js?v=1.10.0";
+import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram/threads.js?v=1.10.0";
+import { syncAnonymizeControls } from "./instagram/anonymize.js?v=1.10.0";
+import { onAnonymizeChange, toggleAnonymize } from "./instagram/anonymize-toggle.js?v=1.10.0";
+import { gallery } from "./instagram/gallery.js?v=1.10.0";
 import {
     closeAllDrawers,
     closeMenu,
@@ -50,9 +52,9 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.9.0";
+} from "./instagram/ui.js?v=1.10.0";
 
-const IG_APP_VERSION = "1.9.0";
+const IG_APP_VERSION = "1.10.0";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
@@ -86,6 +88,8 @@ window.addEventListener("pagehide", (event) => {
 window.addEventListener("popstate", (event) => {
     const keep = overlayOf(event);
     if (keep !== "igmedia") closeMediaModal();
+    // Back from the lightbox (or a drawer) over the gallery keeps it open.
+    gallery.handlePopState(event);
     closeMenu();
     closeAllDrawers(keep);
     if (keep !== "ig-date-sheet") closeDateSheet({ fromHistory: true });
@@ -119,7 +123,19 @@ function bindUI() {
     $("ig-live-search")?.addEventListener("keydown", handleSearchKeydown);
     $("ig-search-up")?.addEventListener("click", () => navSearch("up"));
     $("ig-search-down")?.addEventListener("click", () => navSearch("down"));
-    $("ig-date-jump-action")?.addEventListener("click", () => { closeMenu(); openDateSheet(); });
+    $("ig-gallery-action")?.addEventListener("click", () => {
+        closeMenu();
+        gallery.open();
+    });
+    // The date sheet jumps the chat, so the gallery steps aside first (and its
+    // history entry is gone before the sheet pushes its own).
+    $("ig-date-jump-action")?.addEventListener("click", async () => {
+        closeMenu();
+        await gallery.dismiss({ restoreFocus: false });
+        openDateSheet();
+    });
+    document.addEventListener("chatlume:show-chat", () => gallery.dismiss({ restoreFocus: false }));
+    onAnonymizeChange(() => gallery.refresh());
     $("ig-anonymize-toggle")?.addEventListener("click", () => toggleAnonymize());
     $("ig-anonymize-banner-off")?.addEventListener("click", () => toggleAnonymize(false));
     $("ig-date-sheet-cancel")?.addEventListener("click", () => closeDateSheet());
@@ -247,6 +263,8 @@ function handleInstagramSettingChange(event) {
     igState.settings = writeInstagramSettings({ ...igState.settings, [key]: value });
     if (key === "persistentStorage") handleInstagramStorageSetting(event);
     renderChatList();
+    // Dates and times in the gallery follow the display settings.
+    gallery.refresh();
 }
 
 function resetInstagramSettings() {
@@ -255,6 +273,7 @@ function resetInstagramSettings() {
     syncInstagramSettingsControls();
     if (wasStoring) handleInstagramStorageSetting({ target: { checked: false } });
     renderChatList();
+    gallery.refresh();
     showToast("Instagram settings reset");
 }
 
@@ -262,6 +281,7 @@ function applyInstagramSenderFilter() {
     applySenderSelection([...($("ig-sender-filter-list")?.querySelectorAll("input[type=checkbox]:checked") || [])].map((input) => input.value));
     if (isSearchOpen() && igState.searchQuery) runSearch(igState.searchQuery);
     else jumpToBottom();
+    gallery.refresh();
 }
 
 // ── Keyboard ────────────────────────────────────────────────────────────────
@@ -276,6 +296,7 @@ function handleGlobalKeydown(event) {
 
 /** Closes the topmost overlay. */
 function handleEscape() {
+    if (gallery.isMenuOpen()) { gallery.closeMenu({ restoreFocus: true }); return; }
     if (igState.activeMediaId) { $("ig-media-modal-close")?.click(); return; }
     if ($("ig-confirm-sheet") && !$("ig-confirm-sheet").hidden) { resolveConfirmSheet(false); return; }
     if (!$("ig-date-sheet")?.hidden) { closeDateSheet(); return; }
@@ -287,6 +308,7 @@ function handleEscape() {
         $("ig-sender-filter-btn")?.focus({ preventScroll: true });
         return;
     }
+    if (gallery.isOpen()) { gallery.dismiss(); return; }
     if (isSearchOpen()) { toggleSearch(); return; }
     const wasMenuOpen = $("ig-header-menu")?.classList.contains("show");
     closeMenu();

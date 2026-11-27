@@ -6,11 +6,11 @@
  * captions — the same surface the WhatsApp viewer searches.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.9.0";
-import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.9.0";
-import { renderChatList } from "./render.js?v=1.9.0";
-import { findMessageSearchResults, nextSearchIndex } from "./search-model.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.10.0";
+import { IG_MAX_RENDERED, IG_SEARCH_DEBOUNCE_MS, igState } from "./state.js?v=1.10.0";
+import { renderChatList } from "./render.js?v=1.10.0";
+import { findMessageSearchResults, nextSearchIndex } from "./search-model.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
 
 export const isSearchOpen = () => Boolean($("ig-search-toolbar")?.classList.contains("active"));
 
@@ -21,7 +21,12 @@ export function toggleSearch() {
     if (!bar || !input) return;
     const open = bar.classList.toggle("active");
     $("ig-search-toggle")?.setAttribute("aria-expanded", String(open));
-    if (open) { input.focus(); return; }
+    if (open) {
+        // Search results live in the chat, so anything covering it steps aside.
+        document.dispatchEvent(new CustomEvent("chatlume:show-chat"));
+        input.focus();
+        return;
+    }
     input.value = "";
     clearTimeout(igState.searchTimer);
     igState.searchTimer = null;
@@ -94,10 +99,28 @@ export function updateSearchCounter(fallback = "") {
     el.innerText = fallback || (igState.searchResults.length ? `${igState.searchPointer + 1}/${igState.searchResults.length}` : "");
 }
 
-/** Re-centres the virtual window on a message and scrolls it into view. */
-export function jumpToMessage(id) {
+/** How long a message stays highlighted after "Jump to message". */
+const FLASH_MS = 1800;
+let flashTimer = 0;
+
+/**
+ * Re-centres the virtual window on a message and scrolls it into view.
+ * `flash` briefly highlights it and `focus` moves keyboard focus to it — the
+ * gallery's "Jump to message" uses both. Returns false if it isn't listed.
+ */
+export function jumpToMessage(id, { flash = false, focus = false } = {}) {
     const idx = igState.filteredMessages.findIndex((m) => m.id === id);
-    if (idx === -1) return;
+    if (idx === -1) return false;
+    if (flash) {
+        // Read by the renderer, so the highlight survives a re-render.
+        igState.flashMessageId = id;
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => {
+            if (igState.flashMessageId !== id) return;
+            igState.flashMessageId = "";
+            $(id)?.classList.remove("msg-flash");
+        }, FLASH_MS);
+    }
     igState.renderRange.start = Math.max(0, idx - 40);
     igState.renderRange.end = Math.min(igState.filteredMessages.length, igState.renderRange.start + IG_MAX_RENDERED);
     renderChatList();
@@ -105,7 +128,19 @@ export function jumpToMessage(id) {
     // edge: waiting let the list page away and drop the match from the DOM.
     const scrollToMatch = () => $(id)?.scrollIntoView({ block: "center", behavior: "auto" });
     scrollToMatch();
-    setTimeout(scrollToMatch, 40);
+    if (focus) focusMessage(id);
+    setTimeout(() => {
+        scrollToMatch();
+        if (focus) focusMessage(id);
+    }, 40);
+    return true;
+}
+
+function focusMessage(id) {
+    const row = $(id);
+    if (!row) return;
+    row.tabIndex = -1;
+    row.focus({ preventScroll: true });
 }
 
 /** Enter / Shift+Enter step through the matches. */

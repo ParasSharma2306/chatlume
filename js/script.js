@@ -11,6 +11,7 @@
  *   whatsapp/render.js         the virtualised message list
  *   whatsapp/search.js         in-chat search
  *   whatsapp/date-jump.js      "Go to Date"
+ *   whatsapp/gallery.js        Media, links and voice notes gallery
  *   whatsapp/format.js         time / date display per Settings
  *   whatsapp/settings-*.js     Settings drawer
  *   whatsapp/persistence.js    Persistent Storage
@@ -22,16 +23,16 @@
  * scripts/bump-version.mjs.
  * ============================================================================
  */
-import { $, isVisible } from "./shared/dom.js?v=1.9.0";
-import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.9.0";
-import { overlayOf, popOverlayState } from "./shared/history.js?v=1.9.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.9.0";
-import { createThemeController } from "./shared/theme.js?v=1.9.0";
-import { state } from "./whatsapp/state.js?v=1.9.0";
-import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.9.0";
-import { handleViewportScroll, jumpToBottom } from "./whatsapp/render.js?v=1.9.0";
-import { handleSearch, handleSearchInput, handleSearchKeydown, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.9.0";
-import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.9.0";
+import { $, isVisible } from "./shared/dom.js?v=1.10.0";
+import { showCompatBannerIfNeeded } from "./shared/compat.js?v=1.10.0";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.10.0";
+import { runSplashLoader } from "./shared/splash.js?v=1.10.0";
+import { createThemeController } from "./shared/theme.js?v=1.10.0";
+import { state } from "./whatsapp/state.js?v=1.10.0";
+import { cleanupMediaStore, closeMediaModal, handleMessageListClick } from "./whatsapp/media.js?v=1.10.0";
+import { handleViewportScroll, jumpToBottom } from "./whatsapp/render.js?v=1.10.0";
+import { handleSearch, handleSearchInput, handleSearchKeydown, handleSearchShortcut, navSearch, toggleSearch } from "./whatsapp/search.js?v=1.10.0";
+import { filterSidebarChats } from "./whatsapp/sidebar-search.js?v=1.10.0";
 import {
     applySenderFilter,
     clearSenderFilter,
@@ -40,26 +41,27 @@ import {
     isSenderFilterDropdownOpen,
     toggleSender,
     toggleSenderFilterDropdown
-} from "./whatsapp/filter.js?v=1.9.0";
+} from "./whatsapp/filter.js?v=1.10.0";
 import {
     applyDateSheetSelection,
     cancelDateSheet,
     closeDateSheet,
     handleDateJumpAction
-} from "./whatsapp/date-jump.js?v=1.9.0";
-import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.9.0";
-import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.9.0";
-import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.9.0";
-import { closeActiveChat, initViewer, loadChatFile, setChatOwner } from "./whatsapp/session.js?v=1.9.0";
+} from "./whatsapp/date-jump.js?v=1.10.0";
+import { setupFileIntake } from "./whatsapp/file-picker.js?v=1.10.0";
+import { loadSavedSettings, syncSettingsControls } from "./whatsapp/settings-store.js?v=1.10.0";
+import { handleSettingChange, resetSettings } from "./whatsapp/settings-ui.js?v=1.10.0";
+import { closeActiveChat, initViewer, loadChatFile, setChatOwner } from "./whatsapp/session.js?v=1.10.0";
 import {
     cancelPersistCopy,
     deleteAllStoredImports,
     handleStoredListClick,
     initPersistentStorage
-} from "./whatsapp/persistence.js?v=1.9.0";
-import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.9.0";
-import { syncAnonymizeControls } from "./whatsapp/anonymize.js?v=1.9.0";
-import { toggleAnonymize } from "./whatsapp/anonymize-toggle.js?v=1.9.0";
+} from "./whatsapp/persistence.js?v=1.10.0";
+import { closeWrapped, closeWrappedFromHistory, downloadWrappedGraphic, openWrapped } from "./whatsapp/wrapped.js?v=1.10.0";
+import { syncAnonymizeControls } from "./whatsapp/anonymize.js?v=1.10.0";
+import { onAnonymizeChange, toggleAnonymize } from "./whatsapp/anonymize-toggle.js?v=1.10.0";
+import { gallery } from "./whatsapp/gallery.js?v=1.10.0";
 import {
     closeAllDrawers,
     closeDrawer,
@@ -75,9 +77,9 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./whatsapp/ui.js?v=1.9.0";
+} from "./whatsapp/ui.js?v=1.10.0";
 
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "1.10.0";
 
 const theme = createThemeController({ iconSelector: "#theme-toggle i" });
 
@@ -141,6 +143,8 @@ window.addEventListener("beforeunload", (event) => {
 window.addEventListener("popstate", (event) => {
     const keep = overlayOf(event);
     if (state.activeMediaId && keep !== "media") closeMediaModal();
+    // Back from the lightbox (or a drawer) over the gallery keeps it open.
+    gallery.handlePopState(event);
     if (keep !== "wrapped") closeWrappedFromHistory();
     if (keep !== "date-sheet") closeDateSheet();
     if (keep !== "confirm") resolveConfirmSheet(false, { fromHistory: true });
@@ -185,8 +189,14 @@ function bindUI() {
 
     // Sender filter
     const filterOptions = {
-        onRender: jumpToBottom,
-        onSearch: handleSearch,
+        onRender: () => {
+            jumpToBottom();
+            gallery.refresh();
+        },
+        onSearch: (query) => {
+            handleSearch(query);
+            gallery.refresh();
+        },
         onToast: showToast
     };
     $("sender-filter-btn")?.addEventListener("click", (event) => {
@@ -252,7 +262,20 @@ function bindUI() {
             items[event.key === "Home" ? 0 : items.length - 1].focus();
         }
     });
-    $("date-jump-action")?.addEventListener("click", handleDateJumpAction);
+    $("gallery-action")?.addEventListener("click", () => {
+        closeMenu();
+        gallery.open();
+    });
+    // The date sheet jumps the chat, so the gallery steps aside first (and its
+    // history entry is gone before the sheet pushes its own).
+    $("date-jump-action")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        closeMenu();
+        await gallery.dismiss({ restoreFocus: false });
+        handleDateJumpAction(event);
+    });
+    document.addEventListener("chatlume:show-chat", () => gallery.dismiss({ restoreFocus: false }));
+    onAnonymizeChange(() => gallery.refresh());
     $("anonymize-toggle")?.addEventListener("click", () => toggleAnonymize());
     $("anonymize-banner-off")?.addEventListener("click", () => toggleAnonymize(false));
     $("scroll-latest")?.addEventListener("click", jumpToBottom);
@@ -303,10 +326,17 @@ function bindUI() {
 
     // Settings
     document.querySelectorAll("[data-setting]").forEach((control) => {
-        control.addEventListener("change", handleSettingChange);
+        control.addEventListener("change", (event) => {
+            handleSettingChange(event);
+            // Dates and times in the gallery follow the display settings.
+            gallery.refresh();
+        });
     });
     $("setting-identity")?.addEventListener("change", (event) => setChatOwner(event.target.value));
-    $("reset-settings")?.addEventListener("click", resetSettings);
+    $("reset-settings")?.addEventListener("click", () => {
+        resetSettings();
+        gallery.refresh();
+    });
 
     // Message list
     $("viewport")?.addEventListener("scroll", handleViewportScroll);
@@ -345,6 +375,10 @@ function handleGlobalKeydown(event) {
  * absent, so Escape returned early and never reached the open drawers.
  */
 function handleEscape() {
+    if (gallery.isMenuOpen()) {
+        gallery.closeMenu({ restoreFocus: true });
+        return;
+    }
     if (isSenderFilterDropdownOpen()) {
         closeSenderFilterDropdown();
         $("sender-filter-btn")?.focus();
@@ -364,6 +398,10 @@ function handleEscape() {
     }
     if (isVisible($("confirm-sheet"))) {
         resolveConfirmSheet(false);
+        return;
+    }
+    if (gallery.isOpen()) {
+        gallery.dismiss();
         return;
     }
     if (state.isSearchOpen) {

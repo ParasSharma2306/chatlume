@@ -8,29 +8,30 @@
  * the empty viewer.
  * ============================================================================
  */
-import { exportChatAsHTML } from "../export.js?v=1.9.0";
-import { showSponsorPrompt } from "../support.js?v=1.9.0";
-import { $, nextFrame, wait } from "../shared/dom.js?v=1.9.0";
-import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.9.0";
-import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.9.0";
-import { initialsFor } from "../shared/text.js?v=1.9.0";
-import { loadZip } from "../shared/zip.js?v=1.9.0";
-import { baseName } from "../shared/media-types.js?v=1.9.0";
-import { clearSelectedFile } from "./file-picker.js?v=1.9.0";
-import { ISSUES_URL, state } from "./state.js?v=1.9.0";
-import { display, shownTitle, syncAnonymizeControls } from "./anonymize.js?v=1.9.0";
-import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.9.0";
-import { isMeSender, parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.9.0";
-import { getChatSenders, populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.9.0";
+import { exportChatAsHTML } from "../export.js?v=1.10.0";
+import { showSponsorPrompt } from "../support.js?v=1.10.0";
+import { $, nextFrame, wait } from "../shared/dom.js?v=1.10.0";
+import { exceedsCompatLimit, fileTooLargeMessage } from "../shared/compat.js?v=1.10.0";
+import { inferOwner, renderIdentitySelect } from "../shared/identity.js?v=1.10.0";
+import { initialsFor } from "../shared/text.js?v=1.10.0";
+import { loadZip } from "../shared/zip.js?v=1.10.0";
+import { baseName } from "../shared/media-types.js?v=1.10.0";
+import { clearSelectedFile } from "./file-picker.js?v=1.10.0";
+import { ISSUES_URL, state } from "./state.js?v=1.10.0";
+import { display, shownTitle, syncAnonymizeControls } from "./anonymize.js?v=1.10.0";
+import { buildMediaStore, cleanupMediaStore, closeMediaModal, lazyMedia } from "./media.js?v=1.10.0";
+import { gallery } from "./gallery.js?v=1.10.0";
+import { isMeSender, parseChatData, parseChatDataFromEntry } from "./parser.js?v=1.10.0";
+import { getChatSenders, populateSenderFilter, resetSenderFilterUI } from "./filter.js?v=1.10.0";
 import {
     isPersistentStorageEnabled,
     markStoredImportOpened,
     persistCurrentImport,
     renderStoredImports
-} from "./persistence.js?v=1.9.0";
-import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.9.0";
-import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.9.0";
-import { generateStats } from "./stats.js?v=1.9.0";
+} from "./persistence.js?v=1.10.0";
+import { collectExportMessages, renderChatList, scrollToBottom } from "./render.js?v=1.10.0";
+import { setSearchEmptyState, toggleSearch, updateSearchCounter } from "./search.js?v=1.10.0";
+import { generateStats } from "./stats.js?v=1.10.0";
 import {
     closeMenu,
     isMobileLayout,
@@ -42,7 +43,7 @@ import {
     showEmptyState,
     showToast,
     updateLoadingCopy
-} from "./ui.js?v=1.9.0";
+} from "./ui.js?v=1.10.0";
 
 const HOW_TO_EXPORT_CTA = `<a class="empty-cta" href="how-to-export.html"><i class="ph ph-question"></i> How to export WhatsApp chats</a>`;
 
@@ -269,6 +270,8 @@ export function resetChatState() {
     state.inferredDateOrder = "DMY";
     state.parseDiagnostics = { unrecognizedHeaders: 0, unrecognizedSample: "" };
     state.activeMediaId = "";
+    state.flashMessageId = "";
+    gallery.reset();
     lazyMedia.disconnect();
     updateSearchCounter();
     setSearchEmptyState(false);

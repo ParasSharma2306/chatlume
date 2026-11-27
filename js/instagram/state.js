@@ -8,7 +8,7 @@
  * ============================================================================
  */
 
-import { readInstagramSettings } from "./settings.js?v=1.9.0";
+import { readInstagramSettings } from "./settings.js?v=1.10.0";
 
 export const IG_BATCH_SIZE = 60;
 export const IG_MAX_RENDERED = 180;
@@ -47,9 +47,11 @@ export const igState = {
     mediaLookup: new Map(),
     mediaUrls: new Set(),
     activeMediaId: "",
+    pinnedMediaIds: new Set(), // shown by the gallery, so never revoked from under it
 
     // ── Rendering / search ───────────────────────────────────────────────
     renderRange: { start: 0, end: 0 },
+    flashMessageId: "",      // briefly highlighted after "Jump to message"
     searchResults: [],
     searchPointer: -1,
     searchTimer: null,

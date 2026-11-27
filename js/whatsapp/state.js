@@ -7,7 +7,7 @@
  * session.js returns the per-chat fields to their defaults before each load.
  * ============================================================================
  */
-import { DEFAULT_SETTINGS } from "../settings.js?v=1.9.0";
+import { DEFAULT_SETTINGS } from "../settings.js?v=1.10.0";
 
 /** Rows added to the virtual window per scroll step. */
 export const BATCH_SIZE = 60;
@@ -52,10 +52,12 @@ export const state = {
     mediaLookup: new Map(),
     mediaUrls: new Set(),
     activeMediaId: "",
+    pinnedMediaIds: new Set(), // shown by the gallery, so never revoked from under it
     zipReader: null,
 
     // ── Rendering / search ───────────────────────────────────────────────
     renderRange: { start: 0, end: 0 },
+    flashMessageId: "",      // briefly highlighted after "Jump to message"
     searchResults: [],
     searchPointer: -1,
     searchTimer: null,

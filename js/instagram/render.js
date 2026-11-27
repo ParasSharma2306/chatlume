@@ -8,23 +8,24 @@
  * message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
-import { colorForName } from "../shared/colors.js?v=1.9.0";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.9.0";
-import { toEmojiPresentation } from "../shared/emoji.js?v=1.9.0";
-import { buildRichText, highlightOutsideTags, safeHttpUrl } from "../shared/text.js?v=1.9.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
+import { colorForName } from "../shared/colors.js?v=1.10.0";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.10.0";
+import { toEmojiPresentation } from "../shared/emoji.js?v=1.10.0";
+import { buildMaskedRichText, buildRichText, highlightOutsideTags, maskTextForSharing, maskUrlLabel, safeHttpUrl } from "../shared/text.js?v=1.10.0";
 import {
     clampRenderRange,
     createBottomPin,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.9.0";
-import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.9.0";
-import { lazyMedia } from "./media.js?v=1.9.0";
-import { closeMenu } from "./ui.js?v=1.9.0";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+} from "../shared/virtual-list.js?v=1.10.0";
+import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.10.0";
+import { lazyMedia } from "./media.js?v=1.10.0";
+import { closeMenu } from "./ui.js?v=1.10.0";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
+import { shareKindOf } from "./parser.js?v=1.10.0";
 
 export const getColor = (name) => colorForName(name, igState.colorMap);
 
@@ -73,7 +74,8 @@ export function renderChatList() {
 /** One bubble. `isFirst` adds the tail and (for others) the sender name. */
 function renderMessageRow(item, isFirst) {
     const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
-    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
+    const flashClass = item.id === igState.flashMessageId ? "msg-flash" : "";
+    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass} ${flashClass}`.replace(/\s+/g, " ").trim();
 
     const senderHtml = igState.settings.showSenderNames && !item.isMe && isFirst
         ? `<div class="sender" style="color:${getColor(item.sender)}">${escapeHtml(display.name(item.sender))}</div>`
@@ -81,20 +83,14 @@ function renderMessageRow(item, isFirst) {
 
     let textHtml = "";
     if (item.text) {
-        textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink && !item.shareText ? "has-meta" : ""}">${linkifyAndHighlight(display.text(item.text))}</div>`;
+        textHtml = `<div class="msg-text ${!item.mediaItems.length && !item.shareLink && !item.shareText ? "has-meta" : ""}">${linkifyAndHighlight(item.text)}</div>`;
     }
 
     const mediaHtml = item.mediaItems.length ? renderMediaStack(item.mediaItems) : "";
 
     let shareHtml = "";
     if (item.shareLink || item.shareText) {
-        const { link: shareLink, text: shareText } = shownShare(item);
-        const href = safeHttpUrl(shareLink);
-        const label = highlight(escapeHtml(shareText || shareLink || ""));
-        const body = href
-            ? `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`
-            : `<span>${label}</span>`;
-        shareHtml = `<div class="ig-share-link"><i class="ph ph-link-simple"></i>${body}</div>`;
+        shareHtml = renderShare(item);
     }
 
     const reactionsHtml = item.reactions.length ? renderReactions(item.reactions) : "";
@@ -109,10 +105,44 @@ function renderMessageRow(item, isFirst) {
       </article>`;
 }
 
+const SHARE_LABELS = { reel: "Reel", post: "Post", video: "Video", story: "Story" };
+const SHARE_ICONS = { reel: "ph-film-reel", post: "ph-image-square", video: "ph-video", story: "ph-circle-dashed" };
+
 /**
- * A shared post's link and caption as shown. A link Anonymize had to mask
- * (a name or number in the URL) is no longer a working address, so it is
- * shown as text rather than linked.
+ * A shared link. Reels, posts, IGTV and stories get a cover-style card: the
+ * export carries no thumbnail for them, and fetching one from Instagram
+ * would send the chat's links off the device, so the cover is drawn here
+ * (kind, owner, caption). On screen the link keeps its real target; only the
+ * visible caption, owner and URL are masked — masking the href too left a
+ * dead link.
+ */
+function renderShare(item) {
+    const href = safeHttpUrl(item.shareLink);
+    const kind = href ? shareKindOf(href) : "";
+    if (kind) {
+        const owner = item.shareOwner ? display.text(`@${item.shareOwner}`) : "";
+        const caption = display.text(item.shareText) || "";
+        return `<a class="ig-share-card ig-share-${kind}" href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">
+            <span class="ig-share-cover" aria-hidden="true"><i class="ph-fill ${SHARE_ICONS[kind]}"></i></span>
+            <span class="ig-share-body">
+                <span class="ig-share-kind"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i> ${SHARE_LABELS[kind]}</span>
+                ${owner ? `<strong class="ig-share-owner" dir="auto">${highlight(escapeHtml(owner))}</strong>` : ""}
+                ${caption ? `<span class="ig-share-caption" dir="auto">${highlight(escapeHtml(caption))}</span>` : ""}
+                <span class="ig-share-open">Open on Instagram <i class="ph ph-arrow-square-out" aria-hidden="true"></i></span>
+            </span>
+        </a>`;
+    }
+    const label = highlight(escapeHtml(display.text(item.shareText) || (item.shareLink ? maskUrlLabel(item.shareLink, display.fileName) : "")));
+    const body = href
+        ? `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        : `<span>${label}</span>`;
+    return `<div class="ig-share-link"><i class="ph ph-link-simple"></i>${body}</div>`;
+}
+
+/**
+ * A shared post's link and caption for the HTML export. A link Anonymize had
+ * to mask (a name or number in the URL) can't be kept in a file meant for
+ * sharing, so the export shows it as text rather than linking it.
  */
 function shownShare(item) {
     const link = display.text(item.shareLink) || null;
@@ -123,9 +153,16 @@ function shownShare(item) {
 
 // ── Text ────────────────────────────────────────────────────────────────────
 
-/** Links (no WhatsApp-style formatting markers), then the search highlight. */
+/**
+ * Raw text → links (no WhatsApp-style formatting markers), then the search
+ * highlight. In Anonymize mode the visible text is masked but a link keeps
+ * its real target.
+ */
 export function linkifyAndHighlight(text) {
-    return highlight(buildRichText(escapeHtml(text || ""), { formatting: false }));
+    const html = display.isOn()
+        ? buildMaskedRichText(text || "", { formatting: false, mask: display.text, maskUrl: display.fileName })
+        : buildRichText(escapeHtml(text || ""), { formatting: false });
+    return highlight(html);
 }
 
 function highlight(html) {
@@ -196,7 +233,7 @@ export function collectExportMessages() {
             return { type: "date", label: formatDateLabel(item.ts, igState.settings) };
         }
         if (item.type === "system") {
-            return { type: "system", text: display.text(item.content) };
+            return { type: "system", text: exportText(item.content) };
         }
         return {
             type: "msg",
@@ -204,12 +241,18 @@ export function collectExportMessages() {
             time: formatMessageTime(item.ts, igState.settings),
             isMe: item.isMe,
             color: getColor(item.sender),
-            text: display.text(item.text),
+            text: exportText(item.text),
             media: (item.mediaItems || []).map((m) => ({ id: m.id, kind: m.kind, name: display.fileName(m.name) })),
             ...(({ link, text }) => ({ shareLink: link, shareText: text }))(shownShare(item)),
             reactions: (item.reactions || []).map((reaction) => ({ reaction: reaction.reaction, actor: display.name(reaction.actor) }))
         };
     });
+}
+
+/** Message text for the export: masked, and never a link to a half-masked URL. */
+function exportText(text) {
+    if (!text || !display.isOn()) return text;
+    return maskTextForSharing(text, { mask: display.text, maskUrl: display.fileName });
 }
 
 // ── Search focus ────────────────────────────────────────────────────────────

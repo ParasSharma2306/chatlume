@@ -7,23 +7,23 @@
  * Also produces the normalised message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.9.0";
-import { colorForName } from "../shared/colors.js?v=1.9.0";
-import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.9.0";
-import { buildRichText, highlightOutsideTags } from "../shared/text.js?v=1.9.0";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.9.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
+import { colorForName } from "../shared/colors.js?v=1.10.0";
+import { formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.10.0";
+import { buildMaskedRichText, buildRichText, highlightOutsideTags, maskTextForSharing } from "../shared/text.js?v=1.10.0";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.10.0";
 import {
     clampRenderRange,
     createBottomPin,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.9.0";
-import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.9.0";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.9.0";
-import { lazyMedia } from "./media.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
-import { closeMenu } from "./ui.js?v=1.9.0";
+} from "../shared/virtual-list.js?v=1.10.0";
+import { BATCH_SIZE, MAX_RENDERED_ITEMS, state } from "./state.js?v=1.10.0";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
+import { lazyMedia } from "./media.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
+import { closeMenu } from "./ui.js?v=1.10.0";
 
 /** Colour for a sender's name label, stable for the life of the chat. */
 export const getColor = (name) => colorForName(name, state.colorMap);
@@ -58,7 +58,7 @@ export function renderChatList() {
         }
 
         if (item.type === "system") {
-            html += `<div class="system-msg" id="${item.id}">${linkifyAndHighlight(display.text(item.content))}</div>`;
+            html += `<div class="system-msg" id="${item.id}">${linkifyAndHighlight(item.content)}</div>`;
             lastSender = null;
             continue;
         }
@@ -76,7 +76,8 @@ export function renderChatList() {
 /** One bubble. `isFirst` adds the tail and (for others) the sender name. */
 function renderMessageRow(item, isFirst) {
     const tailClass = isFirst ? (item.isMe ? "tail-out" : "tail-in") : "";
-    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass}`.trim();
+    const flashClass = item.id === state.flashMessageId ? "msg-flash" : "";
+    const rowClass = `msg-row ${item.isMe ? "sent" : "received"} ${isFirst ? "tail" : ""} ${tailClass} ${flashClass}`.replace(/\s+/g, " ").trim();
     const senderHtml = state.settings.showSenderNames && !item.isMe && isFirst
         ? `<div class="sender" style="color:${getColor(item.sender)}">${escapeHtml(display.name(item.sender))}</div>`
         : "";
@@ -85,7 +86,7 @@ function renderMessageRow(item, isFirst) {
     if (item.text) {
         textHtml = CALL_PATTERN.test(item.text)
             ? renderCallCard(item.text)
-            : `<div class="msg-text ${item.mediaItems.length ? "" : "has-meta"}">${renderMessageText(display.text(item.text))}</div>`;
+            : `<div class="msg-text ${item.mediaItems.length ? "" : "has-meta"}">${renderMessageText(item.text)}</div>`;
     }
     const mediaHtml = item.mediaItems.length ? renderMediaStack(item.mediaItems) : "";
     const readTick = item.isMe && state.settings.showReadTicks ? '<i class="ph-bold ph-checks" style="color:#53bdeb"></i>' : "";
@@ -120,24 +121,33 @@ function renderCallCard(text) {
 
 const currentSearchQuery = () => $("live-search")?.value.trim();
 
-/** Message body: rich text when the setting is on, else escaped + highlighted. */
+/**
+ * Message body (raw text): rich text when the setting is on, else escaped +
+ * highlighted. Names, numbers and emails are masked here, in Anonymize mode.
+ */
 export function renderMessageText(text) {
     if (state.settings.richText) {
         return linkifyAndHighlight(text);
     }
 
     const query = currentSearchQuery();
-    let escaped = escapeHtml(text || "");
+    let escaped = escapeHtml(display.text(text || ""));
     if (query) {
         escaped = highlightOutsideTags(escaped, query);
     }
     return escaped;
 }
 
-/** Links + formatting markers, then the search highlight over the result. */
+/**
+ * Links + formatting markers, then the search highlight over the result.
+ * Takes raw text: in Anonymize mode a link keeps its real target and only
+ * its visible text is masked (masking first broke links with a name in them).
+ */
 export function linkifyAndHighlight(text) {
     const query = currentSearchQuery();
-    let html = buildRichText(escapeHtml(text || ""));
+    let html = display.isOn()
+        ? buildMaskedRichText(text || "", { mask: display.text, maskUrl: display.fileName })
+        : buildRichText(escapeHtml(text || ""));
 
     if (query) {
         html = highlightOutsideTags(html, query);
@@ -244,7 +254,7 @@ export function collectExportMessages() {
             return { type: "date", label: formatDateLabel(item.rawDate || item.content) };
         }
         if (item.type === "system") {
-            return { type: "system", text: display.text(item.content) };
+            return { type: "system", text: exportText(item.content) };
         }
         return {
             type: "msg",
@@ -252,10 +262,16 @@ export function collectExportMessages() {
             time: formatMessageTime(item.rawTime || item.time),
             isMe: item.isMe,
             color: getColor(item.sender),
-            text: item.text === "null" ? "Missed call" : display.text(item.text),
+            text: item.text === "null" ? "Missed call" : exportText(item.text),
             media: (item.mediaItems || []).map((media) => ({ id: media.id, kind: media.kind, name: display.fileName(media.name) }))
         };
     });
+}
+
+/** Message text for the export: masked, and never a link to a half-masked URL. */
+function exportText(text) {
+    if (!text || !display.isOn()) return text;
+    return maskTextForSharing(text, { mask: display.text, maskUrl: display.fileName });
 }
 
 // ── Search focus ────────────────────────────────────────────────────────────

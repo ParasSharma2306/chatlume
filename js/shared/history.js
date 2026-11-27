@@ -11,7 +11,17 @@
 /** Pushes an entry for `overlayId` unless that overlay is already on top. */
 export function pushOverlayState(overlayId) {
     if (history.state && history.state.overlay === overlayId) return;
-    history.pushState({ overlay: overlayId }, "");
+    history.pushState({ overlay: overlayId, depth: overlayDepth() + 1 }, "");
+}
+
+/**
+ * How many overlay entries deep a history state is (0 = the page itself).
+ * Lets an overlay that others stack on (the gallery) stay open when Back
+ * closes something above it, and close only once Back goes below it.
+ */
+export function overlayDepth(entry = history.state) {
+    if (!entry || !entry.overlay) return 0;
+    return Number.isFinite(entry.depth) ? entry.depth : 1;
 }
 
 /**

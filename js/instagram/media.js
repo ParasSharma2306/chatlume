@@ -6,17 +6,17 @@
  * read out of the export ZIP. The store itself is built in parser.js.
  * ============================================================================
  */
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.9.0";
-import { createMediaModal } from "../shared/media-modal.js?v=1.9.0";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.10.0";
+import { createMediaModal } from "../shared/media-modal.js?v=1.10.0";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.9.0";
-import { igState } from "./state.js?v=1.9.0";
-import { showToast } from "./ui.js?v=1.9.0";
-import { display } from "./anonymize.js?v=1.9.0";
+} from "../shared/media-urls.js?v=1.10.0";
+import { igState } from "./state.js?v=1.10.0";
+import { showToast } from "./ui.js?v=1.10.0";
+import { display } from "./anonymize.js?v=1.10.0";
 
 /** An attachment's name as shown (and downloaded) — masked in Anonymize mode. */
 const shownMediaName = (media) => display.fileName(media.name);
@@ -33,7 +33,7 @@ export const lazyMedia = createLazyMediaLoader({
 
 export const mediaModal = createMediaModal({
     state: igState,
-    ids: { modal: "ig-media-modal", body: "ig-media-modal-body", subtitle: "ig-media-modal-subtitle", download: "ig-media-download-link" },
+    ids: { modal: "ig-media-modal", body: "ig-media-modal-body", subtitle: "ig-media-modal-subtitle", download: "ig-media-download-link", close: "ig-media-modal-close" },
     overlayId: "igmedia",
     getMedia: (id) => igState.mediaStore.get(id),
     ensureUrl: ensureMediaUrl,
