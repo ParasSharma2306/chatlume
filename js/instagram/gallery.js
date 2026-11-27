@@ -6,15 +6,15 @@
  * messages, media store, lightbox, Anonymize view and "Jump to message".
  * ============================================================================
  */
-import { createGallery } from "../shared/gallery.js?v=1.10.0";
-import { formatBytes } from "../shared/media-types.js?v=1.10.0";
-import { releaseMediaUrlIfUnused } from "../shared/media-urls.js?v=1.10.0";
-import { igState } from "./state.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
-import { ensureMediaUrl, openMediaModal } from "./media.js?v=1.10.0";
-import { jumpToMessage } from "./search.js?v=1.10.0";
-import { showToast } from "./ui.js?v=1.10.0";
+import { createGallery } from "../shared/gallery.js?v=1.10.1";
+import { formatBytes } from "../shared/media-types.js?v=1.10.1";
+import { releaseMediaUrlIfUnused } from "../shared/media-urls.js?v=1.10.1";
+import { igState } from "./state.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.1";
+import { ensureMediaUrl, openMediaModal } from "./media.js?v=1.10.1";
+import { jumpToMessage } from "./search.js?v=1.10.1";
+import { showToast } from "./ui.js?v=1.10.1";
 
 export const gallery = createGallery({
     prefix: "ig-gallery",

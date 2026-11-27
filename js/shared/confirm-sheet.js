@@ -7,8 +7,8 @@
  * `<prefix>`, `<prefix>-title`, `<prefix>-body`, `<prefix>-cancel`, `<prefix>-apply`.
  * ============================================================================
  */
-import { $ } from "./dom.js?v=1.10.0";
-import { pushOverlayState } from "./history.js?v=1.10.0";
+import { $ } from "./dom.js?v=1.10.1";
+import { pushOverlayState } from "./history.js?v=1.10.1";
 
 export function createConfirmSheet(prefix, overlayId) {
     let resolver = null;

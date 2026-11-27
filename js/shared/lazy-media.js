@@ -12,7 +12,7 @@
  *   lazyMedia.disconnect();  // before re-rendering or resetting
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.1";
 
 /**
  * @param {Object}   options

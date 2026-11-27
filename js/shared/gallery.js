@@ -28,11 +28,11 @@
  * URLs, never rewritten; only their visible text is masked.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.0";
-import { overlayDepth, popOverlayState, pushOverlayState } from "./history.js?v=1.10.0";
-import { collectGallery } from "./gallery-model.js?v=1.10.0";
-import { createLongPress } from "./long-press.js?v=1.10.0";
-import { hostOf, maskUrlLabel } from "./text.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.1";
+import { overlayDepth, popOverlayState, pushOverlayState } from "./history.js?v=1.10.1";
+import { collectGallery } from "./gallery-model.js?v=1.10.1";
+import { createLongPress } from "./long-press.js?v=1.10.1";
+import { hostOf, maskUrlLabel } from "./text.js?v=1.10.1";
 
 export const GALLERY_TABS = ["media", "links", "docs"];
 

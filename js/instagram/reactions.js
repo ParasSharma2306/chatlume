@@ -13,11 +13,11 @@
  * Names go through Anonymize like everywhere else.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { describeReactionGroup, groupReactions } from "../shared/reactions.js?v=1.10.0";
-import { initialsFor } from "../shared/text.js?v=1.10.0";
-import { igState } from "./state.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { describeReactionGroup, groupReactions } from "../shared/reactions.js?v=1.10.1";
+import { initialsFor } from "../shared/text.js?v=1.10.1";
+import { igState } from "./state.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 let popover = null;
 let anchor = null;

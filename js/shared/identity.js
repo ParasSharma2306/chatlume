@@ -6,7 +6,7 @@
  * chat is open, instead of demanding an exact name up front.
  * ============================================================================
  */
-import { escapeAttribute, escapeHtml } from "./dom.js?v=1.10.0";
+import { escapeAttribute, escapeHtml } from "./dom.js?v=1.10.1";
 
 /**
  * The export's owner, when it can be told from the chat alone: a one-to-one

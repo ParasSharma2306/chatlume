@@ -8,9 +8,9 @@
  * module — render, search, filter, export — can use it without a cycle.
  * ============================================================================
  */
-import { $ } from "../shared/dom.js?v=1.10.0";
-import { createAnonymizeView } from "../shared/anonymize.js?v=1.10.0";
-import { state } from "./state.js?v=1.10.0";
+import { $ } from "../shared/dom.js?v=1.10.1";
+import { createAnonymizeView } from "../shared/anonymize.js?v=1.10.1";
+import { state } from "./state.js?v=1.10.1";
 
 export const display = createAnonymizeView(() => ({
     messages: state.messages,

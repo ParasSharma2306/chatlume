@@ -16,8 +16,8 @@
  * when it was sent (WhatsApp messages carry only a time of day).
  * ============================================================================
  */
-import { detectMediaType } from "./media-types.js?v=1.10.0";
-import { extractLinks, safeHttpUrl } from "./text.js?v=1.10.0";
+import { detectMediaType } from "./media-types.js?v=1.10.1";
+import { extractLinks, safeHttpUrl } from "./text.js?v=1.10.1";
 
 /** What a WhatsApp ".txt" export writes for every attachment it left out. */
 export const OMITTED_MEDIA_NAME = "Media omitted";

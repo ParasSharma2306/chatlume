@@ -6,17 +6,17 @@
  * read out of the export ZIP. The store itself is built in parser.js.
  * ============================================================================
  */
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.10.0";
-import { createMediaModal } from "../shared/media-modal.js?v=1.10.0";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.10.1";
+import { createMediaModal } from "../shared/media-modal.js?v=1.10.1";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.10.0";
-import { igState } from "./state.js?v=1.10.0";
-import { showToast } from "./ui.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+} from "../shared/media-urls.js?v=1.10.1";
+import { igState } from "./state.js?v=1.10.1";
+import { showToast } from "./ui.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 /** An attachment's name as shown (and downloaded) — masked in Anonymize mode. */
 const shownMediaName = (media) => display.fileName(media.name);

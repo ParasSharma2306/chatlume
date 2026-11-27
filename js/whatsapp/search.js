@@ -8,10 +8,10 @@
  * result list, the pointer and the toolbar.
  * ============================================================================
  */
-import { $, isTypingTarget } from "../shared/dom.js?v=1.10.0";
-import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.10.0";
-import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+import { $, isTypingTarget } from "../shared/dom.js?v=1.10.1";
+import { MAX_RENDERED_ITEMS, SEARCH_DEBOUNCE_MS, state } from "./state.js?v=1.10.1";
+import { renderChatList, syncFocusedSearchResult } from "./render.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 /**
  * The text a message is matched against — what is on screen, so in Anonymize

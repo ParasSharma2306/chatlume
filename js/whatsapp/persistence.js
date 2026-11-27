@@ -13,15 +13,15 @@
  * the dependency pointing one way (session → persistence).
  * ============================================================================
  */
-import * as storage from "../storage.js?v=1.10.0";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { formatBytes } from "../shared/media-types.js?v=1.10.0";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.10.0";
-import { STORAGE_KEYS, state } from "./state.js?v=1.10.0";
-import { display, shownTitle } from "./anonymize.js?v=1.10.0";
-import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.10.0";
-import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.10.0";
-import { filterSidebarChats } from "./sidebar-search.js?v=1.10.0";
+import * as storage from "../storage.js?v=1.10.1";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { formatBytes } from "../shared/media-types.js?v=1.10.1";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.10.1";
+import { STORAGE_KEYS, state } from "./state.js?v=1.10.1";
+import { display, shownTitle } from "./anonymize.js?v=1.10.1";
+import { askConfirm, isMobileLayout, setSidebarState, showToast } from "./ui.js?v=1.10.1";
+import { saveSettings, syncSettingsControls } from "./settings-store.js?v=1.10.1";
+import { filterSidebarChats } from "./sidebar-search.js?v=1.10.1";
 
 /**
  * Callbacks supplied by session.js:

@@ -7,12 +7,12 @@
  * the user taps.
  * ============================================================================
  */
-import { $, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { folderBoxLabel, folderLabel } from "./parser.js?v=1.10.0";
-import { igState } from "./state.js?v=1.10.0";
-import { isMobileLayout, setSidebarState } from "./ui.js?v=1.10.0";
-import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+import { $, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { folderBoxLabel, folderLabel } from "./parser.js?v=1.10.1";
+import { igState } from "./state.js?v=1.10.1";
+import { isMobileLayout, setSidebarState } from "./ui.js?v=1.10.1";
+import { filterThreadOptions, makeThreadOptions } from "./threads-model.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 /**
  * @param {Array}    threads   From parser.findThreads().

@@ -9,10 +9,10 @@
  * with in-chat search and date filters.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { tailRange } from "../shared/virtual-list.js?v=1.10.0";
-import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { tailRange } from "../shared/virtual-list.js?v=1.10.1";
+import { MAX_RENDERED_ITEMS, state } from "./state.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 /**
  * Returns true if the sender represents the current user ("You" or myName).

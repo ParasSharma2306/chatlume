@@ -16,8 +16,8 @@
  * must expose `activeMediaId` (also read by the blob-URL release logic).
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.0";
-import { pushOverlayState } from "./history.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "./dom.js?v=1.10.1";
+import { pushOverlayState } from "./history.js?v=1.10.1";
 
 /** Horizontal travel (px) that counts as a swipe in the lightbox. */
 const SWIPE_DISTANCE = 50;

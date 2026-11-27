@@ -13,19 +13,19 @@
  * NFC/NFD spellings and case never keep a file from being found.
  * ============================================================================
  */
-import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.10.0";
-import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.10.0";
-import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.10.0";
-import { createMediaModal } from "../shared/media-modal.js?v=1.10.0";
+import { attachmentLookupKey } from "../whatsapp-parser.js?v=1.10.1";
+import { baseName, detectMediaType, formatBytes, labelForMediaKind } from "../shared/media-types.js?v=1.10.1";
+import { createLazyMediaLoader } from "../shared/lazy-media.js?v=1.10.1";
+import { createMediaModal } from "../shared/media-modal.js?v=1.10.1";
 import {
     clearMediaStore,
     downloadMediaItem,
     ensureMediaUrl as ensureUrl,
     releaseMediaUrlIfUnused
-} from "../shared/media-urls.js?v=1.10.0";
-import { state } from "./state.js?v=1.10.0";
-import { showToast } from "./ui.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
+} from "../shared/media-urls.js?v=1.10.1";
+import { state } from "./state.js?v=1.10.1";
+import { showToast } from "./ui.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
 
 /** An attachment's name as shown (and downloaded) — masked in Anonymize mode. */
 const shownMediaName = (media) => display.fileName(media.name);

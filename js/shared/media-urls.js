@@ -19,7 +19,7 @@
  *   renderRange / filteredMessages  the virtual window (see virtual-list.js)
  * ============================================================================
  */
-import { loadZip } from "./zip.js?v=1.10.0";
+import { loadZip } from "./zip.js?v=1.10.1";
 
 /** Decodes the entry (once) and returns its blob URL. */
 export async function ensureMediaUrl(state, media) {

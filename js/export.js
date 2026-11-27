@@ -1,5 +1,5 @@
 /**
- * ChatLume HTML Export (v1.10.0)
+ * ChatLume HTML Export (v1.10.1)
  *
  * Builds a self-contained, themed HTML document from already-parsed message
  * data. Exports can be downloaded as a standalone HTML file or as a ZIP
@@ -22,9 +22,9 @@
  *     { type: "msg", sender, time, isMe, color, text,
  *       media: [{ kind, name }], shareLink?, shareText?, reactions? }
  */
-import { describeReactionGroup, groupReactions } from './shared/reactions.js?v=1.10.0';
-import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.10.0';
-import { loadZip } from './shared/zip.js?v=1.10.0';
+import { describeReactionGroup, groupReactions } from './shared/reactions.js?v=1.10.1';
+import { buildRichText, safeHttpUrl } from './shared/text.js?v=1.10.1';
+import { loadZip } from './shared/zip.js?v=1.10.1';
 
 export async function exportChatAsHTML({
   filename,

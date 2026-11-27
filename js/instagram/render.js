@@ -8,25 +8,25 @@
  * message list the HTML export consumes.
  * ============================================================================
  */
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { colorForName } from "../shared/colors.js?v=1.10.0";
-import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.10.0";
-import { describeReactionGroup, groupReactions } from "../shared/reactions.js?v=1.10.0";
-import { closeReactionPopover } from "./reactions.js?v=1.10.0";
-import { buildMaskedRichText, buildRichText, highlightOutsideTags, maskTextForSharing, maskUrlLabel, safeHttpUrl } from "../shared/text.js?v=1.10.0";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { colorForName } from "../shared/colors.js?v=1.10.1";
+import { releaseOffscreenMediaUrls } from "../shared/media-urls.js?v=1.10.1";
+import { describeReactionGroup, groupReactions } from "../shared/reactions.js?v=1.10.1";
+import { closeReactionPopover } from "./reactions.js?v=1.10.1";
+import { buildMaskedRichText, buildRichText, highlightOutsideTags, maskTextForSharing, maskUrlLabel, safeHttpUrl } from "../shared/text.js?v=1.10.1";
 import {
     clampRenderRange,
     createBottomPin,
     paginateOnScroll,
     syncScrollLatestButton,
     tailRange
-} from "../shared/virtual-list.js?v=1.10.0";
-import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.10.0";
-import { lazyMedia } from "./media.js?v=1.10.0";
-import { closeMenu } from "./ui.js?v=1.10.0";
-import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.0";
-import { display } from "./anonymize.js?v=1.10.0";
-import { shareKindOf } from "./parser.js?v=1.10.0";
+} from "../shared/virtual-list.js?v=1.10.1";
+import { IG_BATCH_SIZE, IG_MAX_RENDERED, igState } from "./state.js?v=1.10.1";
+import { lazyMedia } from "./media.js?v=1.10.1";
+import { closeMenu } from "./ui.js?v=1.10.1";
+import { formatDateLabel, formatMessageTime } from "./format.js?v=1.10.1";
+import { display } from "./anonymize.js?v=1.10.1";
+import { shareKindOf } from "./parser.js?v=1.10.1";
 
 export const getColor = (name) => colorForName(name, igState.colorMap);
 

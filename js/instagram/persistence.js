@@ -1,13 +1,13 @@
 /** Opt-in local ZIP storage, isolated from WhatsApp records and preferences. */
-import * as storage from "../storage.js?v=1.10.0";
-import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.0";
-import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.10.0";
-import { igState } from "./state.js?v=1.10.0";
-import { writeInstagramSettings } from "./settings.js?v=1.10.0";
-import { popOverlayState } from "../shared/history.js?v=1.10.0";
-import { importsOfKind } from "../shared/import-records.js?v=1.10.0";
-import { askConfirm, closeAllDrawers, showToast } from "./ui.js?v=1.10.0";
-import { display, shownTitle } from "./anonymize.js?v=1.10.0";
+import * as storage from "../storage.js?v=1.10.1";
+import { $, escapeAttribute, escapeHtml } from "../shared/dom.js?v=1.10.1";
+import { readStored, removeStored, writeStored } from "../shared/safe-storage.js?v=1.10.1";
+import { igState } from "./state.js?v=1.10.1";
+import { writeInstagramSettings } from "./settings.js?v=1.10.1";
+import { popOverlayState } from "../shared/history.js?v=1.10.1";
+import { importsOfKind } from "../shared/import-records.js?v=1.10.1";
+import { askConfirm, closeAllDrawers, showToast } from "./ui.js?v=1.10.1";
+import { display, shownTitle } from "./anonymize.js?v=1.10.1";
 
 /**
  * Saved exports are named after people, so Anonymize mode shows the open one

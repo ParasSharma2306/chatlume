@@ -10,7 +10,7 @@
  * WhatsApp's chat export carries no reactions, so nothing here applies to it.
  * ============================================================================
  */
-import { toEmojiPresentation } from "./emoji.js?v=1.10.0";
+import { toEmojiPresentation } from "./emoji.js?v=1.10.1";
 
 /**
  * Characters that change how an emoji is drawn but not which emoji it is:

@@ -19,28 +19,28 @@
  * All processing is client-side; nothing is uploaded.
  * ============================================================================
  */
-import { $ } from "./shared/dom.js?v=1.10.0";
-import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.10.0";
-import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.10.0";
-import { overlayOf, popOverlayState } from "./shared/history.js?v=1.10.0";
-import { runSplashLoader } from "./shared/splash.js?v=1.10.0";
-import { createThemeController } from "./shared/theme.js?v=1.10.0";
-import { igState } from "./instagram/state.js?v=1.10.0";
-import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.10.0";
-import { handleViewportScroll, jumpToBottom, renderChatList } from "./instagram/render.js?v=1.10.0";
-import { handleSearchInput, handleSearchKeydown, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.10.0";
-import { reflectSelectedFile } from "./instagram/file-picker.js?v=1.10.0";
-import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.10.0";
-import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.10.0";
-import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.10.0";
-import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.10.0";
-import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.10.0";
-import { applySenderSelection, closeActiveThread, initViewer, loadThread, setThreadOwner } from "./instagram/session.js?v=1.10.0";
-import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram/threads.js?v=1.10.0";
-import { syncAnonymizeControls } from "./instagram/anonymize.js?v=1.10.0";
-import { onAnonymizeChange, toggleAnonymize } from "./instagram/anonymize-toggle.js?v=1.10.0";
-import { gallery } from "./instagram/gallery.js?v=1.10.0";
-import { closeReactionPopover, handleReactionClick, isReactionPopoverOpen } from "./instagram/reactions.js?v=1.10.0";
+import { $ } from "./shared/dom.js?v=1.10.1";
+import { COMPAT_LIMIT_MESSAGE, exceedsCompatLimit, showCompatBannerIfNeeded } from "./shared/compat.js?v=1.10.1";
+import { assignFileToInput, setupDropTarget, setupGlobalDropZone } from "./shared/drop-zone.js?v=1.10.1";
+import { overlayOf, popOverlayState } from "./shared/history.js?v=1.10.1";
+import { runSplashLoader } from "./shared/splash.js?v=1.10.1";
+import { createThemeController } from "./shared/theme.js?v=1.10.1";
+import { igState } from "./instagram/state.js?v=1.10.1";
+import { closeMediaModal, handleMessageListClick } from "./instagram/media.js?v=1.10.1";
+import { handleViewportScroll, jumpToBottom, renderChatList } from "./instagram/render.js?v=1.10.1";
+import { handleSearchInput, handleSearchKeydown, handleSearchShortcut, isSearchOpen, navSearch, runSearch, toggleSearch } from "./instagram/search.js?v=1.10.1";
+import { reflectSelectedFile } from "./instagram/file-picker.js?v=1.10.1";
+import { applyDateJump, closeDateSheet, openDateSheet } from "./instagram/date-jump.js?v=1.10.1";
+import { closeInstagramWrapped, downloadInstagramWrapped, openInstagramWrapped } from "./instagram/wrapped.js?v=1.10.1";
+import { cancelInstagramCopy, deleteAllInstagramImports, handleInstagramStorageClick, handleInstagramStorageSetting, initInstagramPersistence } from "./instagram/persistence.js?v=1.10.1";
+import { DEFAULT_IG_SETTINGS } from "./instagram/format.js?v=1.10.1";
+import { readInstagramSettings, writeInstagramSettings } from "./instagram/settings.js?v=1.10.1";
+import { applySenderSelection, closeActiveThread, initViewer, loadThread, setThreadOwner } from "./instagram/session.js?v=1.10.1";
+import { showOpenThread, showThreadSelector, syncBackButtons } from "./instagram/threads.js?v=1.10.1";
+import { syncAnonymizeControls } from "./instagram/anonymize.js?v=1.10.1";
+import { onAnonymizeChange, toggleAnonymize } from "./instagram/anonymize-toggle.js?v=1.10.1";
+import { gallery } from "./instagram/gallery.js?v=1.10.1";
+import { closeReactionPopover, handleReactionClick, isReactionPopoverOpen } from "./instagram/reactions.js?v=1.10.1";
 import {
     closeAllDrawers,
     closeMenu,
@@ -53,9 +53,9 @@ import {
     showToast,
     toggleMenu,
     toggleSidebar
-} from "./instagram/ui.js?v=1.10.0";
+} from "./instagram/ui.js?v=1.10.1";
 
-const IG_APP_VERSION = "1.10.0";
+const IG_APP_VERSION = "1.10.1";
 
 const theme = createThemeController({ iconSelector: "#ig-theme-toggle i" });
 
